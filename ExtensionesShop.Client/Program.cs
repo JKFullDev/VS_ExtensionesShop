@@ -1,4 +1,5 @@
 using ExtensionesShop.Client;
+using ExtensionesShop.Client.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -12,5 +13,10 @@ builder.Services.AddScoped(sp => new HttpClient
     BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
 });
 
-await builder.Build().RunAsync();
+// Registrar ProductService
+builder.Services.AddScoped<ProductService>();
 
+// Registrar CartStateService como Singleton para mantener el estado
+builder.Services.AddSingleton<CartStateService>();
+
+await builder.Build().RunAsync();

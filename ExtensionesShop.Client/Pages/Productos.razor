@@ -1,0 +1,435 @@
+@page "/productos"
+@using ExtensionesShop.Shared.Models
+@using ExtensionesShop.Client.Services
+@inject ProductService ProductService
+@inject CartStateService CartState
+
+<div class="productos-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="section-inner">
+            <div class="breadcrumb">
+                <a href="/" class="breadcrumb-link">Inicio</a>
+                <span class="breadcrumb-separator">→</span>
+                <span class="breadcrumb-current">Catálogo</span>
+            </div>
+            <h1 class="page-title">Nuestro Catálogo</h1>
+            <p class="page-subtitle">Descubre extensiones de cabello premium 100% Remy. Calidad profesional garantizada.</p>
+        </div>
+    </div>
+
+    <!-- Productos Grid -->
+    <div class="productos-section">
+        <div class="section-inner">
+            @if (isLoading)
+            {
+                <div class="loading-state">
+                    <div class="spinner">✦</div>
+                    <p>Cargando productos...</p>
+                </div>
+            }
+            else if (!productos.Any())
+            {
+                <div class="empty-state">
+                    <p>No se encontraron productos</p>
+                </div>
+            }
+            else
+            {
+                <div class="productos-grid">
+                    @foreach (var producto in productos)
+                    {
+                        <div class="producto-card">
+                            <!-- Badge de descuento -->
+                            @if (producto.DiscountPercentage.HasValue)
+                            {
+                                <div class="discount-badge">
+                                    -@producto.DiscountPercentage%
+                                </div>
+                            }
+
+                            <!-- Badge de nuevo -->
+                            @if (producto.IsNew)
+                            {
+                                <div class="new-badge">NUEVO</div>
+                            }
+
+                            <!-- Imagen -->
+                            <div class="producto-image">
+                                <img src="@producto.ImageUrl" alt="@producto.Name" loading="lazy" />
+                            </div>
+
+                            <!-- Info -->
+                            <div class="producto-info">
+                                <!-- Categoría -->
+                                <span class="producto-category">@producto.Category?.Name</span>
+
+                                <!-- Título -->
+                                <h3 class="producto-title">@producto.Name</h3>
+
+                                <!-- Atributos -->
+                                <div class="producto-attributes">
+                                    @if (!string.IsNullOrEmpty(producto.Length))
+                                    {
+                                        <span class="attribute">@producto.Length</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(producto.Weight))
+                                    {
+                                        <span class="attribute">@producto.Weight</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(producto.Color))
+                                    {
+                                        <span class="attribute">@producto.Color</span>
+                                    }
+                                </div>
+
+                                <!-- Precio -->
+                                <div class="producto-price">
+                                    @if (producto.OriginalPrice.HasValue)
+                                    {
+                                        <span class="price-original">$@producto.OriginalPrice.Value.ToString("N2")</span>
+                                    }
+                                    <span class="price-current">$@producto.Price.ToString("N2")</span>
+                                </div>
+
+                                <!-- Stock info -->
+                                @if (producto.Stock < 10 && producto.Stock > 0)
+                                {
+                                    <p class="stock-warning">¡Solo quedan @producto.Stock unidades!</p>
+                                }
+                                else if (producto.Stock == 0)
+                                {
+                                    <p class="stock-out">Agotado</p>
+                                }
+
+                                <!-- Botón de compra -->
+                                <button class="btn-primary"
+                                        disabled="@(producto.Stock == 0)"
+                                        @onclick="() => AgregarAlCarrito(producto)">
+                                    @if (producto.Stock > 0)
+                                    {
+                                        <text>Añadir al Carrito</text>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                            <line x1="3" y1="6" x2="21" y2="6" />
+                                            <path d="M16 10a4 4 0 0 1-8 0" />
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <text>No Disponible</text>
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ── Page Header ────────────────────────────────────── */
+    .page-header {
+        background: linear-gradient(to bottom, var(--rose-pale), var(--white));
+        padding: 48px 0 64px;
+        text-align: center;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 16px;
+    }
+
+    .breadcrumb-link {
+        color: var(--rose);
+        transition: color .2s;
+    }
+
+        .breadcrumb-link:hover {
+            color: var(--rose-deep);
+        }
+
+    .breadcrumb-separator {
+        color: var(--border-dark);
+    }
+
+    .page-title {
+        font-family: var(--font-display);
+        font-size: clamp(36px, 5vw, 52px);
+        font-weight: 300;
+        letter-spacing: -.02em;
+        color: var(--ink);
+        margin-bottom: 12px;
+    }
+
+    .page-subtitle {
+        font-size: 15px;
+        color: var(--ink-light);
+        max-width: 560px;
+        margin: 0 auto;
+    }
+
+    /* ── Loading State ──────────────────────────────────── */
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 120px 0;
+        color: var(--muted);
+    }
+
+    .spinner {
+        font-size: 48px;
+        animation: spin 2s linear infinite;
+        color: var(--rose);
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .loading-state p {
+        font-size: 14px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
+
+    /* ── Empty State ────────────────────────────────────── */
+    .empty-state {
+        text-align: center;
+        padding: 120px 0;
+        color: var(--muted);
+    }
+
+    /* ── Productos Section ──────────────────────────────── */
+    .productos-section {
+        padding: 64px 0 var(--section-gap);
+    }
+
+    .productos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 28px;
+    }
+
+    /* ── Producto Card ──────────────────────────────────── */
+    .producto-card {
+        position: relative;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: box-shadow .3s var(--ease), transform .3s var(--ease);
+    }
+
+        .producto-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-4px);
+        }
+
+    /* Badges */
+    .discount-badge,
+    .new-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 6px 12px;
+        border-radius: 100px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .05em;
+        z-index: 2;
+    }
+
+    .discount-badge {
+        background: var(--rose);
+        color: white;
+    }
+
+    .new-badge {
+        top: 12px;
+        left: 12px;
+        right: auto;
+        background: var(--ink);
+        color: white;
+    }
+
+    /* Imagen */
+    .producto-image {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 4/5;
+        overflow: hidden;
+        background: var(--off-white);
+    }
+
+        .producto-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .5s var(--ease);
+        }
+
+    .producto-card:hover .producto-image img {
+        transform: scale(1.05);
+    }
+
+    /* Info */
+    .producto-info {
+        padding: 20px;
+    }
+
+    .producto-category {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .15em;
+        text-transform: uppercase;
+        color: var(--rose);
+        margin-bottom: 8px;
+    }
+
+    .producto-title {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 400;
+        color: var(--ink);
+        margin-bottom: 12px;
+        line-height: 1.3;
+        min-height: 48px;
+    }
+
+    .producto-attributes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .attribute {
+        font-size: 11px;
+        color: var(--muted);
+        background: var(--off-white);
+        padding: 4px 10px;
+        border-radius: 100px;
+    }
+
+    /* Precio */
+    .producto-price {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .price-original {
+        font-size: 14px;
+        color: var(--muted);
+        text-decoration: line-through;
+    }
+
+    .price-current {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    /* Stock warnings */
+    .stock-warning {
+        font-size: 12px;
+        color: #D97706;
+        margin-bottom: 12px;
+        font-weight: 500;
+    }
+
+    .stock-out {
+        font-size: 12px;
+        color: #DC2626;
+        margin-bottom: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    /* Botón */
+    .producto-card .btn-primary {
+        width: 100%;
+        justify-content: center;
+        font-size: 13px;
+        padding: 12px 24px;
+    }
+
+        .producto-card .btn-primary:disabled {
+            background: var(--border);
+            color: var(--muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+            .producto-card .btn-primary:disabled:hover {
+                transform: none;
+            }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @@media (max-width: 768px) {
+        .page-header {
+            padding: 32px 0 48px;
+        }
+
+        .productos-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        .producto-info {
+            padding: 16px;
+        }
+
+        .producto-title {
+            font-size: 15px;
+            min-height: 40px;
+        }
+
+        .price-current {
+            font-size: 18px;
+        }
+    }
+</style>
+
+@code {
+    private List<Product> productos = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            productos = await ProductService.GetProductsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en OnInitializedAsync: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AgregarAlCarrito(Product producto)
+    {
+        CartState.AgregarProducto(producto);
+        // Opcional: Mostrar notificación de éxito
+    }
+}
