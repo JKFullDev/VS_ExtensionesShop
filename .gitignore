@@ -1,0 +1,43 @@
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build outputs
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+publish/
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## .NET Core
+*.swp
+*.*~
+project.lock.json
+.DS_Store
+*.pyc
+
+## Blazor WASM
+wwwroot/service-worker-assets.js
+
+## User secrets
+secrets.json
+appsettings.local.json
+
+## Migrations (opcional — comenta si quieres versionar migraciones)
+# **/Migrations/
+
+## Rider / JetBrains
+.idea/
+*.sln.iml

@@ -1,0 +1,18 @@
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Página no encontrada</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <div style="padding: 80px 40px; text-align: center;">
+                <h1 style="font-family: 'Cormorant Garamond', serif; font-size: 64px; color: #1A1215; margin-bottom: 16px;">404</h1>
+                <p style="color: #9B8890; margin-bottom: 32px;">Esta página no existe o fue movida.</p>
+                <a href="/" style="background: #E8607A; color: white; padding: 14px 28px; border-radius: 100px; font-weight: 600; text-decoration: none;">
+                    Volver al inicio
+                </a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

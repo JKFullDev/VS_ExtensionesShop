@@ -1,0 +1,104 @@
+@using Microsoft.AspNetCore.Components.Routing
+
+<header class="site-header @(_scrolled ? "scrolled" : "")">
+    <div class="header-inner">
+
+        <!-- Logo -->
+        <a href="/" class="brand-logo" aria-label="Extensiones Shop - Inicio">
+            <span class="logo-icon">✦</span>
+            <span class="logo-text">
+                <span class="logo-main">Extensiones</span>
+                <span class="logo-sub">SHOP</span>
+            </span>
+        </a>
+
+        <!-- Buscador central -->
+        <div class="search-wrapper">
+            <div class="search-box">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="search"
+                       placeholder="Busca tu extensión ideal..."
+                       @bind="_searchQuery"
+                       @bind:event="oninput"
+                       class="search-input" />
+            </div>
+        </div>
+
+        <!-- Navegación + acciones -->
+        <nav class="nav-area" role="navigation" aria-label="Menú principal">
+            <ul class="nav-links">
+                <li><NavLink href="/" Match="NavLinkMatch.All" class="nav-link">Inicio</NavLink></li>
+                <li><NavLink href="/productos" class="nav-link">Productos</NavLink></li>
+                <li><NavLink href="/contacto" class="nav-link">Contacto</NavLink></li>
+            </ul>
+
+            <div class="nav-actions">
+                <!-- Wishlist -->
+                <button class="icon-btn" aria-label="Lista de deseos" title="Lista de deseos">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                </button>
+
+                <!-- Cuenta -->
+                <button class="icon-btn" aria-label="Mi cuenta" title="Mi cuenta">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </button>
+
+                <!-- Carrito -->
+                <button class="cart-btn icon-btn" aria-label="Ver carrito" title="Carrito de compras">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                    @if (_cartCount > 0)
+                    {
+                        <span class="cart-badge">@_cartCount</span>
+                    }
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mobile hamburger -->
+        <button class="hamburger @(_mobileOpen ? "open" : "")"
+                @onclick="ToggleMobile"
+                aria-label="Abrir menú"
+                aria-expanded="@_mobileOpen">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+
+    <!-- Mobile nav drawer -->
+    <div class="mobile-drawer @(_mobileOpen ? "open" : "")">
+        <div class="mobile-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="search" placeholder="Buscar..." class="search-input" />
+        </div>
+        <nav class="mobile-nav">
+            <a href="/" @onclick="CloseMobile" class="mobile-nav-link">Inicio</a>
+            <a href="/productos" @onclick="CloseMobile" class="mobile-nav-link">Productos</a>
+            <a href="/contacto" @onclick="CloseMobile" class="mobile-nav-link">Contacto</a>
+        </nav>
+    </div>
+</header>
+
+@code {
+    private bool _scrolled = false;
+    private bool _mobileOpen = false;
+    private string _searchQuery = string.Empty;
+    private int _cartCount = 0; // Se conectará al servicio de carrito
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Aquí se puede inyectar JS interop para detectar scroll
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void ToggleMobile() => _mobileOpen = !_mobileOpen;
+    private void CloseMobile() => _mobileOpen = false;
+}
