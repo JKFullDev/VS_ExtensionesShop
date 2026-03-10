@@ -13,6 +13,7 @@ public class CartStateService
     public IReadOnlyList<CarritoItem> Items => _items.AsReadOnly();
     public int CantidadTotal => _items.Sum(i => i.Cantidad);
     public decimal Total => _items.Sum(i => i.Subtotal);
+    public decimal Subtotal => _items.Sum(i => i.Subtotal);
 
     /// <summary>
     /// Añade un producto al carrito o incrementa su cantidad si ya existe.

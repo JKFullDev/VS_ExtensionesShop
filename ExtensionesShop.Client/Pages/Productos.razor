@@ -40,20 +40,6 @@
                     @foreach (var producto in productos)
                     {
                         <div class="producto-card">
-                            <!-- Badge de descuento -->
-                            @if (producto.DiscountPercentage.HasValue)
-                            {
-                                <div class="discount-badge">
-                                    -@producto.DiscountPercentage%
-                                </div>
-                            }
-
-                            <!-- Badge de nuevo -->
-                            @if (producto.IsNew)
-                            {
-                                <div class="new-badge">NUEVO</div>
-                            }
-
                             <!-- Imagen -->
                             <div class="producto-image">
                                 <img src="@producto.ImageUrl" alt="@producto.Name" loading="lazy" />
@@ -64,18 +50,20 @@
                                 <!-- Categoría -->
                                 <span class="producto-category">@producto.Category?.Name</span>
 
+                                <!-- Subcategoría -->
+                                @if (producto.Subcategory != null)
+                                {
+                                    <span class="producto-subcategory">@producto.Subcategory.Name</span>
+                                }
+
                                 <!-- Título -->
                                 <h3 class="producto-title">@producto.Name</h3>
 
                                 <!-- Atributos -->
                                 <div class="producto-attributes">
-                                    @if (!string.IsNullOrEmpty(producto.Length))
+                                    @if (producto.Centimeters.HasValue)
                                     {
-                                        <span class="attribute">@producto.Length</span>
-                                    }
-                                    @if (!string.IsNullOrEmpty(producto.Weight))
-                                    {
-                                        <span class="attribute">@producto.Weight</span>
+                                        <span class="attribute">@producto.Centimeters cm</span>
                                     }
                                     @if (!string.IsNullOrEmpty(producto.Color))
                                     {
@@ -85,10 +73,6 @@
 
                                 <!-- Precio -->
                                 <div class="producto-price">
-                                    @if (producto.OriginalPrice.HasValue)
-                                    {
-                                        <span class="price-original">$@producto.OriginalPrice.Value.ToString("N2")</span>
-                                    }
                                     <span class="price-current">$@producto.Price.ToString("N2")</span>
                                 </div>
 
@@ -415,11 +399,13 @@
         try
         {
             isLoading = true;
-            productos = await ProductService.GetProductsAsync();
+            // Usa GetAllAsync() en lugar de GetProductsAsync() para obtener todos los productos
+            productos = await ProductService.GetAllAsync();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error en OnInitializedAsync: {ex.Message}");
+            productos = new List<Product>();
         }
         finally
         {

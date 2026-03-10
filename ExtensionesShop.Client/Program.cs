@@ -13,10 +13,10 @@ builder.Services.AddScoped(sp => new HttpClient
     BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
 });
 
-// Registrar ProductService
+// Servicios
 builder.Services.AddScoped<ProductService>();
-
-// Registrar CartStateService como Singleton para mantener el estado
 builder.Services.AddSingleton<CartStateService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<OrderService>();
 
 await builder.Build().RunAsync();

@@ -1,0 +1,284 @@
+@page "/contacto"
+@inject HttpClient Http
+
+<PageTitle>Contacto - Extensiones Shop</PageTitle>
+
+<section class="page-header">
+    <div class="section-inner">
+        <div class="breadcrumb">
+            <a href="/" class="breadcrumb-link">Inicio</a>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-current">Contacto</span>
+        </div>
+        <h1 class="page-title">Contacta con Nosotros</h1>
+        <p class="page-subtitle">¿Tienes alguna pregunta? Estamos aquí para ayudarte</p>
+    </div>
+</section>
+
+<section class="contacto-section">
+    <div class="section-inner">
+        <div class="contacto-grid">
+            <!-- Formulario -->
+            <div class="contacto-form-wrapper">
+                <h2 class="section-title-sm">Envíanos un Mensaje</h2>
+
+                @if (showSuccess)
+                {
+                    <div class="alert alert-success">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span>Mensaje enviado correctamente. Te responderemos pronto.</span>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-error">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span>@errorMessage</span>
+                    </div>
+                }
+
+                <EditForm Model="@contactForm" OnValidSubmit="HandleSubmit" class="auth-form">
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label class="form-label">Nombre *</label>
+                        <InputText @bind-Value="contactForm.Name" 
+                                   class="form-input" 
+                                   placeholder="Tu nombre" />
+                        <ValidationMessage For="@(() => contactForm.Name)" class="form-error" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email *</label>
+                        <InputText @bind-Value="contactForm.Email" 
+                                   type="email"
+                                   class="form-input" 
+                                   placeholder="tu@email.com" />
+                        <ValidationMessage For="@(() => contactForm.Email)" class="form-error" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Teléfono</label>
+                        <InputText @bind-Value="contactForm.Phone" 
+                                   class="form-input" 
+                                   placeholder="+34 600 000 000" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Mensaje *</label>
+                        <InputTextArea @bind-Value="contactForm.Message" 
+                                       rows="6"
+                                       class="form-textarea" 
+                                       placeholder="Escribe tu mensaje aquí..." />
+                        <ValidationMessage For="@(() => contactForm.Message)" class="form-error" />
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-full" disabled="@isSending">
+                        @if (isSending)
+                        {
+                            <span class="btn-spinner">✦</span>
+                            <span>Enviando...</span>
+                        }
+                        else
+                        {
+                            <span>Enviar Mensaje</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        }
+                    </button>
+                </EditForm>
+            </div>
+
+            <!-- Información de contacto -->
+            <div class="contacto-info">
+                <h2 class="section-title-sm">Información de Contacto</h2>
+
+                <div class="info-items">
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="info-title">Email</h3>
+                            <p class="info-text">info@extensionesshop.com</p>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="info-title">Teléfono</h3>
+                            <p class="info-text">+34 900 123 456</p>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="info-title">Horario</h3>
+                            <p class="info-text">Lunes a Viernes: 9:00 - 18:00</p>
+                            <p class="info-text">Sábados: 10:00 - 14:00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h3 class="info-box-title">¿Necesitas ayuda inmediata?</h3>
+                    <p class="info-box-content">
+                        Consulta nuestra sección de 
+                        <a href="/info/preguntas-frecuentes" class="auth-link">Preguntas Frecuentes</a>
+                        donde resolvemos las dudas más comunes.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .contacto-section {
+        padding: var(--section-gap) 0;
+    }
+
+    .contacto-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+    }
+
+    .contacto-form-wrapper {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 48px;
+    }
+
+    .section-title-sm {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 400;
+        color: var(--ink);
+        margin-bottom: 32px;
+    }
+
+    .contacto-info {
+        padding-top: 20px;
+    }
+
+    .info-items {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        margin-bottom: 40px;
+    }
+
+    .info-item {
+        display: flex;
+        gap: 16px;
+    }
+
+    .info-icon {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        background: var(--rose-pale);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--rose);
+    }
+
+    .info-title {
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 4px;
+    }
+
+    .info-text {
+        font-size: 15px;
+        color: var(--ink-light);
+    }
+
+    @@media (max-width: 968px) {
+        .contacto-grid {
+            grid-template-columns: 1fr;
+            gap: 48px;
+        }
+
+        .contacto-form-wrapper {
+            padding: 32px 24px;
+        }
+    }
+</style>
+
+@code {
+    private ContactFormModel contactForm = new();
+    private bool isSending;
+    private bool showSuccess;
+    private string? errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        isSending = true;
+        errorMessage = null;
+        showSuccess = false;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/contact", contactForm);
+
+            if (response.IsSuccessStatusCode)
+            {
+                showSuccess = true;
+                contactForm = new ContactFormModel();
+
+                await Task.Delay(5000);
+                showSuccess = false;
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = "Error al enviar el mensaje. Inténtalo de nuevo.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al enviar el mensaje. Inténtalo de nuevo.";
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+
+    public class ContactFormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
+}

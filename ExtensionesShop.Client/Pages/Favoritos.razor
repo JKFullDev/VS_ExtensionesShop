@@ -1,0 +1,89 @@
+@page "/favoritos"
+@using ExtensionesShop.Shared.Models
+@using ExtensionesShop.Client.Services
+@inject CartStateService CartState
+
+<PageTitle>Favoritos - Extensiones Shop</PageTitle>
+
+<section class="page-header">
+    <div class="section-inner">
+        <h1 class="page-title">Mis Favoritos</h1>
+        <p class="page-subtitle">Productos que te gustan</p>
+    </div>
+</section>
+
+<section class="favoritos-section">
+    <div class="section-inner">
+        @if (!favoritos.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-icon">💕</div>
+                <h2 class="empty-title">No tienes favoritos todavía</h2>
+                <p class="empty-text">Guarda productos para encontrarlos fácilmente</p>
+                <a href="/productos" class="btn-primary">Explorar Productos</a>
+            </div>
+        }
+        else
+        {
+            <div class="productos-grid">
+                @foreach (var producto in favoritos)
+                {
+                    <div class="producto-card">
+                        <div class="producto-image">
+                            <img src="@producto.ImageUrl" alt="@producto.Name" />
+                            <button @onclick="() => RemoverFavorito(producto.Id)" class="fav-btn active">
+                                ❤
+                            </button>
+                        </div>
+                        <div class="producto-info">
+                            <span class="producto-category">@producto.Category?.Name</span>
+                            <h3 class="producto-title">@producto.Name</h3>
+                            <div class="producto-price">
+                                <span class="price-current">$@producto.Price.ToString("N2")</span>
+                            </div>
+                            <button @onclick="() => AgregarAlCarrito(producto)" class="btn-primary btn-full">
+                                Añadir al Carrito
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+<style>
+    .favoritos-section {
+        padding: var(--section-gap) 0;
+    }
+
+    .fav-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+        background: white;
+        border-radius: 50%;
+        font-size: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .fav-btn.active {
+        color: #E8607A;
+    }
+</style>
+
+@code {
+    private List<Product> favoritos = new();
+
+    private void RemoverFavorito(int id)
+    {
+        favoritos.RemoveAll(p => p.Id == id);
+    }
+
+    private void AgregarAlCarrito(Product producto)
+    {
+        CartState.AgregarProducto(producto);
+    }
+}

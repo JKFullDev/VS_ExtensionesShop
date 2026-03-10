@@ -1,0 +1,155 @@
+@page "/register"
+@using ExtensionesShop.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Crear Cuenta - Extensiones Shop</PageTitle>
+
+<section class="auth-page">
+    <div class="section-inner">
+        <div class="auth-container auth-container-wide">
+            <div class="auth-header">
+                <a href="/" class="auth-back" aria-label="Volver al inicio">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <h1 class="auth-title">Crear Cuenta</h1>
+                <p class="auth-subtitle">
+                    ¿Ya tienes cuenta? 
+                    <a href="/login" class="auth-link">Inicia sesión</a>
+                </p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-error">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>@errorMessage</span>
+                </div>
+            }
+
+            <EditForm Model="@registerRequest" OnValidSubmit="HandleRegister" class="auth-form">
+                <DataAnnotationsValidator />
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Nombre *</label>
+                        <InputText @bind-Value="registerRequest.FirstName" 
+                                   class="form-input" 
+                                   placeholder="Juan" />
+                        <ValidationMessage For="@(() => registerRequest.FirstName)" class="form-error" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Apellidos *</label>
+                        <InputText @bind-Value="registerRequest.LastName" 
+                                   class="form-input" 
+                                   placeholder="Pérez" />
+                        <ValidationMessage For="@(() => registerRequest.LastName)" class="form-error" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <InputText @bind-Value="registerRequest.Email" 
+                               class="form-input" 
+                               placeholder="tu@email.com" />
+                    <ValidationMessage For="@(() => registerRequest.Email)" class="form-error" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Contraseña *</label>
+                    <InputText type="password" @bind-Value="registerRequest.Password" 
+                               class="form-input" 
+                               placeholder="••••••••" />
+                    <ValidationMessage For="@(() => registerRequest.Password)" class="form-error" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Teléfono</label>
+                    <InputText @bind-Value="registerRequest.Phone" 
+                               class="form-input" 
+                               placeholder="+34 600 000 000" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Dirección</label>
+                    <InputText @bind-Value="registerRequest.Address" 
+                               class="form-input" 
+                               placeholder="Calle Principal, 123" />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ciudad</label>
+                        <InputText @bind-Value="registerRequest.City" 
+                                   class="form-input" 
+                                   placeholder="Madrid" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Código Postal</label>
+                        <InputText @bind-Value="registerRequest.PostalCode" 
+                                   class="form-input" 
+                                   placeholder="28001" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="btn-spinner">✦</span>
+                        <span>Creando cuenta...</span>
+                    }
+                    else
+                    {
+                        <span>Crear Cuenta</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    }
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</section>
+
+@code {
+    private RegisterRequest registerRequest = new();
+    private string? errorMessage;
+    private bool isLoading;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await AuthService.RegisterAsync(registerRequest);
+
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/mi-cuenta");
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al crear la cuenta. Inténtalo de nuevo.";
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

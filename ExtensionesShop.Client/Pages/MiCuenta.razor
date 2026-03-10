@@ -1,0 +1,180 @@
+@page "/mi-cuenta"
+@using ExtensionesShop.Client.Services
+@using ExtensionesShop.Shared.Models
+@using static ExtensionesShop.Client.Services.AuthService
+@inject AuthService AuthService
+@inject OrderService OrderService
+@inject NavigationManager Navigation
+
+<PageTitle>Mi Cuenta - Extensiones Shop</PageTitle>
+
+@if (isLoading)
+{
+    <section class="loading-section">
+        <div class="section-inner">
+            <div class="loading-state">
+                <div class="spinner">✦</div>
+                <p>Cargando...</p>
+            </div>
+        </div>
+    </section>
+}
+else if (currentUser == null)
+{
+    <section class="auth-required">
+        <div class="section-inner">
+            <div class="empty-state">
+                <div class="empty-icon">🔒</div>
+                <h2 class="empty-title">Acceso Restringido</h2>
+                <p class="empty-text">Debes iniciar sesión para ver tu cuenta</p>
+                <a href="/login" class="btn-primary">
+                    Iniciar Sesión
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+}
+else
+{
+    <section class="page-header">
+        <div class="section-inner">
+            <div class="account-header">
+                <div>
+                    <h1 class="page-title">Mi Cuenta</h1>
+                    <p class="page-subtitle">Hola, @currentUser.FirstName 👋</p>
+                </div>
+                <button @onclick="HandleLogout" class="btn-ghost">
+                    Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="account-section">
+        <div class="section-inner">
+            <div class="account-grid">
+                <div class="account-sidebar">
+                    <div class="sidebar-card">
+                        <nav class="sidebar-nav">
+                            <button @onclick="SetProfileTab" 
+                                    class="sidebar-link @(activeTab == "profile" ? "active" : "")">
+                                <span>Mi Perfil</span>
+                            </button>
+                            <button @onclick="SetOrdersTab" 
+                                    class="sidebar-link @(activeTab == "orders" ? "active" : "")">
+                                <span>Mis Pedidos (@orders.Count)</span>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+
+                <div class="account-content">
+                    @if (activeTab == "profile")
+                    {
+                        <div class="content-card">
+                            <h2 class="content-title">Información Personal</h2>
+                            <div class="profile-info">
+                                <div class="info-row">
+                                    <span class="info-label">Nombre:</span>
+                                    <span class="info-value">@currentUser.FirstName @currentUser.LastName</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Email:</span>
+                                    <span class="info-value">@currentUser.Email</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(currentUser.Phone))
+                                {
+                                    <div class="info-row">
+                                        <span class="info-label">Teléfono:</span>
+                                        <span class="info-value">@currentUser.Phone</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(currentUser.Address))
+                                {
+                                    <div class="info-row">
+                                        <span class="info-label">Dirección:</span>
+                                        <span class="info-value">@currentUser.Address</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="content-card">
+                            <h2 class="content-title">Historial de Pedidos</h2>
+                            @if (!orders.Any())
+                            {
+                                <div class="empty-orders">
+                                    <p class="empty-text">No tienes pedidos todavía</p>
+                                    <a href="/productos" class="btn-primary">Ir a la Tienda</a>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="orders-list">
+                                    @foreach (var order in orders.OrderByDescending(o => o.CreatedAt))
+                                    {
+                                        <div class="order-card">
+                                            <div class="order-header">
+                                                <div>
+                                                    <h3 class="order-id">Pedido #@order.Id</h3>
+                                                    <p class="order-date">@order.CreatedAt.ToString("dd/MM/yyyy")</p>
+                                                </div>
+                                                <span class="order-status">@GetStatusText(order.Status)</span>
+                                            </div>
+                                            <div class="order-body">
+                                                <p class="order-items">@order.Items.Count producto(s)</p>
+                                                <p class="order-total">$@order.Total.ToString("N2")</p>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    private UserDto? currentUser;
+    private List<Order> orders = new();
+    private bool isLoading = true;
+    private string activeTab = "profile";
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetCurrentUserAsync();
+        if (currentUser != null)
+        {
+            orders = await OrderService.GetUserOrdersAsync(currentUser.Id);
+        }
+        isLoading = false;
+    }
+
+    private void SetProfileTab() => activeTab = "profile";
+    private void SetOrdersTab() => activeTab = "orders";
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/");
+    }
+
+    private string GetStatusText(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "Pendiente",
+        OrderStatus.Confirmed => "Confirmado",
+        OrderStatus.Processing => "Procesando",
+        OrderStatus.Shipped => "Enviado",
+        OrderStatus.Delivered => "Entregado",
+        OrderStatus.Cancelled => "Cancelado",
+        _ => "Desconocido"
+    };
+}

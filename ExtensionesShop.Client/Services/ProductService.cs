@@ -48,6 +48,20 @@ public class ProductService
         }
     }
 
+    public async Task<List<Product>> GetAllAsync()
+    {
+        try
+        {
+            var products = await _http.GetFromJsonAsync<List<Product>>("api/products");
+            return products ?? new List<Product>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar productos: {ex.Message}");
+            return new List<Product>();
+        }
+    }
+
     public async Task<Product?> GetProductBySlugAsync(string slug)
     {
         try

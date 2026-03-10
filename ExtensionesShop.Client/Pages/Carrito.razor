@@ -60,16 +60,16 @@
                                     <h3 class="item-name">@item.Producto.Name</h3>
                                     <p class="item-category">@item.Producto.Category?.Name</p>
 
-                                    @if (!string.IsNullOrEmpty(item.Producto.Color) || !string.IsNullOrEmpty(item.Producto.Length))
+                                    @if (!string.IsNullOrEmpty(item.Producto.Color) || item.Producto.Centimeters.HasValue)
                                     {
                                         <div class="item-attributes">
                                             @if (!string.IsNullOrEmpty(item.Producto.Color))
                                             {
                                                 <span>Color: @item.Producto.Color</span>
                                             }
-                                            @if (!string.IsNullOrEmpty(item.Producto.Length))
+                                            @if (item.Producto.Centimeters.HasValue)
                                             {
-                                                <span>Largo: @item.Producto.Length</span>
+                                                <span>Largo: @item.Producto.Centimeters cm</span>
                                             }
                                         </div>
                                     }

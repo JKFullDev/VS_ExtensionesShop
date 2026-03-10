@@ -1,0 +1,150 @@
+@page "/info/{Slug}"
+
+<PageTitle>@pageTitle - Extensiones Shop</PageTitle>
+
+<section class="page-header">
+    <div class="section-inner">
+        <div class="breadcrumb">
+            <a href="/" class="breadcrumb-link">Inicio</a>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-current">Información</span>
+        </div>
+        <h1 class="page-title">@pageTitle</h1>
+    </div>
+</section>
+
+<section class="info-content">
+    <div class="section-inner">
+        @if (pageContent == null)
+        {
+            <div class="empty-state">
+                <p class="empty-text">Página no encontrada</p>
+                <a href="/" class="btn-primary">Volver al Inicio</a>
+            </div>
+        }
+        else
+        {
+            <article class="prose">
+                @((MarkupString)pageContent)
+            </article>
+        }
+    </div>
+</section>
+
+<style>
+    .info-content {
+        padding: var(--section-gap) 0;
+    }
+
+    .prose {
+        max-width: 800px;
+        margin: 0 auto;
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--ink-light);
+    }
+
+    .prose h2 {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 400;
+        color: var(--ink);
+        margin: 48px 0 20px 0;
+    }
+
+    .prose h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 32px 0 16px 0;
+    }
+
+    .prose p {
+        margin-bottom: 16px;
+    }
+
+    .prose ul, .prose ol {
+        margin: 16px 0;
+        padding-left: 24px;
+    }
+
+    .prose li {
+        margin-bottom: 8px;
+    }
+
+    .prose strong {
+        color: var(--ink);
+        font-weight: 600;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    private string pageTitle = "";
+    private string? pageContent;
+
+    protected override void OnParametersSet()
+    {
+        (pageTitle, pageContent) = GetPageContent(Slug);
+    }
+
+    private (string Title, string? Content) GetPageContent(string slug)
+    {
+        return slug switch
+        {
+            "como-elegir-extension" => (
+                "¿Cómo Elegir tu Extensión Perfecta?",
+                @"<h2>Guía Completa para Elegir tus Extensiones</h2>
+                  <h3>1. Tipo de Cabello</h3>
+                  <p>Las extensiones de cabello natural Remy son la opción premium. Conservan la cutícula intacta.</p>
+                  <h3>2. Longitud</h3>
+                  <p>Ofrecemos desde 40cm hasta 70cm. Recomendamos no superar 20-25cm de tu largo actual.</p>"
+            ),
+            "envios-devoluciones" => (
+                "Envíos y Devoluciones",
+                @"<h2>Política de Envíos</h2>
+                  <p><strong>Península:</strong> 24-48h | <strong>Envío GRATIS</strong> en pedidos >80€</p>
+                  <h2>Devoluciones</h2>
+                  <p>14 días naturales desde la recepción del pedido.</p>"
+            ),
+            "preguntas-frecuentes" => (
+                "Preguntas Frecuentes",
+                @"<h3>¿Cuánto duran las extensiones?</h3>
+                  <p>Depende del tipo: Clip-In (uso ocasional), Tape-In (6-8 semanas), Queratina (3-4 meses).</p>
+                  <h3>¿Puedo teñir las extensiones?</h3>
+                  <p>Sí, las extensiones naturales Remy se pueden teñir, aunque recomendamos oscurecerlas.</p>"
+            ),
+            "guia-cuidado" => (
+                "Guía de Cuidado",
+                @"<h2>Cuidado Diario</h2>
+                  <h3>Cepillado</h3>
+                  <p>Usa un cepillo específico para extensiones. Cepilla de puntas a raíces suavemente.</p>
+                  <h3>Lavado</h3>
+                  <p>Usa champú sin sulfatos. Lava en dirección del crecimiento.</p>"
+            ),
+            "privacidad" => (
+                "Política de Privacidad",
+                @"<h2>Responsable del Tratamiento</h2>
+                  <p>Extensiones Shop | NIF: B12345678 | Email: info@extensionesshop.com</p>"
+            ),
+            "cookies" => (
+                "Política de Cookies",
+                @"<h2>¿Qué son las Cookies?</h2>
+                  <p>Pequeños archivos de texto que se almacenan en tu dispositivo.</p>"
+            ),
+            "terminos" => (
+                "Términos y Condiciones",
+                @"<h2>Condiciones de Compra</h2>
+                  <p>Los precios incluyen IVA. Garantía legal de 2 años.</p>"
+            ),
+            "aviso-legal" => (
+                "Aviso Legal",
+                @"<h2>Datos Identificativos</h2>
+                  <p>Extensiones Shop S.L. | NIF: B12345678 | Madrid, España</p>"
+            ),
+            _ => ("Página no encontrada", null)
+        };
+    }
+}

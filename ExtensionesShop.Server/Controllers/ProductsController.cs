@@ -12,29 +12,29 @@ public class ProductsController(AppDbContext db) : ControllerBase
     // GET api/products
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Product>>> GetAll(
-        [FromQuery] string? category,
+        [FromQuery] int? categoryId,
+        [FromQuery] int? subcategoryId,
         [FromQuery] string? search,
-        [FromQuery] bool? featured,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 24)
     {
         var query = db.Products
             .Include(p => p.Category)
+            .Include(p => p.Subcategory)
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(category))
-            query = query.Where(p => p.Category!.Slug == category);
+        if (categoryId.HasValue)
+            query = query.Where(p => p.CategoryId == categoryId.Value);
+
+        if (subcategoryId.HasValue)
+            query = query.Where(p => p.SubcategoryId == subcategoryId.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.Name.Contains(search) || p.Description.Contains(search));
 
-        if (featured.HasValue)
-            query = query.Where(p => p.IsFeatured == featured.Value);
-
         var total = await query.CountAsync();
         var items = await query
-            .OrderByDescending(p => p.IsFeatured)
-            .ThenByDescending(p => p.CreatedAt)
+            .OrderBy(p => p.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -55,14 +55,10 @@ public class ProductsController(AppDbContext db) : ControllerBase
     }
 
     // GET api/products/{slug}
-    [HttpGet("{slug}")]
+    [HttpGet("slug/{slug}")]
     public async Task<ActionResult<Product>> GetBySlug(string slug)
     {
-        var product = await db.Products
-            .Include(p => p.Category)
-            .FirstOrDefaultAsync(p => p.Slug == slug);
-
-        return product is null ? NotFound() : Ok(product);
+        return NotFound(new { message = "Slug endpoint removed. Use ID instead." });
     }
 
     // POST api/products
@@ -72,19 +68,6 @@ public class ProductsController(AppDbContext db) : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // Generar slug si no existe
-        if (string.IsNullOrWhiteSpace(product.Slug))
-        {
-            product.Slug = GenerateSlug(product.Name);
-        }
-
-        // Verificar que el slug sea único
-        if (await db.Products.AnyAsync(p => p.Slug == product.Slug))
-        {
-            return BadRequest(new { message = "Ya existe un producto con ese slug" });
-        }
-
-        product.CreatedAt = DateTime.UtcNow;
         db.Products.Add(product);
         await db.SaveChangesAsync();
 
@@ -102,22 +85,15 @@ public class ProductsController(AppDbContext db) : ControllerBase
         if (existingProduct == null)
             return NotFound();
 
-        // Actualizar propiedades
         existingProduct.Name = product.Name;
-        existingProduct.Slug = product.Slug;
         existingProduct.Description = product.Description;
         existingProduct.Price = product.Price;
-        existingProduct.OriginalPrice = product.OriginalPrice;
         existingProduct.ImageUrl = product.ImageUrl;
         existingProduct.CategoryId = product.CategoryId;
-        existingProduct.IsNew = product.IsNew;
-        existingProduct.IsFeatured = product.IsFeatured;
+        existingProduct.SubcategoryId = product.SubcategoryId;
         existingProduct.Stock = product.Stock;
-        existingProduct.HairType = product.HairType;
-        existingProduct.Length = product.Length;
-        existingProduct.Weight = product.Weight;
         existingProduct.Color = product.Color;
-        existingProduct.ApplicationMethod = product.ApplicationMethod;
+        existingProduct.Centimeters = product.Centimeters;
 
         try
         {
@@ -145,14 +121,6 @@ public class ProductsController(AppDbContext db) : ControllerBase
 
         return NoContent();
     }
-
-    private static string GenerateSlug(string name)
-    {
-        return name.ToLowerInvariant()
-            .Replace(" ", "-")
-            .Replace("á", "a").Replace("é", "e").Replace("í", "i")
-            .Replace("ó", "o").Replace("ú", "u").Replace("ñ", "n");
-    }
 }
 
 [ApiController]
@@ -161,5 +129,37 @@ public class CategoriesController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Category>>> GetAll()
-        => Ok(await db.Categories.OrderBy(c => c.SortOrder).ToListAsync());
+        => Ok(await db.Categories.Include(c => c.Subcategories).ToListAsync());
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Category>> GetById(int id)
+    {
+        var category = await db.Categories
+            .Include(c => c.Subcategories)
+            .FirstOrDefaultAsync(c => c.Id == id);
+        return category is null ? NotFound() : Ok(category);
+    }
+}
+
+[ApiController]
+[Route("api/[controller]")]
+public class SubcategoriesController(AppDbContext db) : ControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Subcategory>>> GetAll([FromQuery] int? categoryId)
+    {
+        var query = db.Subcategories.Include(s => s.Category).AsQueryable();
+        if (categoryId.HasValue)
+            query = query.Where(s => s.CategoryId == categoryId.Value);
+        return Ok(await query.ToListAsync());
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Subcategory>> GetById(int id)
+    {
+        var subcategory = await db.Subcategories
+            .Include(s => s.Category)
+            .FirstOrDefaultAsync(s => s.Id == id);
+        return subcategory is null ? NotFound() : Ok(subcategory);
+    }
 }

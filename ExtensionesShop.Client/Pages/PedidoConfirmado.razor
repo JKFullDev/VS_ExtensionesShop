@@ -1,0 +1,31 @@
+@page "/pedido-confirmado/{OrderId:int}"
+<PageTitle>Pedido Confirmado - Extensiones Shop</PageTitle>
+
+<section class="confirmation-page">
+    <div class="section-inner">
+        <div class="confirmation-card">
+            <div class="confirmation-icon">✓</div>
+            <h1 class="confirmation-title">¡Pedido Realizado!</h1>
+            <p class="confirmation-subtitle">Pedido #@OrderId confirmado</p>
+
+            <div class="confirmation-info">
+                <div class="info-box">
+                    <h2 class="info-box-title">📧 Email enviado</h2>
+                    <p class="info-box-content">
+                        Revisa tu bandeja de entrada con los detalles del pedido.
+                    </p>
+                </div>
+            </div>
+
+            <div class="confirmation-actions">
+                <a href="/" class="btn-primary">Volver al Inicio</a>
+                <a href="/mi-cuenta" class="btn-ghost">Ver Mis Pedidos</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public int OrderId { get; set; }
+}
