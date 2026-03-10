@@ -35,6 +35,12 @@ wwwroot/service-worker-assets.js
 secrets.json
 appsettings.local.json
 
+## Archivos de configuración con datos sensibles
+**/appsettings.json
+**/appsettings.Development.json
+**/appsettings.Production.json
+!**/appsettings.json.example
+
 ## Migrations (opcional — comenta si quieres versionar migraciones)
 # **/Migrations/
 

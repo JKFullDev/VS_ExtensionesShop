@@ -3,6 +3,7 @@ namespace ExtensionesShop.Server.Services;
 public interface IEmailService
 {
     Task<bool> SendOrderEmailAsync(OrderEmailData orderData);
+    Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody);
 }
 
 public class OrderEmailData

@@ -1,4 +1,8 @@
 @page "/cuenta"
+@using System.ComponentModel.DataAnnotations
+@using ExtensionesShop.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
 
 <PageTitle>Mi Cuenta - Extensiones Shop</PageTitle>
 
@@ -34,27 +38,57 @@
                     <p>Accede a tu cuenta para ver tus pedidos, favoritos y más</p>
                     
                     <div class="login-actions">
-                        <button class="btn-primary btn-google">
-                            <svg width="18" height="18" viewBox="0 0 24 24">
-                                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            Continuar con Google
-                        </button>
+                        <EditForm Model="@loginForm" OnValidSubmit="IniciarSesion">
+                            <DataAnnotationsValidator />
 
-                        <div class="divider">
-                            <span>o</span>
-                        </div>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <InputText id="email" type="email" @bind-Value="loginForm.Email" class="form-control" placeholder="tu@email.com" />
+                                <ValidationMessage For="@(() => loginForm.Email)" />
+                            </div>
 
-                        <button class="btn-ghost btn-email">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                <polyline points="22,6 12,13 2,6"/>
-                            </svg>
-                            Continuar con Email
-                        </button>
+                            <div class="form-group">
+                                <label for="password">Contraseña</label>
+                                <InputText id="password" type="password" @bind-Value="loginForm.Password" class="form-control" placeholder="Tu contraseña" />
+                                <ValidationMessage For="@(() => loginForm.Password)" />
+                            </div>
+
+                            <div class="form-checkbox">
+                                <InputCheckbox id="remember" @bind-Value="loginForm.RecordarSesion" />
+                                <label for="remember">Recordar sesión</label>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(errorMessage))
+                            {
+                                <div class="alert alert-error">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="12"/>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                    </svg>
+                                    @errorMessage
+                                </div>
+                            }
+
+                            <button type="submit" class="btn-primary btn-login" disabled="@procesando">
+                                @if (procesando)
+                                {
+                                    <span class="spinner-sm">✦</span>
+                                    <text>Iniciando sesión...</text>
+                                }
+                                else
+                                {
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                        <polyline points="10 17 15 12 10 7"/>
+                                        <line x1="15" y1="12" x2="3" y2="12"/>
+                                    </svg>
+                                    <text>Iniciar Sesión</text>
+                                }
+                            </button>
+                        </EditForm>
+
+                        <a href="/recuperar-password" class="forgot-password">¿Olvidaste tu contraseña?</a>
                     </div>
 
                     <p class="register-link">
@@ -104,7 +138,7 @@
 
 <style>
     .cuenta-content {
-        padding: 64px 0 var(--section-gap);
+        padding: 40px 0 var(--section-gap);
     }
 
     .login-prompt {
@@ -122,9 +156,9 @@
         text-align: center;
     }
 
-    .login-card svg {
+    .login-card > svg {
         color: var(--rose);
-        margin-bottom: 24px;
+        margin: 0 auto 24px;
     }
 
     .login-card h2 {
@@ -140,57 +174,100 @@
     }
 
     .login-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
+        text-align: left;
     }
 
-    .btn-google {
-        background: white;
-        color: var(--ink);
-        border: 1px solid var(--border);
-        justify-content: center;
+    .form-group {
+        margin-bottom: 20px;
     }
 
-    .btn-google:hover {
-        background: var(--off-white);
-        box-shadow: 0 4px 12px rgba(0,0,0,.08);
-    }
-
-    .btn-email {
-        justify-content: center;
-    }
-
-    .divider {
-        position: relative;
-        text-align: center;
-        margin: 8px 0;
-    }
-
-    .divider::before,
-    .divider::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        width: 45%;
-        height: 1px;
-        background: var(--border);
-    }
-
-    .divider::before { left: 0; }
-    .divider::after { right: 0; }
-
-    .divider span {
-        background: var(--white);
-        padding: 0 12px;
+    .form-group label {
+        display: block;
         font-size: 13px;
-        color: var(--muted);
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 8px;
+        text-align: left;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        transition: border-color .2s, box-shadow .2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--rose);
+        box-shadow: 0 0 0 3px rgba(232, 96, 122, .1);
+    }
+
+    .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+
+    .form-checkbox input[type="checkbox"] {
+        cursor: pointer;
+    }
+
+    .form-checkbox label {
+        font-size: 13px;
+        color: var(--ink-light);
+        cursor: pointer;
+    }
+
+    .alert {
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+    }
+
+    .alert-error {
+        background: #FEE2E2;
+        color: #DC2626;
+        border: 1px solid #FECACA;
+    }
+
+    .alert svg {
+        flex-shrink: 0;
+    }
+
+    .btn-login {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+
+    .forgot-password {
+        display: block;
+        text-align: center;
+        font-size: 13px;
+        color: var(--rose);
+        text-decoration: none;
+        margin-top: 12px;
+    }
+
+    .forgot-password:hover {
+        text-decoration: underline;
     }
 
     .register-link {
         margin-top: 32px;
+        padding-top: 32px;
+        border-top: 1px solid var(--border);
         font-size: 14px;
         color: var(--ink-light);
+        text-align: center;
     }
 
     .link-primary {
@@ -232,9 +309,58 @@
         margin-top: 2px;
     }
 
-    @@media (max-width: 968px) {
-        .login-prompt {
-            grid-template-columns: 1fr;
-        }
+    .spinner-sm {
+        display: inline-block;
+        animation: spin 1s linear infinite;
     }
 </style>
+
+<!-- Estilos @keyframes y @media van en CSS global para evitar conflictos -->
+
+@code {
+    private LoginFormModel loginForm = new();
+    private bool procesando = false;
+    private string errorMessage = string.Empty;
+
+    private async Task IniciarSesion()
+    {
+        procesando = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var result = await AuthService.LoginAsync(loginForm.Email, loginForm.Password);
+
+            if (result.Success)
+            {
+                // Login exitoso, redirigir a inicio
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Email o contraseña incorrectos";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al iniciar sesión. Por favor, inténtalo de nuevo.";
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    public class LoginFormModel
+    {
+        [Required(ErrorMessage = "El email es obligatorio")]
+        [EmailAddress(ErrorMessage = "El email no es válido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es obligatoria")]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RecordarSesion { get; set; }
+    }
+}

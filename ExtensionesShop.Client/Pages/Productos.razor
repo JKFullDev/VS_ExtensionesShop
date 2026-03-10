@@ -40,20 +40,6 @@
                     @foreach (var producto in productos)
                     {
                         <div class="producto-card">
-                            <!-- Badge de descuento -->
-                            @if (producto.DiscountPercentage.HasValue)
-                            {
-                                <div class="discount-badge">
-                                    -@producto.DiscountPercentage%
-                                </div>
-                            }
-
-                            <!-- Badge de nuevo -->
-                            @if (producto.IsNew)
-                            {
-                                <div class="new-badge">NUEVO</div>
-                            }
-
                             <!-- Imagen -->
                             <div class="producto-image">
                                 <img src="@producto.ImageUrl" alt="@producto.Name" loading="lazy" />
@@ -69,13 +55,9 @@
 
                                 <!-- Atributos -->
                                 <div class="producto-attributes">
-                                    @if (!string.IsNullOrEmpty(producto.Length))
+                                    @if (producto.Centimeters.HasValue)
                                     {
-                                        <span class="attribute">@producto.Length</span>
-                                    }
-                                    @if (!string.IsNullOrEmpty(producto.Weight))
-                                    {
-                                        <span class="attribute">@producto.Weight</span>
+                                        <span class="attribute">@producto.Centimeters cm</span>
                                     }
                                     @if (!string.IsNullOrEmpty(producto.Color))
                                     {
@@ -85,10 +67,6 @@
 
                                 <!-- Precio -->
                                 <div class="producto-price">
-                                    @if (producto.OriginalPrice.HasValue)
-                                    {
-                                        <span class="price-original">$@producto.OriginalPrice.Value.ToString("N2")</span>
-                                    }
                                     <span class="price-current">$@producto.Price.ToString("N2")</span>
                                 </div>
 
@@ -130,52 +108,6 @@
 </div>
 
 <style>
-    /* ── Page Header ────────────────────────────────────── */
-    .page-header {
-        background: linear-gradient(to bottom, var(--rose-pale), var(--white));
-        padding: 48px 0 64px;
-        text-align: center;
-    }
-
-    .breadcrumb {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        font-size: 12px;
-        color: var(--muted);
-        margin-bottom: 16px;
-    }
-
-    .breadcrumb-link {
-        color: var(--rose);
-        transition: color .2s;
-    }
-
-        .breadcrumb-link:hover {
-            color: var(--rose-deep);
-        }
-
-    .breadcrumb-separator {
-        color: var(--border-dark);
-    }
-
-    .page-title {
-        font-family: var(--font-display);
-        font-size: clamp(36px, 5vw, 52px);
-        font-weight: 300;
-        letter-spacing: -.02em;
-        color: var(--ink);
-        margin-bottom: 12px;
-    }
-
-    .page-subtitle {
-        font-size: 15px;
-        color: var(--ink-light);
-        max-width: 560px;
-        margin: 0 auto;
-    }
-
     /* ── Loading State ──────────────────────────────────── */
     .loading-state {
         display: flex;
@@ -214,7 +146,7 @@
 
     /* ── Productos Section ──────────────────────────────── */
     .productos-section {
-        padding: 64px 0 var(--section-gap);
+        padding: 40px 0 var(--section-gap);
     }
 
     .productos-grid {

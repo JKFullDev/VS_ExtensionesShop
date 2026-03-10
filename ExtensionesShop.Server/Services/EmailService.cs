@@ -149,4 +149,55 @@ public class EmailService : IEmailService
 
         return sb.ToString();
     }
+
+    // Método genérico para enviar emails
+    public async Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody)
+    {
+        try
+        {
+            var fromEmail = _config["Email:FromEmail"] ?? "noreply@extensionesshop.com";
+            var smtpHost = _config["Email:SmtpHost"] ?? "smtp.gmail.com";
+            var smtpPort = int.Parse(_config["Email:SmtpPort"] ?? "587");
+            var smtpUser = _config["Email:SmtpUser"] ?? "";
+            var smtpPass = _config["Email:SmtpPassword"] ?? "";
+
+            using var message = new MailMessage
+            {
+                From = new MailAddress(fromEmail, "Extensiones Shop"),
+                Subject = subject,
+                Body = htmlBody,
+                IsBodyHtml = true
+            };
+
+            message.To.Add(toEmail);
+
+            // Si tienes configurado SMTP
+            if (!string.IsNullOrEmpty(smtpUser) && !string.IsNullOrEmpty(smtpPass))
+            {
+                using var smtpClient = new SmtpClient(smtpHost, smtpPort)
+                {
+                    Credentials = new NetworkCredential(smtpUser, smtpPass),
+                    EnableSsl = true
+                };
+
+                await smtpClient.SendMailAsync(message);
+                _logger.LogInformation("Email enviado correctamente a {Email}", toEmail);
+                return true;
+            }
+            else
+            {
+                // Modo desarrollo: solo logear
+                _logger.LogWarning("Email no configurado. Contenido:");
+                _logger.LogWarning("To: {Email}", toEmail);
+                _logger.LogWarning("Subject: {Subject}", subject);
+                _logger.LogWarning("Body: {Body}", htmlBody);
+                return true; // En desarrollo, consideramos exitoso
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error enviando email a {Email}", toEmail);
+            return false;
+        }
+    }
 }

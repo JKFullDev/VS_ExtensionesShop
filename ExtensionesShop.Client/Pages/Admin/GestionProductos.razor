@@ -69,23 +69,11 @@
                                     <td>
                                         <div class="product-name-cell">
                                             <span class="name">@producto.Name</span>
-                                            @if (producto.IsNew)
-                                            {
-                                                <span class="badge badge-new">NUEVO</span>
-                                            }
-                                            @if (producto.IsFeatured)
-                                            {
-                                                <span class="badge badge-featured">★ Destacado</span>
-                                            }
                                         </div>
                                     </td>
                                     <td>@producto.Category?.Name</td>
                                     <td>
                                         <div class="price-cell">
-                                            @if (producto.OriginalPrice.HasValue)
-                                            {
-                                                <span class="original-price">$@producto.OriginalPrice.Value.ToString("N2")</span>
-                                            }
                                             <span class="current-price">$@producto.Price.ToString("N2")</span>
                                         </div>
                                     </td>
@@ -158,11 +146,6 @@
                             <InputText @bind-Value="productoEditando!.Name" class="form-control" placeholder="Ej: Clip-In Premium Castaño" />
                             <ValidationMessage For="@(() => productoEditando.Name)" />
                         </div>
-
-                        <div class="form-group">
-                            <label>Slug</label>
-                            <InputText @bind-Value="productoEditando!.Slug" class="form-control" placeholder="clip-in-premium-castano" />
-                        </div>
                     </div>
 
                     <div class="form-group">
@@ -175,11 +158,6 @@
                             <label>Precio *</label>
                             <InputNumber @bind-Value="productoEditando!.Price" class="form-control" />
                             <ValidationMessage For="@(() => productoEditando.Price)" />
-                        </div>
-
-                        <div class="form-group">
-                            <label>Precio Original</label>
-                            <InputNumber @bind-Value="productoEditando!.OriginalPrice" class="form-control" />
                         </div>
 
                         <div class="form-group">
@@ -206,38 +184,30 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Color</label>
-                            <InputText @bind-Value="productoEditando!.Color" class="form-control" placeholder="Ej: Castaño #4" />
+                            <label>Subcategoría</label>
+                            <InputSelect @bind-Value="productoEditando!.SubcategoryId" class="form-control">
+                                <option value="">Sin subcategoría</option>
+                                @foreach (var cat in categorias.Where(c => c.Id == productoEditando.CategoryId))
+                                {
+                                    @foreach (var sub in cat.Subcategories)
+                                    {
+                                        <option value="@sub.Id">@sub.Name</option>
+                                    }
+                                }
+                            </InputSelect>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Largo</label>
-                            <InputText @bind-Value="productoEditando!.Length" class="form-control" placeholder="Ej: 50cm" />
+                            <label>Color</label>
+                            <InputText @bind-Value="productoEditando!.Color" class="form-control" placeholder="Ej: Castaño #4" />
                         </div>
 
                         <div class="form-group">
-                            <label>Peso</label>
-                            <InputText @bind-Value="productoEditando!.Weight" class="form-control" placeholder="Ej: 120g" />
+                            <label>Largo (cm)</label>
+                            <InputNumber @bind-Value="productoEditando!.Centimeters" class="form-control" placeholder="Ej: 50" />
                         </div>
-
-                        <div class="form-group">
-                            <label>Tipo de Cabello</label>
-                            <InputText @bind-Value="productoEditando!.HairType" class="form-control" placeholder="Ej: Remy" />
-                        </div>
-                    </div>
-
-                    <div class="form-checkboxes">
-                        <label class="checkbox-label">
-                            <InputCheckbox @bind-Value="productoEditando!.IsNew" />
-                            <span>Marcar como NUEVO</span>
-                        </label>
-
-                        <label class="checkbox-label">
-                            <InputCheckbox @bind-Value="productoEditando!.IsFeatured" />
-                            <span>Producto Destacado</span>
-                        </label>
                     </div>
                 </div>
 
@@ -663,20 +633,14 @@
         {
             Id = producto.Id,
             Name = producto.Name,
-            Slug = producto.Slug,
             Description = producto.Description,
             Price = producto.Price,
-            OriginalPrice = producto.OriginalPrice,
             ImageUrl = producto.ImageUrl,
             CategoryId = producto.CategoryId,
-            IsNew = producto.IsNew,
-            IsFeatured = producto.IsFeatured,
+            SubcategoryId = producto.SubcategoryId,
             Stock = producto.Stock,
-            HairType = producto.HairType,
-            Length = producto.Length,
-            Weight = producto.Weight,
             Color = producto.Color,
-            ApplicationMethod = producto.ApplicationMethod
+            Centimeters = producto.Centimeters
         };
         mostrarModal = true;
     }

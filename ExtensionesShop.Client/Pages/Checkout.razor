@@ -227,7 +227,7 @@
 </div>
 
 <style>
-    .checkout-content { padding: 64px 0 var(--section-gap); }
+    .checkout-content { padding: 40px 0 var(--section-gap); }
 
     .checkout-layout {
         display: grid;
@@ -528,7 +528,7 @@
                     UnitPrice = item.Producto.Price,
                     Subtotal = item.Subtotal,
                     Color = item.Producto.Color,
-                    Length = item.Producto.Length
+                    Length = item.Producto.Centimeters?.ToString()
                 }).ToList(),
                 Total = CartState.Total,
                 OrderDate = DateTime.Now

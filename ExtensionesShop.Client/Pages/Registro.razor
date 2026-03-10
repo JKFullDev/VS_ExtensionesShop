@@ -1,0 +1,493 @@
+@page "/registro"
+@using System.ComponentModel.DataAnnotations
+@using ExtensionesShop.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Registrarse - Extensiones Shop</PageTitle>
+
+<div class="registro-page">
+    <div class="page-header">
+        <div class="section-inner">
+            <div class="breadcrumb">
+                <a href="/" class="breadcrumb-link">Inicio</a>
+                <span class="breadcrumb-separator">→</span>
+                <span class="breadcrumb-current">Registro</span>
+            </div>
+            <h1 class="page-title">Crear Cuenta</h1>
+            <p class="page-subtitle">Únete a nuestra comunidad y disfruta de beneficios exclusivos</p>
+        </div>
+    </div>
+
+    <div class="registro-content">
+        <div class="section-inner">
+            <div class="registro-layout">
+                <!-- Formulario de Registro -->
+                <div class="registro-card">
+                    @if (registroExitoso)
+                    {
+                        <div class="success-message">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                            <h2>¡Registro Exitoso!</h2>
+                            <p>Tu cuenta ha sido creada correctamente.</p>
+                            <p>Ya puedes <a href="/cuenta" class="link-primary">iniciar sesión</a> y empezar a disfrutar de todos los beneficios.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="@registroForm" OnValidSubmit="EnviarRegistro">
+                            <DataAnnotationsValidator />
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="nombre">Nombre *</label>
+                                    <InputText id="nombre" @bind-Value="registroForm.FirstName" class="form-control" placeholder="Ej: María" />
+                                    <ValidationMessage For="@(() => registroForm.FirstName)" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="apellidos">Apellidos *</label>
+                                    <InputText id="apellidos" @bind-Value="registroForm.LastName" class="form-control" placeholder="Ej: García López" />
+                                    <ValidationMessage For="@(() => registroForm.LastName)" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">Email *</label>
+                                <InputText id="email" type="email" @bind-Value="registroForm.Email" class="form-control" placeholder="tu@email.com" />
+                                <ValidationMessage For="@(() => registroForm.Email)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="telefono">Teléfono</label>
+                                <InputText id="telefono" @bind-Value="registroForm.Phone" class="form-control" placeholder="+34 600 000 000" maxlength="20" />
+                                <ValidationMessage For="@(() => registroForm.Phone)" />
+                                <small class="form-text">Opcional. Formato: +34 600 000 000</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password">Contraseña *</label>
+                                <InputText id="password" type="password" @bind-Value="registroForm.Password" class="form-control" placeholder="Mínimo 8 caracteres" />
+                                <ValidationMessage For="@(() => registroForm.Password)" />
+                                <small class="form-text">Debe tener al menos 8 caracteres</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirmar Contraseña *</label>
+                                <InputText id="confirmPassword" type="password" @bind-Value="registroForm.ConfirmPassword" class="form-control" placeholder="Repite tu contraseña" />
+                                <ValidationMessage For="@(() => registroForm.ConfirmPassword)" />
+                            </div>
+
+                            <div class="form-checkbox">
+                                <InputCheckbox id="acepto" @bind-Value="registroForm.AceptoTerminos" />
+                                <label for="acepto">
+                                    Acepto los <a href="/terminos" target="_blank" class="link-primary">términos y condiciones</a> 
+                                    y la <a href="/privacidad" target="_blank" class="link-primary">política de privacidad</a>
+                                </label>
+                                <ValidationMessage For="@(() => registroForm.AceptoTerminos)" />
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(errorMessage))
+                            {
+                                <div class="alert alert-error">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="12"/>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                    </svg>
+                                    @errorMessage
+                                </div>
+                            }
+
+                            <button type="submit" class="btn-primary btn-submit" disabled="@procesando">
+                                @if (procesando)
+                                {
+                                    <span class="spinner-sm">✦</span>
+                                    <text>Creando cuenta...</text>
+                                }
+                                else
+                                {
+                                    <text>Crear Cuenta</text>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="m9 18 6-6-6-6" />
+                                    </svg>
+                                }
+                            </button>
+
+                            <p class="login-link">
+                                ¿Ya tienes cuenta? <a href="/cuenta" class="link-primary">Inicia sesión</a>
+                            </p>
+                        </EditForm>
+                    }
+                </div>
+
+                <!-- Beneficios de Crear Cuenta -->
+                <div class="benefits-sidebar">
+                    <h3>¿Por qué crear una cuenta?</h3>
+                    <ul class="benefits-list">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <div>
+                                <strong>Pedidos más rápidos</strong>
+                                <span>Guarda tu información para checkout express</span>
+                            </div>
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <div>
+                                <strong>Historial de compras</strong>
+                                <span>Accede a tus pedidos anteriores</span>
+                            </div>
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <div>
+                                <strong>Lista de favoritos</strong>
+                                <span>Guarda productos para comprar después</span>
+                            </div>
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <div>
+                                <strong>Ofertas exclusivas</strong>
+                                <span>Accede a descuentos especiales para miembros</span>
+                            </div>
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <div>
+                                <strong>Seguimiento de pedidos</strong>
+                                <span>Rastrea tus envíos en tiempo real</span>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <div class="trust-badge">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        <p><strong>100% Seguro</strong></p>
+                        <p>Tus datos están protegidos con encriptación SSL</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .registro-content {
+        padding: 40px 0 var(--section-gap);
+    }
+
+    .registro-layout {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 60px;
+        align-items: start;
+    }
+
+    .registro-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 48px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        transition: border-color .2s, box-shadow .2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--rose);
+        box-shadow: 0 0 0 3px rgba(232, 96, 122, .1);
+    }
+
+    .form-text {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+    }
+
+    .form-checkbox {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 32px;
+    }
+
+    .form-checkbox input[type="checkbox"] {
+        margin-top: 3px;
+        cursor: pointer;
+    }
+
+    .form-checkbox label {
+        font-size: 13px;
+        color: var(--ink-light);
+        line-height: 1.6;
+        cursor: pointer;
+    }
+
+    .link-primary {
+        color: var(--rose);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .link-primary:hover {
+        text-decoration: underline;
+    }
+
+    .alert {
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+    }
+
+    .alert-error {
+        background: #FEE2E2;
+        color: #DC2626;
+        border: 1px solid #FECACA;
+    }
+
+    .alert svg {
+        flex-shrink: 0;
+    }
+
+    .btn-submit {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 24px;
+    }
+
+    .login-link {
+        text-align: center;
+        font-size: 14px;
+        color: var(--ink-light);
+    }
+
+    .success-message {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .success-message svg {
+        color: #10B981;
+        margin: 0 auto 24px;
+    }
+
+    .success-message h2 {
+        font-family: var(--font-display);
+        font-size: 32px;
+        font-weight: 400;
+        color: var(--ink);
+        margin-bottom: 12px;
+    }
+
+    .success-message p {
+        color: var(--ink-light);
+        margin-bottom: 8px;
+    }
+
+    /* Benefits Sidebar */
+    .benefits-sidebar h3 {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 400;
+        color: var(--ink);
+        margin-bottom: 24px;
+    }
+
+    .benefits-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .benefits-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 16px;
+        background: var(--off-white);
+        border-radius: 12px;
+    }
+
+    .benefits-list svg {
+        color: var(--rose);
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .benefits-list strong {
+        display: block;
+        font-size: 14px;
+        color: var(--ink);
+        margin-bottom: 4px;
+    }
+
+    .benefits-list span {
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .trust-badge {
+        background: var(--rose-pale);
+        border-radius: 16px;
+        padding: 32px;
+        text-align: center;
+    }
+
+    .trust-badge svg {
+        color: var(--rose);
+        margin: 0 auto 16px;
+    }
+
+    .trust-badge strong {
+        display: block;
+        font-size: 18px;
+        color: var(--ink);
+        margin-bottom: 8px;
+    }
+
+    .trust-badge p {
+        font-size: 13px;
+        color: var(--ink-light);
+        margin: 0;
+    }
+</style>
+
+<!-- Responsive ya manejado por las clases globales -->
+
+@code {
+    private RegistroFormModel registroForm = new();
+    private bool procesando = false;
+    private bool registroExitoso = false;
+    private string errorMessage = string.Empty;
+
+    private async Task EnviarRegistro()
+    {
+        if (!registroForm.AceptoTerminos)
+        {
+            errorMessage = "Debes aceptar los términos y condiciones para continuar";
+            return;
+        }
+
+        if (registroForm.Password != registroForm.ConfirmPassword)
+        {
+            errorMessage = "Las contraseñas no coinciden";
+            return;
+        }
+
+        procesando = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var data = new RegisterData
+            {
+                Email = registroForm.Email,
+                Password = registroForm.Password,
+                FirstName = registroForm.FirstName,
+                LastName = registroForm.LastName,
+                Phone = registroForm.Phone
+            };
+
+            var result = await AuthService.RegisterAsync(data);
+
+            if (result.Success)
+            {
+                registroExitoso = true;
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Error al crear la cuenta. Por favor, verifica los datos e inténtalo de nuevo.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al crear la cuenta. Por favor, verifica que todos los campos sean correctos e inténtalo de nuevo.";
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+
+    public class RegistroFormModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        [MaxLength(100, ErrorMessage = "El nombre no puede exceder 100 caracteres")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Los apellidos son obligatorios")]
+        [MaxLength(100, ErrorMessage = "Los apellidos no pueden exceder 100 caracteres")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El email es obligatorio")]
+        [EmailAddress(ErrorMessage = "El email no es válido")]
+        [MaxLength(256, ErrorMessage = "El email no puede exceder 256 caracteres")]
+        public string Email { get; set; } = string.Empty;
+
+        [Phone(ErrorMessage = "El teléfono no es válido")]
+        [MaxLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
+        public string? Phone { get; set; }
+
+        [Required(ErrorMessage = "La contraseña es obligatoria")]
+        [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
+        [MaxLength(100, ErrorMessage = "La contraseña no puede exceder 100 caracteres")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Debes confirmar la contraseña")]
+        [Compare(nameof(Password), ErrorMessage = "Las contraseñas no coinciden")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Debes aceptar los términos y condiciones")]
+        public bool AceptoTerminos { get; set; }
+    }
+}

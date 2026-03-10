@@ -60,16 +60,16 @@
                                     <h3 class="item-name">@item.Producto.Name</h3>
                                     <p class="item-category">@item.Producto.Category?.Name</p>
 
-                                    @if (!string.IsNullOrEmpty(item.Producto.Color) || !string.IsNullOrEmpty(item.Producto.Length))
+                                    @if (!string.IsNullOrEmpty(item.Producto.Color) || item.Producto.Centimeters.HasValue)
                                     {
                                         <div class="item-attributes">
                                             @if (!string.IsNullOrEmpty(item.Producto.Color))
                                             {
                                                 <span>Color: @item.Producto.Color</span>
                                             }
-                                            @if (!string.IsNullOrEmpty(item.Producto.Length))
+                                            @if (item.Producto.Centimeters.HasValue)
                                             {
-                                                <span>Largo: @item.Producto.Length</span>
+                                                <span>Largo: @item.Producto.Centimeters cm</span>
                                             }
                                         </div>
                                     }
@@ -192,17 +192,10 @@
 </div>
 
 <style>
-    /* ── Page Header ──────────────────────────────────────── */
-    .page-header {
-        background: linear-gradient(to bottom, var(--rose-pale), var(--white));
-        padding: 48px 0 64px;
-        text-align: center;
-    }
-
     /* ── Empty Cart ────────────────────────────────────────── */
     .empty-cart {
         text-align: center;
-        padding: 120px 20px;
+        padding: 0px 20px;
     }
 
     .empty-icon {
@@ -226,7 +219,7 @@
 
     /* ── Carrito Section ───────────────────────────────────── */
     .carrito-section {
-        padding: 64px 0 var(--section-gap);
+        padding: 40px 0 var(--section-gap);
     }
 
     .carrito-layout {

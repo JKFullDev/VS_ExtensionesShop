@@ -71,6 +71,66 @@ button { cursor: pointer; border: none; background: none; }
 .main-content { flex: 1; padding-top: var(--header-h); }
 
 /* ================================================================
+   PAGE HEADER - ESTILO GLOBAL
+   ================================================================ */
+.page-header {
+  background: linear-gradient(to bottom, var(--rose-pale), var(--white));
+  padding: 36px 0 40px;
+  text-align: center;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.breadcrumb-link {
+  color: var(--rose);
+  transition: color .2s;
+}
+
+.breadcrumb-link:hover {
+  color: var(--rose-deep);
+}
+
+.breadcrumb-separator {
+  color: var(--border-dark);
+}
+
+.breadcrumb-current {
+  color: var(--muted);
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 52px);
+  font-weight: 300;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.page-title svg {
+  color: var(--rose);
+}
+
+.page-subtitle {
+  font-size: 15px;
+  color: var(--ink-light);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* ================================================================
    HEADER
    ================================================================ */
 .site-header {
@@ -107,6 +167,7 @@ button { cursor: pointer; border: none; background: none; }
   align-items: center;
   gap: 10px;
   white-space: nowrap;
+  height: 100%;
 }
 
 .logo-icon {
@@ -117,7 +178,12 @@ button { cursor: pointer; border: none; background: none; }
 }
 @keyframes spin-slow { to { transform: rotate(360deg); } }
 
-.logo-text { display: flex; flex-direction: column; line-height: 1; }
+.logo-text { 
+  display: flex; 
+  flex-direction: column; 
+  line-height: 1;
+  justify-content: center;
+}
 .logo-main {
   font-family: var(--font-display);
   font-size: 17px;
@@ -134,7 +200,13 @@ button { cursor: pointer; border: none; background: none; }
 }
 
 /* Search */
-.search-wrapper { max-width: 400px; width: 100%; }
+.search-wrapper { 
+  max-width: 400px; 
+  width: 100%;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
 
 .search-box {
   display: flex;
@@ -162,12 +234,18 @@ button { cursor: pointer; border: none; background: none; }
 .search-input::placeholder { color: var(--muted); }
 
 /* Nav */
-.nav-area { display: flex; align-items: center; gap: 32px; }
+.nav-area { 
+  display: flex; 
+  align-items: center; 
+  gap: 32px;
+  height: 100%;
+}
 
 .nav-links {
   display: flex;
   gap: 28px;
   align-items: center;
+  height: 100%;
 }
 .nav-link {
   font-size: 13.5px;
@@ -175,14 +253,19 @@ button { cursor: pointer; border: none; background: none; }
   letter-spacing: .03em;
   color: var(--ink-light);
   position: relative;
-  padding-bottom: 2px;
   transition: color .2s;
+  display: inline-flex;
+  align-items: center;
+  height: var(--header-h);
+  padding: 0;
 }
 .nav-link::after {
   content: '';
   position: absolute;
-  bottom: -2px; left: 0;
-  width: 0; height: 1.5px;
+  bottom: calc(var(--header-h) / 2 - 12px);
+  left: 0;
+  width: 0; 
+  height: 1.5px;
   background: var(--rose);
   transition: width .3s var(--ease);
 }
@@ -976,7 +1059,23 @@ button { cursor: pointer; border: none; background: none; }
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
+/* ================================================================
+   RESPONSIVE - PÁGINAS ESPECÍFICAS
+   ================================================================ */
+@media (max-width: 968px) {
+  .login-prompt,
+  .registro-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
 /* ================================================================
    RESPONSIVE
    ================================================================ */

@@ -16,6 +16,9 @@ builder.Services.AddScoped(sp => new HttpClient
 // Registrar ProductService
 builder.Services.AddScoped<ProductService>();
 
+// Registrar AuthService
+builder.Services.AddScoped<AuthService>();
+
 // Registrar CartStateService como Singleton para mantener el estado
 builder.Services.AddSingleton<CartStateService>();
 

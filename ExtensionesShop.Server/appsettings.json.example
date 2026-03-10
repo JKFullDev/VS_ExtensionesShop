@@ -3,11 +3,15 @@
     "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=ExtensionesShopDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;"
   },
 
+  "ClientUrl": "https://localhost:44385",
+
   "Email": {
-    "OwnerEmail": "juancarlosah.daw@gmail.com",
-    "FromEmail": "juancarlosah.daw@gmail.com",
+    "OwnerEmail": "tu-email@gmail.com",
+    "FromEmail": "tu-email@gmail.com",
     "SmtpHost": "smtp.gmail.com",
-    "SmtpPort": "587"
+    "SmtpPort": "587",
+    "SmtpUser": "tu-email@gmail.com",
+    "SmtpPassword": "tu-app-password"
   },
   "Logging": {
     "LogLevel": {
@@ -18,4 +22,3 @@
   },
   "AllowedHosts": "*"
 }
-
