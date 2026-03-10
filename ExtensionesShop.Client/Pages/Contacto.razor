@@ -1,0 +1,300 @@
+﻿@page "/contacto"
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>Contacto - Extensiones Shop</PageTitle>
+
+<div class="contacto-page">
+    <div class="page-header">
+        <div class="section-inner">
+            <div class="breadcrumb">
+                <a href="/" class="breadcrumb-link">Inicio</a>
+                <span class="breadcrumb-separator">→</span>
+                <span class="breadcrumb-current">Contacto</span>
+            </div>
+            <h1 class="page-title">¿Necesitas Ayuda?</h1>
+            <p class="page-subtitle">Estamos aquí para ti. Escríbenos y te responderemos en menos de 24h</p>
+        </div>
+    </div>
+
+    <div class="contacto-section">
+        <div class="section-inner">
+            <div class="contacto-layout">
+                <!-- Formulario -->
+                <div class="contact-form-wrapper">
+                    @if (enviado)
+                    {
+                        <div class="success-message">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                            <h3>¡Mensaje Enviado!</h3>
+                            <p>Gracias por contactarnos. Te responderemos pronto.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="@contactForm" OnValidSubmit="EnviarFormulario">
+                            <DataAnnotationsValidator />
+
+                            <div class="form-group">
+                                <label for="nombre">Nombre Completo *</label>
+                                <InputText id="nombre" @bind-Value="contactForm.Nombre" class="form-control"
+                                           placeholder="Ej: María García" />
+                                <ValidationMessage For="@(() => contactForm.Nombre)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">Email *</label>
+                                <InputText id="email" type="email" @bind-Value="contactForm.Email" class="form-control"
+                                           placeholder="tu@email.com" />
+                                <ValidationMessage For="@(() => contactForm.Email)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="telefono">Teléfono (Opcional)</label>
+                                <InputText id="telefono" @bind-Value="contactForm.Telefono" class="form-control"
+                                           placeholder="+34 600 000 000" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="asunto">Asunto *</label>
+                                <InputSelect id="asunto" @bind-Value="contactForm.Asunto" class="form-control">
+                                    <option value="">Selecciona un tema...</option>
+                                    <option value="pedido">Consulta sobre Pedido</option>
+                                    <option value="producto">Información de Producto</option>
+                                    <option value="devolucion">Devolución/Cambio</option>
+                                    <option value="otro">Otro</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => contactForm.Asunto)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mensaje">Mensaje *</label>
+                                <InputTextArea id="mensaje" @bind-Value="contactForm.Mensaje" class="form-control"
+                                               rows="5" placeholder="Cuéntanos cómo podemos ayudarte..." />
+                                <ValidationMessage For="@(() => contactForm.Mensaje)" />
+                            </div>
+
+                            <button type="submit" class="btn-primary btn-submit" disabled="@enviando">
+                                @if (enviando)
+                                {
+                                    <span class="spinner-sm">✦</span>
+                                    <text>Enviando...</text>
+                                }
+                                else
+                                {
+                                    <text>Enviar Mensaje</text>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13" />
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                    </svg>
+                                }
+                            </button>
+                        </EditForm>
+                    }
+                </div>
+
+                <!-- Info de contacto -->
+                <div class="contact-info">
+                    <h3>Otras Formas de Contacto</h3>
+
+                    <div class="contact-method">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                            <polyline points="22,6 12,13 2,6" />
+                        </svg>
+                        <div>
+                            <strong>Email</strong>
+                            <a href="mailto:hola@extensionesshop.com">hola@extensionesshop.com</a>
+                        </div>
+                    </div>
+
+                    <div class="contact-method">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        <div>
+                            <strong>WhatsApp</strong>
+                            <a href="https://wa.me/34600000000" target="_blank">+34 600 000 000</a>
+                        </div>
+                    </div>
+
+                    <div class="contact-method">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <div>
+                            <strong>Horario</strong>
+                            <p>Lun - Vie: 9:00 - 18:00<br />Sáb: 10:00 - 14:00</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-link">
+                        <p>¿Tienes una pregunta común?</p>
+                        <a href="/faq" class="btn-ghost">Ver FAQ</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .contacto-section {
+        padding: 64px 0 var(--section-gap);
+    }
+
+    .contacto-layout {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 60px;
+    }
+
+    .contact-form-wrapper {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 40px;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 8px;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        transition: border-color .2s, box-shadow .2s;
+    }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--rose);
+            box-shadow: 0 0 0 3px rgba(232, 96, 122, .1);
+        }
+
+    .btn-submit {
+        width: 100%;
+        justify-content: center;
+        margin-top: 8px;
+    }
+
+    .success-message {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+        .success-message svg {
+            color: #10B981;
+            margin: 0 auto 24px;
+        }
+
+        .success-message h3 {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 400;
+            color: var(--ink);
+            margin-bottom: 12px;
+        }
+
+    .contact-info h3 {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 400;
+        margin-bottom: 32px;
+    }
+
+    .contact-method {
+        display: flex;
+        gap: 16px;
+        padding: 20px 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+        .contact-method svg {
+            color: var(--rose);
+            flex-shrink: 0;
+        }
+
+        .contact-method strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .contact-method a {
+            color: var(--rose);
+            font-weight: 500;
+        }
+
+    .faq-link {
+        margin-top: 32px;
+        padding: 24px;
+        background: var(--rose-pale);
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .spinner-sm {
+        display: inline-block;
+        animation: spin 1.5s linear infinite;
+    }
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .contacto-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+@code {
+    private ContactFormModel contactForm = new();
+    private bool enviando = false;
+    private bool enviado = false;
+
+    private async Task EnviarFormulario()
+    {
+        enviando = true;
+        await Task.Delay(1500); // Simular envío
+        enviando = false;
+        enviado = true;
+    }
+
+    public class ContactFormModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        [MinLength(3, ErrorMessage = "Mínimo 3 caracteres")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El email es obligatorio")]
+        [EmailAddress(ErrorMessage = "Email no válido")]
+        public string Email { get; set; } = string.Empty;
+
+        public string? Telefono { get; set; }
+
+        [Required(ErrorMessage = "Selecciona un asunto")]
+        public string Asunto { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El mensaje es obligatorio")]
+        [MinLength(10, ErrorMessage = "Mínimo 10 caracteres")]
+        public string Mensaje { get; set; } = string.Empty;
+    }
+}

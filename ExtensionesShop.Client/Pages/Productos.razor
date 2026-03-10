@@ -415,15 +415,24 @@
         try
         {
             isLoading = true;
+            Console.WriteLine("🔵 Iniciando carga de productos...");
             productos = await ProductService.GetProductsAsync();
+            Console.WriteLine($"🟢 Productos cargados: {productos.Count}");
+
+            if (productos.Any())
+            {
+                Console.WriteLine($"✅ Primer producto: {productos.First().Name}");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error en OnInitializedAsync: {ex.Message}");
+            Console.WriteLine($"🔴 Error en OnInitializedAsync: {ex.Message}");
+            Console.WriteLine($"🔴 Stack trace: {ex.StackTrace}");
         }
         finally
         {
             isLoading = false;
+            Console.WriteLine($"⏹️ Loading finalizado. isLoading={isLoading}, productos.Count={productos.Count}");
         }
     }
 

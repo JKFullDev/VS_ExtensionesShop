@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ExtensionesShop.Server</RootNamespace>
     <AssemblyName>ExtensionesShop.Server</AssemblyName>
+    <UserSecretsId>4692306f-0d79-495c-b199-bf728f4752ce</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

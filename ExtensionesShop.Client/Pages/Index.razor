@@ -2,38 +2,40 @@
 
 <PageTitle>Extensiones Shop — Tu Cabello, Tu Poder</PageTitle>
 
-<!-- HERO SECTION -->
-<section class="hero" aria-label="Sección principal">
-    <div class="hero-bg">
-        <div class="hero-blob blob-1"></div>
-        <div class="hero-blob blob-2"></div>
+<!-- HERO SECTION - PANTALLA COMPLETA -->
+<section class="hero-fullscreen" aria-label="Sección principal">
+    <!-- Background con overlay -->
+    <div class="hero-background">
+        <div class="hero-overlay"></div>
+        <div class="hero-pattern"></div>
     </div>
 
-    <div class="hero-inner">
+    <div class="hero-container">
         <div class="hero-content">
-            <span class="hero-eyebrow">✦ Nueva Colección 2025</span>
-            <h1 class="hero-title">
+            <span class="hero-eyebrow" data-aos="fade-up">✦ Nueva Colección 2025</span>
+            <h1 class="hero-title" data-aos="fade-up" data-aos-delay="100">
                 Tu Cabello,<br />
-                <em>Tu Poder.</em>
+                <em class="gradient-text">Tu Poder.</em>
             </h1>
-            <p class="hero-subtitle">
-                Extensiones de cabello natural 100% Remy. Calidad de salón,
+            <p class="hero-subtitle" data-aos="fade-up" data-aos-delay="200">
+                Extensiones de cabello natural 100% Remy. Calidad de salón,<br />
                 comodidad de casa. Encuentra el tono perfecto para ti.
             </p>
-            <div class="hero-actions">
-                <a href="/productos" class="btn-primary">
+
+            <div class="hero-actions" data-aos="fade-up" data-aos-delay="300">
+                <a href="/productos" class="btn-primary btn-hero">
                     Descubrir Colección
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                     </svg>
                 </a>
-                <a href="/como-elegir" class="btn-ghost">
-                    ¿Cómo elegir la tuya?
+                <a href="/como-elegir" class="btn-ghost-hero">
+                    Guía de Compra
                 </a>
             </div>
 
             <!-- Social proof -->
-            <div class="hero-proof">
+            <div class="hero-proof" data-aos="fade-up" data-aos-delay="400">
                 <div class="proof-avatars" aria-hidden="true">
                     <div class="avatar av-1"></div>
                     <div class="avatar av-2"></div>
@@ -41,42 +43,18 @@
                     <div class="avatar av-4"></div>
                 </div>
                 <div class="proof-text">
-                    <strong>+12.000 clientas</strong> ya transformaron su look
+                    <strong>+12.000 clientas</strong> confían en nosotras
                     <span class="stars" aria-label="5 estrellas">★★★★★</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Hero image placeholder -->
-        <div class="hero-visual" aria-hidden="true">
-            <div class="hero-img-frame">
-                <div class="hero-img-placeholder">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                    <span>Imagen Hero</span>
-                </div>
-                <div class="hero-badge-float badge-top">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
-                    100% Cabello Natural
-                </div>
-                <div class="hero-badge-float badge-bottom">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                    Envío en 24h
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Scroll indicator -->
-    <div class="scroll-hint" aria-hidden="true">
+    <a href="#features" class="scroll-indicator" aria-label="Desplazar hacia abajo">
         <div class="scroll-line"></div>
         <span>Explorar</span>
-    </div>
+    </a>
 </section>
 
 <!-- FEATURES STRIP -->

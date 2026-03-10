@@ -1,19 +1,27 @@
 using ExtensionesShop.Server.Data;
+using ExtensionesShop.Server.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Services ──────────────────────────────────────────────────────────────────
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddRazorPages();
 
 // Entity Framework Core → SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure()
+        builder.Configuration.GetConnectionString("DefaultConnection")
+        // Removido EnableRetryOnFailure para debugging
     )
 );
+
+// Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // CORS (desarrollo)
 builder.Services.AddCors(options =>

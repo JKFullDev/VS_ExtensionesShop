@@ -38,12 +38,20 @@ public class ProductService
 
         try
         {
+            Console.WriteLine($"🌐 Llamando a: {url}");
+            Console.WriteLine($"🌐 BaseAddress: {_http.BaseAddress}");
+
             var products = await _http.GetFromJsonAsync<List<Product>>(url);
+
+            Console.WriteLine($"📦 Respuesta recibida. Productos: {products?.Count ?? 0}");
+
             return products ?? new List<Product>();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar productos: {ex.Message}");
+            Console.WriteLine($"❌ Error al cargar productos: {ex.Message}");
+            Console.WriteLine($"❌ Tipo: {ex.GetType().Name}");
+            Console.WriteLine($"❌ Stack: {ex.StackTrace}");
             return new List<Product>();
         }
     }

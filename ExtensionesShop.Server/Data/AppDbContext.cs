@@ -32,6 +32,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(p => p.OriginalPrice).HasPrecision(18, 2);
             entity.Property(p => p.Description).HasMaxLength(4000);
 
+            // Ignorar propiedades que no se mapean a columnas
+            entity.Ignore(p => p.ImageUrls);
+            entity.Ignore(p => p.DiscountPercentage);
+
             entity.HasOne(p => p.Category)
                   .WithMany(c => c.Products)
                   .HasForeignKey(p => p.CategoryId)
@@ -39,13 +43,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         });
 
         // ── Seed Data ─────────────────────────────────────────────────────────
-        modelBuilder.Entity<Category>().HasData(
-            new Category { Id = 1, Name = "Clip-In", Slug = "clip-in", SortOrder = 1,
-                Description = "Sin químicos ni calor. Perfectas para uso diario." },
-            new Category { Id = 2, Name = "Tape-In", Slug = "tape-in", SortOrder = 2,
-                Description = "Resultado de salón, duración de semanas." },
-            new Category { Id = 3, Name = "Keratina", Slug = "keratin", SortOrder = 3,
-                Description = "Fusión perfecta y natural." }
-        );
+        // Los datos se insertan mediante el script setup-database.sql
     }
 }

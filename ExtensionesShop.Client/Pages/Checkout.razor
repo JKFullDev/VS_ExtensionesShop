@@ -1,0 +1,590 @@
+@page "/checkout"
+@using ExtensionesShop.Shared.Models
+@using ExtensionesShop.Client.Services
+@using System.ComponentModel.DataAnnotations
+@inject CartStateService CartState
+@inject NavigationManager Navigation
+@inject HttpClient Http
+
+<PageTitle>Finalizar Pedido - Extensiones Shop</PageTitle>
+
+<div class="checkout-page">
+    <div class="page-header">
+        <div class="section-inner">
+            <div class="breadcrumb">
+                <a href="/" class="breadcrumb-link">Inicio</a>
+                <span class="breadcrumb-separator">→</span>
+                <a href="/carrito" class="breadcrumb-link">Carrito</a>
+                <span class="breadcrumb-separator">→</span>
+                <span class="breadcrumb-current">Checkout</span>
+            </div>
+            <h1 class="page-title">Finalizar Pedido</h1>
+            <p class="page-subtitle">Completa tus datos para procesar tu pedido</p>
+        </div>
+    </div>
+
+    <div class="checkout-content">
+        <div class="section-inner">
+            
+            @if (pedidoEnviado)
+            {
+                <!-- Confirmación de Pedido -->
+                <div class="success-confirmation">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <h2>¡Pedido Enviado Correctamente!</h2>
+                    <p>Hemos recibido tu pedido <strong>#@numeroPedido</strong></p>
+                    <p>Te hemos enviado un email a <strong>@checkoutForm.Email</strong> con todos los detalles.</p>
+                    <p>Nos pondremos en contacto contigo en las próximas horas para confirmar el pedido y coordinar el pago.</p>
+                    
+                    <div class="next-steps">
+                        <h3>Próximos Pasos:</h3>
+                        <ol>
+                            <li>Recibirás un email de confirmación</li>
+                            <li>Te contactaremos para coordinar el pago</li>
+                            <li>Una vez confirmado, enviaremos tu pedido en 24-48h</li>
+                        </ol>
+                    </div>
+
+                    <div class="action-buttons">
+                        <a href="/" class="btn-primary">Volver al Inicio</a>
+                        <a href="/productos" class="btn-ghost">Seguir Comprando</a>
+                    </div>
+                </div>
+            }
+            else if (!CartState.Items.Any())
+            {
+                <!-- Carrito Vacío -->
+                <div class="empty-cart">
+                    <h2>Tu carrito está vacío</h2>
+                    <p>Agrega productos antes de finalizar el pedido</p>
+                    <a href="/productos" class="btn-primary">Ir a Productos</a>
+                </div>
+            }
+            else
+            {
+                <!-- Formulario de Checkout -->
+                <div class="checkout-layout">
+                    
+                    <!-- Formulario -->
+                    <div class="checkout-form-section">
+                        <EditForm Model="@checkoutForm" OnValidSubmit="EnviarPedido">
+                            <DataAnnotationsValidator />
+
+                            <div class="form-section">
+                                <h3>Datos de Contacto</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="nombre">Nombre Completo *</label>
+                                        <InputText id="nombre" @bind-Value="checkoutForm.NombreCompleto" 
+                                                   class="form-control" placeholder="María García López" />
+                                        <ValidationMessage For="@(() => checkoutForm.NombreCompleto)" />
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="email">Email *</label>
+                                        <InputText id="email" type="email" @bind-Value="checkoutForm.Email" 
+                                                   class="form-control" placeholder="tu@email.com" />
+                                        <ValidationMessage For="@(() => checkoutForm.Email)" />
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="telefono">Teléfono *</label>
+                                        <InputText id="telefono" @bind-Value="checkoutForm.Telefono" 
+                                                   class="form-control" placeholder="+34 600 000 000" />
+                                        <ValidationMessage For="@(() => checkoutForm.Telefono)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3>Dirección de Envío</h3>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="direccion">Dirección Completa *</label>
+                                        <InputText id="direccion" @bind-Value="checkoutForm.Direccion" 
+                                                   class="form-control" placeholder="Calle, número, piso, puerta" />
+                                        <ValidationMessage For="@(() => checkoutForm.Direccion)" />
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="ciudad">Ciudad *</label>
+                                        <InputText id="ciudad" @bind-Value="checkoutForm.Ciudad" 
+                                                   class="form-control" placeholder="Madrid" />
+                                        <ValidationMessage For="@(() => checkoutForm.Ciudad)" />
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="provincia">Provincia *</label>
+                                        <InputText id="provincia" @bind-Value="checkoutForm.Provincia" 
+                                                   class="form-control" placeholder="Madrid" />
+                                        <ValidationMessage For="@(() => checkoutForm.Provincia)" />
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="cp">Código Postal *</label>
+                                        <InputText id="cp" @bind-Value="checkoutForm.CodigoPostal" 
+                                                   class="form-control" placeholder="28001" />
+                                        <ValidationMessage For="@(() => checkoutForm.CodigoPostal)" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3>Notas del Pedido (Opcional)</h3>
+                                <div class="form-group">
+                                    <InputTextArea @bind-Value="checkoutForm.Notas" class="form-control" 
+                                                   rows="3" placeholder="Instrucciones especiales de entrega, horarios preferidos, etc." />
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary btn-submit" disabled="@enviando">
+                                    @if (enviando)
+                                    {
+                                        <span class="spinner">✦</span>
+                                        <text>Procesando Pedido...</text>
+                                    }
+                                    else
+                                    {
+                                        <text>Confirmar Pedido</text>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="m9 18 6-6-6-6"/>
+                                        </svg>
+                                    }
+                                </button>
+                            </div>
+
+                        </EditForm>
+                    </div>
+
+                    <!-- Resumen del Pedido -->
+                    <div class="order-summary">
+                        <h3>Resumen del Pedido</h3>
+
+                        <div class="summary-items">
+                            @foreach (var item in CartState.Items)
+                            {
+                                <div class="summary-item">
+                                    <img src="@item.Producto.ImageUrl" alt="@item.Producto.Name" />
+                                    <div class="item-details">
+                                        <strong>@item.Producto.Name</strong>
+                                        <span class="item-qty">Cantidad: @item.Cantidad</span>
+                                        @if (!string.IsNullOrEmpty(item.Producto.Color))
+                                        {
+                                            <span class="item-attr">@item.Producto.Color</span>
+                                        }
+                                    </div>
+                                    <div class="item-price">
+                                        $@item.Subtotal.ToString("N2")
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="summary-divider"></div>
+
+                        <div class="summary-row">
+                            <span>Subtotal (@CartState.CantidadTotal items)</span>
+                            <span>$@CartState.Total.ToString("N2")</span>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Envío</span>
+                            <span class="free">GRATIS</span>
+                        </div>
+
+                        <div class="summary-divider"></div>
+
+                        <div class="summary-total">
+                            <span>Total</span>
+                            <span>$@CartState.Total.ToString("N2")</span>
+                        </div>
+
+                        <div class="payment-info">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 16v-4"/>
+                                <path d="M12 8h.01"/>
+                            </svg>
+                            <p>Nos pondremos en contacto contigo para coordinar el pago después de confirmar tu pedido.</p>
+                        </div>
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .checkout-content { padding: 64px 0 var(--section-gap); }
+
+    .checkout-layout {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 48px;
+    }
+
+    .checkout-form-section {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 40px;
+    }
+
+    .form-section {
+        margin-bottom: 40px;
+        padding-bottom: 32px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .form-section:last-of-type { border-bottom: none; }
+
+    .form-section h3 {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 400;
+        margin-bottom: 24px;
+        color: var(--ink);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        transition: border-color .2s, box-shadow .2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--rose);
+        box-shadow: 0 0 0 3px rgba(232, 96, 122, .1);
+    }
+
+    .btn-submit {
+        width: 100%;
+        justify-content: center;
+        padding: 16px;
+        font-size: 16px;
+    }
+
+    .spinner {
+        display: inline-block;
+        animation: spin 1.5s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Order Summary */
+    .order-summary {
+        position: sticky;
+        top: 100px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 32px;
+        height: fit-content;
+    }
+
+    .order-summary h3 {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 400;
+        margin-bottom: 24px;
+    }
+
+    .summary-items {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .summary-item {
+        display: grid;
+        grid-template-columns: 60px 1fr auto;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .summary-item img {
+        width: 60px;
+        height: 75px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    .item-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .item-details strong {
+        font-size: 14px;
+        color: var(--ink);
+    }
+
+    .item-qty, .item-attr {
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    .item-price {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .summary-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 20px 0;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        font-size: 14px;
+        color: var(--ink-light);
+    }
+
+    .summary-row .free {
+        color: #059669;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        padding: 16px 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+    }
+
+    .payment-info {
+        margin-top: 24px;
+        padding: 16px;
+        background: #FEF3C7;
+        border-radius: 10px;
+        display: flex;
+        gap: 12px;
+        font-size: 13px;
+        color: #78350F;
+    }
+
+    .payment-info svg {
+        color: #F59E0B;
+        flex-shrink: 0;
+    }
+
+    /* Success Confirmation */
+    .success-confirmation {
+        text-align: center;
+        padding: 80px 20px;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .success-confirmation svg {
+        color: #10B981;
+        margin: 0 auto 32px;
+    }
+
+    .success-confirmation h2 {
+        font-family: var(--font-display);
+        font-size: 36px;
+        font-weight: 400;
+        color: var(--ink);
+        margin-bottom: 16px;
+    }
+
+    .success-confirmation p {
+        font-size: 16px;
+        color: var(--ink-light);
+        margin-bottom: 12px;
+    }
+
+    .next-steps {
+        background: var(--rose-pale);
+        border-radius: 12px;
+        padding: 32px;
+        margin: 40px 0;
+        text-align: left;
+    }
+
+    .next-steps h3 {
+        font-family: var(--font-display);
+        font-size: 22px;
+        margin-bottom: 16px;
+    }
+
+    .next-steps ol {
+        margin-left: 24px;
+        font-size: 15px;
+        line-height: 1.8;
+    }
+
+    .next-steps li {
+        margin-bottom: 8px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin-top: 40px;
+    }
+
+    .empty-cart {
+        text-align: center;
+        padding: 100px 20px;
+    }
+
+    .empty-cart h2 {
+        font-family: var(--font-display);
+        font-size: 32px;
+        margin-bottom: 16px;
+    }
+
+    @@media (max-width: 968px) {
+        .checkout-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .order-summary {
+            position: static;
+        }
+    }
+</style>
+
+@code {
+    private CheckoutFormModel checkoutForm = new();
+    private bool enviando = false;
+    private bool pedidoEnviado = false;
+    private string numeroPedido = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        if (!CartState.Items.Any())
+        {
+            Navigation.NavigateTo("/carrito");
+        }
+    }
+
+    private async Task EnviarPedido()
+    {
+        enviando = true;
+
+        try
+        {
+            var orderData = new
+            {
+                CustomerName = checkoutForm.NombreCompleto,
+                CustomerEmail = checkoutForm.Email,
+                CustomerPhone = checkoutForm.Telefono,
+                ShippingAddress = $"{checkoutForm.Direccion}, {checkoutForm.Ciudad}, {checkoutForm.Provincia} {checkoutForm.CodigoPostal}",
+                Notes = checkoutForm.Notas,
+                Items = CartState.Items.Select(item => new
+                {
+                    ProductName = item.Producto.Name,
+                    Quantity = item.Cantidad,
+                    UnitPrice = item.Producto.Price,
+                    Subtotal = item.Subtotal,
+                    Color = item.Producto.Color,
+                    Length = item.Producto.Length
+                }).ToList(),
+                Total = CartState.Total,
+                OrderDate = DateTime.Now
+            };
+
+            var response = await Http.PostAsJsonAsync("api/orders/send-email", orderData);
+
+            if (response.IsSuccessStatusCode)
+            {
+                numeroPedido = $"EXT-{DateTime.Now:yyyyMMddHHmmss}";
+                pedidoEnviado = true;
+                CartState.VaciarCarrito();
+            }
+            else
+            {
+                // Manejar error
+                Console.WriteLine("Error al enviar pedido");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+
+    public class CheckoutFormModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        [MinLength(3, ErrorMessage = "Mínimo 3 caracteres")]
+        public string NombreCompleto { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El email es obligatorio")]
+        [EmailAddress(ErrorMessage = "Email no válido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El teléfono es obligatorio")]
+        [Phone(ErrorMessage = "Teléfono no válido")]
+        public string Telefono { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La dirección es obligatoria")]
+        public string Direccion { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La ciudad es obligatoria")]
+        public string Ciudad { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La provincia es obligatoria")]
+        public string Provincia { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El código postal es obligatorio")]
+        [RegularExpression(@"^\d{5}$", ErrorMessage = "Código postal inválido")]
+        public string CodigoPostal { get; set; } = string.Empty;
+
+        public string? Notas { get; set; }
+    }
+}
