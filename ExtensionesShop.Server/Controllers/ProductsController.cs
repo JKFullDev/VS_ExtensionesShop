@@ -1,5 +1,6 @@
 using ExtensionesShop.Server.Data;
 using ExtensionesShop.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -56,6 +57,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     }
 
     // POST api/products
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<Product>> Create([FromBody] Product product)
     {
@@ -69,6 +71,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     }
 
     // PUT api/products/{id}
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<ActionResult<Product>> Update(int id, [FromBody] Product product)
     {
@@ -104,6 +107,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     }
 
     // DELETE api/products/{id}
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

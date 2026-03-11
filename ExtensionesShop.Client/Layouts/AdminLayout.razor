@@ -1,8 +1,10 @@
 @inherits LayoutComponentBase
+@using ExtensionesShop.Client.Components
 @using ExtensionesShop.Client.Services
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 
+<AdminRoute>
 <div class="admin-layout">
     <!-- Sidebar -->
     <aside class="admin-sidebar">
@@ -124,6 +126,7 @@
         </main>
     </div>
 </div>
+</AdminRoute>
 
 <style>
     /* Layout principal - FLEX en lugar de GRID para evitar conflictos */

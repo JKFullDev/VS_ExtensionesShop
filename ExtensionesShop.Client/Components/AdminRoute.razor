@@ -43,8 +43,13 @@ else
     }
 
     @@keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     .unauthorized-icon {
@@ -75,48 +80,47 @@ else
     private bool isAuthorized = false;
     private string errorMessage = "";
 
-    protected override async Task OnInitializedAsync()
+    // Usamos OnAfterRenderAsync porque aquí es 100% seguro leer el LocalStorage y redirigir
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await CheckAccess();
+        if (firstRender)
+        {
+            await CheckAccess();
+            StateHasChanged(); // Obligamos a Blazor a repintar la pantalla
+        }
     }
 
     private async Task CheckAccess()
     {
-        await Task.Delay(100);
-
-        Console.WriteLine("🔐 AdminRoute - Verificando acceso...");
-        Console.WriteLine($"   IsAuthenticated: {AuthService.IsAuthenticated}");
-        Console.WriteLine($"   CurrentUser: {AuthService.CurrentUser?.Email ?? "null"}");
-        Console.WriteLine($"   Role: {AuthService.CurrentUser?.Role ?? "null"}");
-        Console.WriteLine($"   IsAdmin: {AuthService.IsAdmin}");
-
-        if (!AuthService.IsAuthenticated)
+        try
         {
-            Console.WriteLine("❌ No autenticado - Redirigiendo");
-            errorMessage = "Debes iniciar sesión para acceder al panel de administración";
-            hasChecked = true;
-            await Task.Delay(1000);
-            Navigation.NavigateTo("/cuenta", forceLoad: true);
-            return;
-        }
+            if (!AuthService.IsAuthenticated)
+            {
+                errorMessage = "Debes iniciar sesión para acceder al panel.";
+                hasChecked = true;
+                isAuthorized = false;
+                Navigation.NavigateTo("/cuenta");
+                return;
+            }
 
-        if (!AuthService.IsAdmin)
+            if (!AuthService.IsAdmin)
+            {
+                errorMessage = $"Acceso denegado. Se requiere rol 'Admin'.";
+                hasChecked = true;
+                isAuthorized = false;
+                Navigation.NavigateTo("/"); // Si es un cliente normal, lo mandamos a la tienda
+                return;
+            }
+
+            // Si pasa los dos if, es Admin real
+            isAuthorized = true;
+            hasChecked = true;
+        }
+        catch (Exception ex)
         {
-            Console.WriteLine($"❌ No es admin - Role: {AuthService.CurrentUser?.Role}");
-            errorMessage = $"Acceso denegado. Tu rol actual es '{AuthService.CurrentUser?.Role}'. Se requiere rol 'Admin'.";
-            hasChecked = true;
-            isAuthorized = false;
-            return;
+            // Si hay cualquier error leyendo la sesión, por seguridad lo expulsamos
+            Console.WriteLine($"Error de seguridad: {ex.Message}");
+            Navigation.NavigateTo("/cuenta");
         }
-
-        Console.WriteLine("✅ Acceso autorizado");
-        isAuthorized = true;
-        hasChecked = true;
-    }
-
-    protected override bool ShouldRender()
-    {
-        // Solo renderizar cuando hayamos verificado
-        return hasChecked;
     }
 }
