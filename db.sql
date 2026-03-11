@@ -202,9 +202,19 @@ SELECT * FROM Products;
 SELECT * from Users;
 
 
+
+
 ALTER TABLE Users 
 ADD PasswordResetToken NVARCHAR(MAX) NULL,
     PasswordResetTokenExpiry DATETIME2 NULL;
+
+
+
+
+    -- ============================================================
+-- SCRIPT PARA ARREGLAR EL TAMAÑO DEL CAMPO PHONE EN LA TABLA USERS
+-- Ejecutar en SQL Server Management Studio o con:
+-- ============================================================
 
 
     
@@ -343,3 +353,35 @@ FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = 'Users'
 ORDER BY ORDINAL_POSITION;
 GO
+
+--------------------------------------------
+-- Agregar columnas para verificación de email
+ALTER TABLE [dbo].[Users]
+ADD 
+    [EmailVerified] BIT NOT NULL DEFAULT 0,
+    [EmailVerificationToken] NVARCHAR(255) NULL,
+    [EmailVerificationTokenExpiry] DATETIME2 NULL;
+GO
+
+-- Hacer el campo Phone obligatorio (NOT NULL)
+-- Primero actualizamos registros con Phone NULL a un valor por defecto si existen
+UPDATE [dbo].[Users] 
+SET [Phone] = '' 
+WHERE [Phone] IS NULL;
+GO
+
+-- Ahora modificamos la columna para que sea NOT NULL
+ALTER TABLE [dbo].[Users]
+ALTER COLUMN [Phone] NVARCHAR(20) NOT NULL;
+GO
+
+-- Opcional: Marcar como verificados a los usuarios existentes
+-- Descomenta si quieres que los usuarios actuales estén verificados
+UPDATE [dbo].[Users] SET [EmailVerified] = 1 WHERE [EmailVerified] = 0;
+-- GO
+
+PRINT 'Columnas de verificación de email agregadas y Phone es ahora obligatorio';
+GO
+
+
+SELECT * FROM USERS

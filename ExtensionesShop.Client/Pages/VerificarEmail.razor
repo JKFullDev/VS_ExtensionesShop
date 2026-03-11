@@ -1,0 +1,180 @@
+@page "/verificar-email"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Verificar Email - Extensiones Shop</PageTitle>
+
+<div class="verificar-email-page">
+    <div class="page-header">
+        <div class="section-inner">
+            <h1 class="page-title">Verificación de Email</h1>
+        </div>
+    </div>
+
+    <div class="verificar-content">
+        <div class="section-inner">
+            <div class="verificar-card">
+                @if (verificando)
+                {
+                    <div class="loading-message">
+                        <span class="spinner">✦</span>
+                        <h2>Verificando tu email...</h2>
+                        <p>Por favor espera un momento.</p>
+                    </div>
+                }
+                else if (verificacionExitosa)
+                {
+                    <div class="success-message">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                        <h2>¡Email Verificado!</h2>
+                        <p>Tu email ha sido verificado exitosamente.</p>
+                        <p>Ya puedes <a href="/cuenta" class="link-primary">iniciar sesión</a> y disfrutar de todos los beneficios.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="error-message">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <h2>Error en la Verificación</h2>
+                        <p>@mensajeError</p>
+                        <p><a href="/registro" class="link-primary">Volver a registro</a></p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .verificar-email-page {
+        min-height: 60vh;
+    }
+
+    .verificar-content {
+        padding: 40px 0;
+    }
+
+    .verificar-card {
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        padding: 48px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        text-align: center;
+    }
+
+    .loading-message,
+    .success-message,
+    .error-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .loading-message svg,
+    .success-message svg,
+    .error-message svg {
+        color: var(--accent);
+    }
+
+    .success-message svg {
+        color: #10b981;
+    }
+
+    .error-message svg {
+        color: #ef4444;
+    }
+
+    .spinner {
+        font-size: 32px;
+        animation: spin 2s linear infinite;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .loading-message h2,
+    .success-message h2,
+    .error-message h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .loading-message p,
+    .success-message p,
+    .error-message p {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+
+    .link-primary {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .link-primary:hover {
+        text-decoration: underline;
+    }
+</style>
+
+@code {
+    private bool verificando = true;
+    private bool verificacionExitosa = false;
+    private string mensajeError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(Navigation.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var token = queryParams["token"];
+
+        if (string.IsNullOrEmpty(token))
+        {
+            verificando = false;
+            mensajeError = "Token de verificación no proporcionado.";
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/users/verify-email", new { Token = token });
+
+            if (response.IsSuccessStatusCode)
+            {
+                verificacionExitosa = true;
+            }
+            else
+            {
+                var errorResponse = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                mensajeError = errorResponse?.Message ?? "El token de verificación es inválido o ha expirado.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Ocurrió un error al verificar tu email. Por favor, inténtalo de nuevo más tarde.";
+        }
+        finally
+        {
+            verificando = false;
+        }
+    }
+
+    private class ErrorResponse
+    {
+        public string Message { get; set; } = string.Empty;
+    }
+}

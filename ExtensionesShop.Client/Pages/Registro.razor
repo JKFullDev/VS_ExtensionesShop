@@ -25,17 +25,17 @@
                 <!-- Formulario de Registro -->
                 <div class="registro-card">
                     @if (registroExitoso)
-                    {
-                        <div class="success-message">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                <polyline points="22 4 12 14.01 9 11.01" />
-                            </svg>
-                            <h2>¡Registro Exitoso!</h2>
-                            <p>Tu cuenta ha sido creada correctamente.</p>
-                            <p>Ya puedes <a href="/cuenta" class="link-primary">iniciar sesión</a> y empezar a disfrutar de todos los beneficios.</p>
-                        </div>
-                    }
+                        {
+                            <div class="success-message">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                <h2>¡Cuenta Creada!</h2>
+                                <p>Hemos enviado un email de verificación a <strong>@registroForm.Email</strong></p>
+                                <p>Por favor, revisa tu bandeja de entrada y haz clic en el enlace de verificación para activar tu cuenta.</p>
+                                <p class="note">Si no ves el email, revisa tu carpeta de spam.</p>
+                            </div>
+                        }
                     else
                     {
                         <EditForm Model="@registroForm" OnValidSubmit="EnviarRegistro">
@@ -62,10 +62,10 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="telefono">Teléfono</label>
+                                <label for="telefono">Teléfono *</label>
                                 <InputText id="telefono" @bind-Value="registroForm.Phone" class="form-control" placeholder="+34 600 000 000" maxlength="20" />
                                 <ValidationMessage For="@(() => registroForm.Phone)" />
-                                <small class="form-text">Opcional. Formato: +34 600 000 000</small>
+                                <small class="form-text">Formato: +34 600 000 000</small>
                             </div>
 
                             <div class="form-group">
@@ -474,9 +474,10 @@
         [MaxLength(256, ErrorMessage = "El email no puede exceder 256 caracteres")]
         public string Email { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "El teléfono es obligatorio")]
         [Phone(ErrorMessage = "El teléfono no es válido")]
         [MaxLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
-        public string? Phone { get; set; }
+        public string Phone { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La contraseña es obligatoria")]
         [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]

@@ -1,6 +1,8 @@
 using ExtensionesShop.Server.Data;
 using ExtensionesShop.Server.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,20 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Email Service
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("register", opt =>
+    {
+        opt.PermitLimit = 3;
+        opt.Window = TimeSpan.FromMinutes(15);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 // CORS (desarrollo)
 builder.Services.AddCors(options =>
@@ -59,6 +75,9 @@ app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseRateLimiter();
+
 app.UseAuthorization();
 
 app.MapRazorPages();
