@@ -1,8 +1,10 @@
 @page "/registro"
 @using System.ComponentModel.DataAnnotations
 @using ExtensionesShop.Client.Services
+@using Microsoft.JSInterop
 @inject AuthService AuthService
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Registrarse - Extensiones Shop</PageTitle>
 
@@ -428,13 +430,27 @@
 
         try
         {
+            // Obtener token de reCAPTCHA
+            string recaptchaToken;
+            try
+            {
+                recaptchaToken = await JSRuntime.InvokeAsync<string>("getRecaptchaToken", "register");
+            }
+            catch (Exception ex)
+            {
+                errorMessage = "Error al verificar que eres humano. Por favor, recarga la página e inténtalo de nuevo.";
+                Console.WriteLine($"Error reCAPTCHA: {ex.Message}");
+                return;
+            }
+
             var data = new RegisterData
             {
                 Email = registroForm.Email,
                 Password = registroForm.Password,
                 FirstName = registroForm.FirstName,
                 LastName = registroForm.LastName,
-                Phone = registroForm.Phone
+                Phone = registroForm.Phone,
+                RecaptchaToken = recaptchaToken
             };
 
             var result = await AuthService.RegisterAsync(data);

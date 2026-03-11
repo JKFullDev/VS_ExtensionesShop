@@ -2,7 +2,10 @@ using ExtensionesShop.Server.Data;
 using ExtensionesShop.Server.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using System.Threading.RateLimiting;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,8 +25,30 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+// ✅ JWT Authentication (para controllers [Authorize])
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "DefaultKeyForDevelopmentOnly12345678901234567890"))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 // Email Service
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+// reCAPTCHA Service
+builder.Services.AddHttpClient<IRecaptchaService, RecaptchaService>();
 
 // Rate Limiting
 builder.Services.AddRateLimiter(options =>
@@ -78,6 +103,8 @@ app.UseRouting();
 
 app.UseRateLimiter();
 
+// ✅ Authentication ANTES de Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();

@@ -515,19 +515,19 @@
 </style>
 
 @code {
-    private void ActualizarCantidad(int productoId, ChangeEventArgs e)
+    private async Task ActualizarCantidad(int productoId, ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out int nuevaCantidad))
         {
-            CartState.ActualizarCantidad(productoId, nuevaCantidad);
+            await CartState.ActualizarCantidad(productoId, nuevaCantidad);
         }
     }
 
-    private void VaciarCarrito()
+    private async Task VaciarCarrito()
     {
         if (CartState.Items.Any())
         {
-            CartState.VaciarCarrito();
+            await CartState.VaciarCarrito();
         }
     }
 

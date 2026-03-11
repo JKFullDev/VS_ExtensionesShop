@@ -3,6 +3,12 @@
 @using ExtensionesShop.Client.Services
 @inject ProductService ProductService
 @inject CartStateService CartState
+@inject FavoritosService FavoritosService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>Catálogo - Extensiones Shop</PageTitle>
 
 <div class="productos-page">
     <!-- Header -->
@@ -18,7 +24,7 @@
         </div>
     </div>
 
-    <!-- Productos Grid -->
+    <!-- Productos Section -->
     <div class="productos-section">
         <div class="section-inner">
             @if (isLoading)
@@ -36,71 +42,218 @@
             }
             else
             {
-                <div class="productos-grid">
-                    @foreach (var producto in productos)
-                    {
-                        <div class="producto-card">
-                            <!-- Imagen -->
-                            <div class="producto-image">
-                                <img src="@producto.ImageUrl" alt="@producto.Name" loading="lazy" />
+                <div class="productos-layout">
+                    <!-- Sidebar de Filtros -->
+                    <aside class="filtros-sidebar">
+                        <div class="filtros-header">
+                            <h3>Filtros</h3>
+                            @if (HasActiveFilters())
+                            {
+                                <button class="btn-text" @onclick="LimpiarFiltros">Limpiar</button>
+                            }
+                        </div>
+
+                        <!-- Filtro por Categoría -->
+                        @if (categoriasDisponibles.Any())
+                        {
+                            <div class="filtro-group">
+                                <h4 class="filtro-title">Categoría</h4>
+                                <div class="filtro-options">
+                                    @foreach (var cat in categoriasDisponibles)
+                                    {
+                                        <label class="filtro-checkbox">
+                                            <input type="checkbox"
+                                                   checked="@categoriasFiltradas.Contains(cat.Id)"
+                                                   @onchange="() => ToggleCategoria(cat.Id)" />
+                                            <span>@cat.Name</span>
+                                        </label>
+
+                                        <!-- Subcategorías de esta categoría -->
+                                        @if (cat.Subcategories != null && cat.Subcategories.Any())
+                                        {
+                                            <div class="subcategories-list">
+                                                @foreach (var subcat in cat.Subcategories)
+                                                {
+                                                    <label class="filtro-checkbox subcategory">
+                                                        <input type="checkbox"
+                                                               checked="@subcategoriasFiltradas.Contains(subcat.Id)"
+                                                               @onchange="() => ToggleSubcategoria(subcat.Id)" />
+                                                        <span>@subcat.Name</span>
+                                                    </label>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                </div>
                             </div>
+                        }
 
-                            <!-- Info -->
-                            <div class="producto-info">
-                                <!-- Categoría -->
-                                <span class="producto-category">@producto.Category?.Name</span>
-
-                                <!-- Título -->
-                                <h3 class="producto-title">@producto.Name</h3>
-
-                                <!-- Atributos -->
-                                <div class="producto-attributes">
-                                    @if (producto.Centimeters.HasValue)
-                                    {
-                                        <span class="attribute">@producto.Centimeters cm</span>
-                                    }
-                                    @if (!string.IsNullOrEmpty(producto.Color))
-                                    {
-                                        <span class="attribute">@producto.Color</span>
-                                    }
-                                </div>
-
-                                <!-- Precio -->
-                                <div class="producto-price">
-                                    <span class="price-current">$@producto.Price.ToString("N2")</span>
-                                </div>
-
-                                <!-- Stock info -->
-                                @if (producto.Stock < 10 && producto.Stock > 0)
-                                {
-                                    <p class="stock-warning">¡Solo quedan @producto.Stock unidades!</p>
-                                }
-                                else if (producto.Stock == 0)
-                                {
-                                    <p class="stock-out">Agotado</p>
-                                }
-
-                                <!-- Botón de compra -->
-                                <button class="btn-primary"
-                                        disabled="@(producto.Stock == 0)"
-                                        @onclick="() => AgregarAlCarrito(producto)">
-                                    @if (producto.Stock > 0)
-                                    {
-                                        <text>Añadir al Carrito</text>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                                            <line x1="3" y1="6" x2="21" y2="6" />
-                                            <path d="M16 10a4 4 0 0 1-8 0" />
-                                        </svg>
-                                    }
-                                    else
-                                    {
-                                        <text>No Disponible</text>
-                                    }
-                                </button>
+                        <!-- Filtro por Precio -->
+                        <div class="filtro-group">
+                            <h4 class="filtro-title">Precio</h4>
+                            <div class="filtro-options">
+                                <label class="filtro-checkbox">
+                                    <input type="checkbox"
+                                           checked="@precioMenor50"
+                                           @onchange="() => TogglePrecioMenor50()" />
+                                    <span>Menos de $50</span>
+                                </label>
+                                <label class="filtro-checkbox">
+                                    <input type="checkbox"
+                                           checked="@precio50a100"
+                                           @onchange="() => TogglePrecio50a100()" />
+                                    <span>$50 - $100</span>
+                                </label>
+                                <label class="filtro-checkbox">
+                                    <input type="checkbox"
+                                           checked="@precioMayor100"
+                                           @onchange="() => TogglePrecioMayor100()" />
+                                    <span>Más de $100</span>
+                                </label>
                             </div>
                         </div>
-                    }
+
+                        <!-- Filtro por Color (solo para pelo) -->
+                        @if (MostrarFiltrosPelo() && coloresDisponibles.Any())
+                        {
+                            <div class="filtro-group">
+                                <h4 class="filtro-title">Color</h4>
+                                <div class="filtro-options">
+                                    @foreach (var color in coloresDisponibles)
+                                    {
+                                        <label class="filtro-checkbox">
+                                            <input type="checkbox"
+                                                   checked="@coloresFiltrados.Contains(color)"
+                                                   @onchange="() => ToggleColor(color)" />
+                                            <span>@color</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Filtro por Longitud (solo para pelo) -->
+                        @if (MostrarFiltrosPelo() && longitudesDisponibles.Any())
+                        {
+                            <div class="filtro-group">
+                                <h4 class="filtro-title">Longitud (cm)</h4>
+                                <div class="filtro-options">
+                                    @foreach (var longitud in longitudesDisponibles.OrderBy(l => l))
+                                    {
+                                        <label class="filtro-checkbox">
+                                            <input type="checkbox"
+                                                   checked="@longitudesFiltradas.Contains(longitud)"
+                                                   @onchange="() => ToggleLongitud(longitud)" />
+                                            <span>@longitud cm</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </aside>
+
+                    <!-- Grid de Productos -->
+                    <div class="productos-container">
+                        <div class="productos-header">
+                            <p class="resultados-count">
+                                @productosFiltrados.Count() resultado@(productosFiltrados.Count() == 1 ? "" : "s")
+                            </p>
+
+                            <!-- Ordenar Por -->
+                            <div class="ordenar-section">
+                                <label for="ordenar">Ordenar por:</label>
+                                <select id="ordenar" class="ordenar-select" @onchange="CambiarOrden">
+                                    <option value="nombre-asc">Nombre (A-Z)</option>
+                                    <option value="nombre-desc">Nombre (Z-A)</option>
+                                    <option value="precio-asc">Precio (Menor a Mayor)</option>
+                                    <option value="precio-desc">Precio (Mayor a Menor)</option>
+                                    <option value="nuevo">Más Recientes</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="productos-grid">
+                            @foreach (var producto in productosFiltrados)
+                            {
+                                <div class="producto-card">
+                                    <!-- Botón de Favoritos -->
+                                    <button class="favorito-btn @(FavoritosService.IsFavorito(producto.Id) ? "active" : "")"
+                                            @onclick="() => ToggleFavorito(producto)"
+                                            @onclick:stopPropagation="true"
+                                            title="@(FavoritosService.IsFavorito(producto.Id) ? "Quitar de favoritos" : "Añadir a favoritos")">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="@(FavoritosService.IsFavorito(producto.Id) ? "currentColor" : "none")" stroke="currentColor" stroke-width="2">
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                        </svg>
+                                    </button>
+
+                                    <a href="/producto/@producto.Id" class="producto-link">
+                                        <!-- Imagen -->
+                                        <div class="producto-image">
+                                            <img src="@producto.ImageUrl" alt="@producto.Name" loading="lazy" />
+                                        </div>
+
+                                        <!-- Info -->
+                                        <div class="producto-info">
+                                            <!-- Categoría -->
+                                            <span class="producto-category">@producto.Category?.Name</span>
+
+                                            <!-- Título -->
+                                            <h3 class="producto-title">@producto.Name</h3>
+
+                                            <!-- Atributos -->
+                                            <div class="producto-attributes">
+                                                @if (producto.Centimeters.HasValue)
+                                                {
+                                                    <span class="attribute">@producto.Centimeters cm</span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(producto.Color))
+                                                {
+                                                    <span class="attribute">@producto.Color</span>
+                                                }
+                                            </div>
+
+                                            <!-- Precio -->
+                                            <div class="producto-price">
+                                                <span class="price-current">$@producto.Price.ToString("N2")</span>
+                                            </div>
+
+                                            <!-- Stock info -->
+                                            @if (producto.Stock < 10 && producto.Stock > 0)
+                                            {
+                                                <p class="stock-warning">¡Solo quedan @producto.Stock unidades!</p>
+                                            }
+                                            else if (producto.Stock == 0)
+                                            {
+                                                <p class="stock-out">Agotado</p>
+                                            }
+                                        </div>
+                                    </a>
+
+                                    <!-- Botón de compra -->
+                                    <div class="producto-actions">
+                                        <button class="btn-primary"
+                                                disabled="@(producto.Stock == 0)"
+                                                @onclick="() => AgregarAlCarrito(producto)"
+                                                @onclick:stopPropagation="true">
+                                            @if (producto.Stock > 0)
+                                            {
+                                                <text>Añadir al Carrito</text>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                                    <line x1="3" y1="6" x2="21" y2="6" />
+                                                    <path d="M16 10a4 4 0 0 1-8 0" />
+                                                </svg>
+                                            }
+                                            else
+                                            {
+                                                <text>No Disponible</text>
+                                            }
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
             }
         </div>
@@ -108,118 +261,296 @@
 </div>
 
 <style>
-    /* ── Loading State ──────────────────────────────────── */
+    /* ── Loading State ──────────────────────────────────────── */
     .loading-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        padding: 120px 0;
-        color: var(--muted);
+        text-align: center;
+        padding: 80px 20px;
     }
 
     .spinner {
         font-size: 48px;
-        animation: spin 2s linear infinite;
         color: var(--rose);
+        animation: spin 2s linear infinite;
     }
 
     @@keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 
     .loading-state p {
-        font-size: 14px;
-        letter-spacing: .1em;
-        text-transform: uppercase;
-    }
-
-    /* ── Empty State ────────────────────────────────────── */
-    .empty-state {
-        text-align: center;
-        padding: 120px 0;
+        margin-top: 20px;
         color: var(--muted);
     }
 
-    /* ── Productos Section ──────────────────────────────── */
-    .productos-section {
-        padding: 40px 0 var(--section-gap);
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--muted);
     }
 
+    /* ── Layout con Filtros ────────────────────────────────── */
+    .productos-layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 40px;
+        align-items: start;
+    }
+
+    /* ── Sidebar de Filtros ────────────────────────────────── */
+    .filtros-sidebar {
+        position: sticky;
+        top: 100px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        align-self: start;
+    }
+
+    /* Scrollbar personalizado para filtros */
+    .filtros-sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .filtros-sidebar::-webkit-scrollbar-track {
+        background: var(--off-white);
+        border-radius: 10px;
+    }
+
+    .filtros-sidebar::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 10px;
+    }
+
+    .filtros-sidebar::-webkit-scrollbar-thumb:hover {
+        background: var(--muted);
+    }
+
+    .filtros-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .filtros-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .filtro-group {
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .filtro-group:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .filtro-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 12px;
+    }
+
+    .filtro-options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .filtro-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--ink-light);
+        cursor: pointer;
+        transition: color .2s;
+    }
+
+    .filtro-checkbox:hover {
+        color: var(--ink);
+    }
+
+    .filtro-checkbox input[type="checkbox"] {
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--rose);
+    }
+
+    /* ── Contenedor de Productos ────────────────────────────── */
+    .productos-container {
+        min-height: 400px;
+    }
+
+    .productos-header {
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .resultados-count {
+        font-size: 14px;
+        color: var(--muted);
+    }
+
+    .ordenar-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .ordenar-section label {
+        font-size: 14px;
+        color: var(--ink-light);
+        font-weight: 500;
+    }
+
+    .ordenar-select {
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        color: var(--ink);
+        background: var(--white);
+        cursor: pointer;
+        transition: border-color .2s;
+    }
+
+    .ordenar-select:hover {
+        border-color: var(--rose);
+    }
+
+    .ordenar-select:focus {
+        outline: none;
+        border-color: var(--rose);
+    }
+
+    /* Subcategorías */
+    .subcategories-list {
+        margin-left: 24px;
+        margin-top: 8px;
+        padding-left: 12px;
+        border-left: 2px solid var(--border);
+    }
+
+    .filtro-checkbox.subcategory {
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    /* ── Grid de Productos ──────────────────────────────────── */
     .productos-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 28px;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 24px;
     }
 
-    /* ── Producto Card ──────────────────────────────────── */
+    /* ── Producto Card ──────────────────────────────────────── */
     .producto-card {
         position: relative;
         background: var(--white);
         border: 1px solid var(--border);
         border-radius: 16px;
         overflow: hidden;
-        transition: box-shadow .3s var(--ease), transform .3s var(--ease);
+        transition: all .3s cubic-bezier(.25, .8, .25, 1);
     }
 
-        .producto-card:hover {
-            box-shadow: var(--shadow-md);
-            transform: translateY(-4px);
-        }
+    .producto-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        transform: translateY(-4px);
+    }
 
-    /* Badges */
-    .discount-badge,
-    .new-badge {
+    /* Botón de Favoritos */
+    .favorito-btn {
         position: absolute;
         top: 12px;
         right: 12px;
-        padding: 6px 12px;
-        border-radius: 100px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .05em;
-        z-index: 2;
+        z-index: 10;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink-light);
+        transition: all .2s;
+        backdrop-filter: blur(8px);
     }
 
-    .discount-badge {
+    .favorito-btn:hover {
+        background: var(--white);
+        color: var(--rose);
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .favorito-btn.active {
         background: var(--rose);
         color: white;
+        border-color: var(--rose);
     }
 
-    .new-badge {
-        top: 12px;
-        left: 12px;
-        right: auto;
-        background: var(--ink);
-        color: white;
+    .favorito-btn.active:hover {
+        background: #C53A5A;
+        transform: scale(1.1);
     }
 
-    /* Imagen */
+    .producto-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
     .producto-image {
         position: relative;
         width: 100%;
-        aspect-ratio: 4/5;
-        overflow: hidden;
+        padding-top: 125%;
         background: var(--off-white);
+        overflow: hidden;
     }
 
-        .producto-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform .5s var(--ease);
-        }
+    .producto-image img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform .3s;
+    }
 
     .producto-card:hover .producto-image img {
         transform: scale(1.05);
     }
 
-    /* Info */
     .producto-info {
         padding: 20px;
+    }
+
+    .producto-actions {
+        padding: 0 20px 20px;
+    }
+
+    .producto-actions .btn-primary {
+        width: 100%;
+        justify-content: center;
     }
 
     .producto-category {
@@ -265,12 +596,6 @@
         margin-bottom: 16px;
     }
 
-    .price-original {
-        font-size: 14px;
-        color: var(--muted);
-        text-decoration: line-through;
-    }
-
     .price-current {
         font-size: 22px;
         font-weight: 600;
@@ -313,6 +638,17 @@
             }
 
     /* ── Responsive ──────────────────────────────────────── */
+    @@media (max-width: 1024px) {
+        .productos-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .filtros-sidebar {
+            position: relative;
+            top: 0;
+        }
+    }
+
     @@media (max-width: 768px) {
         .page-header {
             padding: 32px 0 48px;
@@ -335,12 +671,38 @@
         .price-current {
             font-size: 18px;
         }
+
+        .favorito-btn {
+            width: 36px;
+            height: 36px;
+            top: 8px;
+            right: 8px;
+        }
     }
 </style>
 
 @code {
     private List<Product> productos = new();
     private bool isLoading = true;
+
+    // Filtros
+    private List<Category> categoriasDisponibles = new();
+    private List<int> categoriasFiltradas = new();
+    private List<int> subcategoriasFiltradas = new();
+    private List<string> coloresDisponibles = new();
+    private List<string> coloresFiltrados = new();
+    private List<decimal> longitudesDisponibles = new();
+    private List<decimal> longitudesFiltradas = new();
+
+    // Filtros de precio
+    private bool precioMenor50 = false;
+    private bool precio50a100 = false;
+    private bool precioMayor100 = false;
+
+    // Ordenación
+    private string ordenActual = "nombre-asc";
+
+    private IEnumerable<Product> productosFiltrados => OrdenarProductos(FiltrarProductos());
 
     protected override async Task OnInitializedAsync()
     {
@@ -350,6 +712,9 @@
             Console.WriteLine("🔵 Iniciando carga de productos...");
             productos = await ProductService.GetProductsAsync();
             Console.WriteLine($"🟢 Productos cargados: {productos.Count}");
+
+            // Inicializar filtros disponibles
+            InicializarFiltros();
 
             if (productos.Any())
             {
@@ -366,11 +731,217 @@
             isLoading = false;
             Console.WriteLine($"⏹️ Loading finalizado. isLoading={isLoading}, productos.Count={productos.Count}");
         }
+
+        // Suscribirse a cambios de favoritos
+        FavoritosService.OnChange += StateHasChanged;
     }
 
-    private void AgregarAlCarrito(Product producto)
+    private void InicializarFiltros()
     {
-        CartState.AgregarProducto(producto);
-        // Opcional: Mostrar notificación de éxito
+        // Categorías disponibles (con subcategorías cargadas)
+        categoriasDisponibles = productos
+            .Where(p => p.Category != null)
+            .Select(p => p.Category!)
+            .DistinctBy(c => c.Id)
+            .ToList();
+
+        // Cargar subcategorías de cada categoría
+        foreach (var categoria in categoriasDisponibles)
+        {
+            if (categoria.Subcategories == null)
+            {
+                categoria.Subcategories = productos
+                    .Where(p => p.CategoryId == categoria.Id && p.Subcategory != null)
+                    .Select(p => p.Subcategory!)
+                    .DistinctBy(s => s.Id)
+                    .ToList();
+            }
+        }
+
+        // Colores disponibles (solo de productos de pelo)
+        coloresDisponibles = productos
+            .Where(p => !string.IsNullOrEmpty(p.Color) && EsPeloNatural(p))
+            .Select(p => p.Color!)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+
+        // Longitudes disponibles (solo de productos de pelo)
+        longitudesDisponibles = productos
+            .Where(p => p.Centimeters.HasValue && EsPeloNatural(p))
+            .Select(p => p.Centimeters!.Value)
+            .Distinct()
+            .OrderBy(l => l)
+            .ToList();
+    }
+
+    private bool EsPeloNatural(Product producto)
+    {
+        // Verifica si el producto es de la categoría "Pelo" o "Pelo Natural"
+        // Ajusta según tus nombres de categoría
+        return producto.Category?.Name.Contains("Pelo", StringComparison.OrdinalIgnoreCase) ?? false;
+    }
+
+    private bool MostrarFiltrosPelo()
+    {
+        // Muestra filtros de pelo solo si hay categorías de pelo seleccionadas
+        // O si no hay filtros activos (muestra todos)
+        if (!categoriasFiltradas.Any() && !subcategoriasFiltradas.Any())
+            return true; // Sin filtros, mostrar todo
+
+        // Si hay categorías filtradas, verificar si alguna es de pelo
+        var categoriasSeleccionadas = categoriasDisponibles
+            .Where(c => categoriasFiltradas.Contains(c.Id))
+            .ToList();
+
+        return categoriasSeleccionadas.Any(c => 
+            c.Name.Contains("Pelo", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private IEnumerable<Product> FiltrarProductos()
+    {
+        var filtrados = productos.AsEnumerable();
+
+        // Filtro por categoría
+        if (categoriasFiltradas.Any())
+        {
+            filtrados = filtrados.Where(p => p.Category != null && categoriasFiltradas.Contains(p.Category.Id));
+        }
+
+        // Filtro por subcategoría
+        if (subcategoriasFiltradas.Any())
+        {
+            filtrados = filtrados.Where(p => p.Subcategory != null && subcategoriasFiltradas.Contains(p.Subcategory.Id));
+        }
+
+        // Filtro por color (solo para pelo)
+        if (coloresFiltrados.Any())
+        {
+            filtrados = filtrados.Where(p => !string.IsNullOrEmpty(p.Color) && coloresFiltrados.Contains(p.Color));
+        }
+
+        // Filtro por longitud (solo para pelo)
+        if (longitudesFiltradas.Any())
+        {
+            filtrados = filtrados.Where(p => p.Centimeters.HasValue && longitudesFiltradas.Contains(p.Centimeters.Value));
+        }
+
+        // Filtro por precio
+        if (precioMenor50 || precio50a100 || precioMayor100)
+        {
+            filtrados = filtrados.Where(p =>
+                (precioMenor50 && p.Price < 50) ||
+                (precio50a100 && p.Price >= 50 && p.Price <= 100) ||
+                (precioMayor100 && p.Price > 100)
+            );
+        }
+
+        return filtrados;
+    }
+
+    private IEnumerable<Product> OrdenarProductos(IEnumerable<Product> productos)
+    {
+        return ordenActual switch
+        {
+            "nombre-asc" => productos.OrderBy(p => p.Name),
+            "nombre-desc" => productos.OrderByDescending(p => p.Name),
+            "precio-asc" => productos.OrderBy(p => p.Price),
+            "precio-desc" => productos.OrderByDescending(p => p.Price),
+            "nuevo" => productos.OrderByDescending(p => p.Id), // Asume que ID mayor = más nuevo
+            _ => productos.OrderBy(p => p.Name)
+        };
+    }
+
+    private void CambiarOrden(ChangeEventArgs e)
+    {
+        ordenActual = e.Value?.ToString() ?? "nombre-asc";
+    }
+
+    private void ToggleCategoria(int categoriaId)
+    {
+        if (categoriasFiltradas.Contains(categoriaId))
+            categoriasFiltradas.Remove(categoriaId);
+        else
+            categoriasFiltradas.Add(categoriaId);
+    }
+
+    private void ToggleSubcategoria(int subcategoriaId)
+    {
+        if (subcategoriasFiltradas.Contains(subcategoriaId))
+            subcategoriasFiltradas.Remove(subcategoriaId);
+        else
+            subcategoriasFiltradas.Add(subcategoriaId);
+    }
+
+    private void ToggleColor(string color)
+    {
+        if (coloresFiltrados.Contains(color))
+            coloresFiltrados.Remove(color);
+        else
+            coloresFiltrados.Add(color);
+    }
+
+    private void ToggleLongitud(decimal longitud)
+    {
+        if (longitudesFiltradas.Contains(longitud))
+            longitudesFiltradas.Remove(longitud);
+        else
+            longitudesFiltradas.Add(longitud);
+    }
+
+    private void TogglePrecioMenor50()
+    {
+        precioMenor50 = !precioMenor50;
+    }
+
+    private void TogglePrecio50a100()
+    {
+        precio50a100 = !precio50a100;
+    }
+
+    private void TogglePrecioMayor100()
+    {
+        precioMayor100 = !precioMayor100;
+    }
+
+    private bool HasActiveFilters()
+    {
+        return categoriasFiltradas.Any() || subcategoriasFiltradas.Any() || 
+               coloresFiltrados.Any() || longitudesFiltradas.Any() || 
+               precioMenor50 || precio50a100 || precioMayor100;
+    }
+
+    private void LimpiarFiltros()
+    {
+        categoriasFiltradas.Clear();
+        subcategoriasFiltradas.Clear();
+        coloresFiltrados.Clear();
+        longitudesFiltradas.Clear();
+        precioMenor50 = false;
+        precio50a100 = false;
+        precioMayor100 = false;
+    }
+
+    private async Task ToggleFavorito(Product producto)
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            // Redirigir a cuenta para que inicie sesión
+            Navigation.NavigateTo("/cuenta");
+            return;
+        }
+
+        await FavoritosService.ToggleFavoritoAsync(producto);
+    }
+
+    private async Task AgregarAlCarrito(Product producto)
+    {
+        await CartState.AgregarProducto(producto);
+        Console.WriteLine($"✅ Producto {producto.Name} añadido al carrito");
+    }
+
+    public void Dispose()
+    {
+        FavoritosService.OnChange -= StateHasChanged;
     }
 }

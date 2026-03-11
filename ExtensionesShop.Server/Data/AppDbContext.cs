@@ -11,6 +11,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<User> Users => Set<User>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
+    public DbSet<CartItemEntity> CartItems => Set<CartItemEntity>();
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Actualizar UpdatedAt automáticamente para CartItems
+        var entries = ChangeTracker.Entries<CartItemEntity>()
+            .Where(e => e.State == EntityState.Modified);
+
+        foreach (var entry in entries)
+        {
+            entry.Entity.UpdatedAt = DateTime.UtcNow;
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +86,60 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(u => u.PostalCode).HasMaxLength(10);
 
             entity.HasIndex(u => u.Email).IsUnique();
+        });
+
+        // ── Favorite ──────────────────────────────────────────────────────────
+        modelBuilder.Entity<Favorite>(entity =>
+        {
+            entity.ToTable("Favorites");
+            entity.HasKey(f => f.Id);
+
+            entity.Property(f => f.CreatedAt)
+                  .HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(f => f.User)
+                  .WithMany()
+                  .HasForeignKey(f => f.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(f => f.Product)
+                  .WithMany()
+                  .HasForeignKey(f => f.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(f => new { f.UserId, f.ProductId })
+                  .IsUnique()
+                  .HasDatabaseName("UQ_Favorites_UserProduct");
+        });
+
+        // ── CartItemEntity ────────────────────────────────────────────────────
+        modelBuilder.Entity<CartItemEntity>(entity =>
+        {
+            entity.ToTable("CartItems");
+            entity.HasKey(c => c.Id);
+
+            entity.Property(c => c.Quantity)
+                  .HasDefaultValue(1);
+
+            entity.Property(c => c.CreatedAt)
+                  .HasDefaultValueSql("GETDATE()");
+
+            entity.Property(c => c.UpdatedAt)
+                  .HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(c => c.User)
+                  .WithMany()
+                  .HasForeignKey(c => c.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(c => c.Product)
+                  .WithMany()
+                  .HasForeignKey(c => c.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(c => new { c.UserId, c.ProductId })
+                  .IsUnique()
+                  .HasDatabaseName("UQ_CartItems_UserProduct");
         });
 
         // ── Order ─────────────────────────────────────────────────────────────

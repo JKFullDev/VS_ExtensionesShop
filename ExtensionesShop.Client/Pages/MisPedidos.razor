@@ -1,0 +1,391 @@
+@page "/mis-pedidos"
+@using ExtensionesShop.Shared.Models
+@using ExtensionesShop.Client.Services
+@inject HttpClient Http
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Mis Pedidos - Extensiones Shop</PageTitle>
+
+<div class="mis-pedidos-page">
+    <div class="page-header">
+        <div class="section-inner">
+            <div class="breadcrumb">
+                <a href="/" class="breadcrumb-link">Inicio</a>
+                <span class="breadcrumb-separator">→</span>
+                <a href="/cuenta" class="breadcrumb-link">Mi Cuenta</a>
+                <span class="breadcrumb-separator">→</span>
+                <span class="breadcrumb-current">Mis Pedidos</span>
+            </div>
+            <h1 class="page-title">📦 Mis Pedidos</h1>
+            <p class="page-subtitle">Consulta el estado de tus pedidos</p>
+        </div>
+    </div>
+
+    <div class="pedidos-content">
+        <div class="section-inner">
+            @if (!AuthService.IsAuthenticated)
+            {
+                <div class="alert-info">
+                    <p>Debes iniciar sesión para ver tus pedidos</p>
+                    <a href="/cuenta" class="btn-primary">Iniciar Sesión</a>
+                </div>
+            }
+            else if (isLoading)
+            {
+                <div class="loading-state">
+                    <div class="spinner">✦</div>
+                    <p>Cargando pedidos...</p>
+                </div>
+            }
+            else if (!pedidos.Any())
+            {
+                <div class="empty-state">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <path d="M16 10a4 4 0 0 1-8 0" />
+                    </svg>
+                    <h3>Aún no tienes pedidos</h3>
+                    <p>Cuando realices un pedido, aparecerá aquí</p>
+                    <a href="/productos" class="btn-primary">Ver Productos</a>
+                </div>
+            }
+            else
+            {
+                <div class="pedidos-grid">
+                    @foreach (var pedido in pedidos)
+                    {
+                        <div class="pedido-card">
+                            <div class="pedido-header">
+                                <div class="pedido-info">
+                                    <h3>Pedido #@pedido.Id</h3>
+                                    <span class="pedido-fecha">@pedido.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                </div>
+                                <span class="pedido-status @GetStatusClass(pedido.Status)">
+                                    @GetStatusText(pedido.Status)
+                                </span>
+                            </div>
+
+                            <div class="pedido-items">
+                                @if (pedido.OrderItems != null && pedido.OrderItems.Any())
+                                {
+                                    @foreach (var item in pedido.OrderItems)
+                                    {
+                                        <div class="pedido-item">
+                                            <div class="item-info">
+                                                <p class="item-name">@item.ProductName</p>
+                                                <p class="item-details">
+                                                    @if (!string.IsNullOrEmpty(item.SelectedColor))
+                                                    {
+                                                        <span>Color: @item.SelectedColor</span>
+                                                    }
+                                                    @if (item.SelectedCentimeters.HasValue)
+                                                    {
+                                                        <span>@item.SelectedCentimeters cm</span>
+                                                    }
+                                                    <span>x @item.Quantity</span>
+                                                </p>
+                                            </div>
+                                            <span class="item-price">$@item.UnitPrice.ToString("N2")</span>
+                                        </div>
+                                    }
+                                }
+                            </div>
+
+                            <div class="pedido-footer">
+                                <div class="pedido-address">
+                                    <strong>Envío a:</strong>
+                                    <p>@pedido.ShippingAddress, @pedido.City</p>
+                                </div>
+                                <div class="pedido-total">
+                                    <span>Total:</span>
+                                    <strong>$@pedido.Total.ToString("N2")</strong>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .mis-pedidos-page {
+        min-height: 100vh;
+        padding-bottom: 60px;
+    }
+
+    .loading-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .spinner {
+        font-size: 48px;
+        color: var(--rose);
+        animation: spin 2s linear infinite;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .empty-state svg {
+        color: var(--muted);
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        font-size: 24px;
+        color: var(--ink);
+        margin-bottom: 10px;
+    }
+
+    .empty-state p {
+        color: var(--muted);
+        margin-bottom: 30px;
+    }
+
+    .alert-info {
+        background: #FFF3CD;
+        border: 1px solid #FFC107;
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+    }
+
+    .pedidos-grid {
+        display: grid;
+        gap: 24px;
+    }
+
+    .pedido-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        transition: box-shadow .3s;
+    }
+
+    .pedido-card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .pedido-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .pedido-info h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 4px;
+    }
+
+    .pedido-fecha {
+        font-size: 14px;
+        color: var(--muted);
+    }
+
+    .pedido-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-pending {
+        background: #FFF3CD;
+        color: #856404;
+    }
+
+    .status-confirmed {
+        background: #D1ECF1;
+        color: #0C5460;
+    }
+
+    .status-processing {
+        background: #D1ECF1;
+        color: #0C5460;
+    }
+
+    .status-shipped {
+        background: #D4EDDA;
+        color: #155724;
+    }
+
+    .status-delivered {
+        background: #D4EDDA;
+        color: #155724;
+    }
+
+    .status-cancelled {
+        background: #F8D7DA;
+        color: #721C24;
+    }
+
+    .pedido-items {
+        margin-bottom: 20px;
+    }
+
+    .pedido-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--off-white);
+    }
+
+    .pedido-item:last-child {
+        border-bottom: none;
+    }
+
+    .item-name {
+        font-weight: 500;
+        color: var(--ink);
+        margin-bottom: 4px;
+    }
+
+    .item-details {
+        font-size: 13px;
+        color: var(--muted);
+        display: flex;
+        gap: 12px;
+    }
+
+    .item-price {
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .pedido-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+    }
+
+    .pedido-address {
+        font-size: 14px;
+    }
+
+    .pedido-address strong {
+        color: var(--ink-light);
+    }
+
+    .pedido-address p {
+        color: var(--muted);
+        margin-top: 4px;
+    }
+
+    .pedido-total {
+        text-align: right;
+    }
+
+    .pedido-total span {
+        font-size: 14px;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .pedido-total strong {
+        font-size: 24px;
+        color: var(--rose);
+    }
+
+    @@media (max-width: 768px) {
+        .pedido-header {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pedido-footer {
+            flex-direction: column;
+            gap: 16px;
+            align-items: start;
+        }
+    }
+</style>
+
+@code {
+    private List<Order> pedidos = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/cuenta");
+            return;
+        }
+
+        await CargarPedidos();
+    }
+
+    private async Task CargarPedidos()
+    {
+        try
+        {
+            isLoading = true;
+            var userId = AuthService.CurrentUser?.Id;
+
+            if (userId.HasValue)
+            {
+                pedidos = await Http.GetFromJsonAsync<List<Order>>($"api/orders?userId={userId}") ?? new();
+                Console.WriteLine($"✅ Pedidos cargados: {pedidos.Count}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando pedidos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetStatusText(int status)
+    {
+        return status switch
+        {
+            0 => "Pendiente",
+            1 => "Confirmado",
+            2 => "En Proceso",
+            3 => "Enviado",
+            4 => "Entregado",
+            5 => "Cancelado",
+            _ => "Desconocido"
+        };
+    }
+
+    private string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            0 => "status-pending",
+            1 => "status-confirmed",
+            2 => "status-processing",
+            3 => "status-shipped",
+            4 => "status-delivered",
+            5 => "status-cancelled",
+            _ => "status-pending"
+        };
+    }
+}

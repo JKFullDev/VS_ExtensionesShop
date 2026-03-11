@@ -1,4 +1,11 @@
 @page "/favoritos"
+@using ExtensionesShop.Shared.Models
+@using ExtensionesShop.Client.Services
+@inject FavoritosService FavoritosService
+@inject CartStateService CartState
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Mis Favoritos - Extensiones Shop</PageTitle>
 
@@ -11,50 +18,147 @@
                 <span class="breadcrumb-current">Favoritos</span>
             </div>
             <h1 class="page-title">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
                 Mis Favoritos
             </h1>
-            <p class="page-subtitle">Guarda tus extensiones favoritas para encontrarlas fácilmente</p>
+            <p class="page-subtitle">
+                @if (FavoritosService.Count > 0)
+                {
+                    <text>Tienes @FavoritosService.Count producto@(FavoritosService.Count == 1 ? "" : "s") guardado@(FavoritosService.Count == 1 ? "" : "s")</text>
+                }
+                else
+                {
+                    <text>Guarda tus extensiones favoritas para encontrarlas fácilmente</text>
+                }
+            </p>
         </div>
     </div>
 
     <div class="favoritos-content">
         <div class="section-inner">
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                </div>
-                <h2>Aún no tienes favoritos</h2>
-                <p>Explora nuestro catálogo y guarda los productos que más te gusten</p>
-                <a href="/productos" class="btn-primary">
-                    Descubrir Productos
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="m9 18 6-6-6-6"/>
-                    </svg>
-                </a>
+            @if (!FavoritosService.Favoritos.Any())
+            {
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                    </div>
+                    <h2>Aún no tienes favoritos</h2>
+                    <p>Explora nuestro catálogo y guarda los productos que más te gusten</p>
+                    <a href="/productos" class="btn-primary">
+                        Descubrir Productos
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m9 18 6-6-6-6"/>
+                        </svg>
+                    </a>
 
-                <div class="features-list">
-                    <div class="feature-item">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        <span>Guarda tus productos favoritos</span>
-                    </div>
-                    <div class="feature-item">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        <span>Compara diferentes opciones</span>
-                    </div>
-                    <div class="feature-item">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        <span>Recibe alertas de descuentos</span>
+                    <div class="features-list">
+                        <div class="feature-item">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <span>Guarda tus productos favoritos</span>
+                        </div>
+                        <div class="feature-item">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <span>Compara diferentes opciones</span>
+                        </div>
+                        <div class="feature-item">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <span>Accede rápidamente a tus selecciones</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="favoritos-actions">
+                    <button class="btn-secondary btn-sm" @onclick="LimpiarFavoritos" style="display: flex; flex-direction: row;gap: 8px; align-items: center;
+    }">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        Limpiar Favoritos
+                    </button>
+                </div>
+
+                <div class="productos-grid">
+                    @foreach (var producto in FavoritosService.Favoritos)
+                    {
+                        <div class="producto-card">
+                            <button class="favorito-btn active" @onclick="() => QuitarDeFavoritos(producto.Id)" title="Quitar de favoritos">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                            </button>
+
+                            <a href="/producto/@producto.Id" class="producto-link">
+                                <div class="producto-image">
+                                    <img src="@producto.ImageUrl" alt="@producto.Name" loading="lazy" />
+                                </div>
+
+                                <div class="producto-info">
+                                    <span class="producto-category">@producto.Category?.Name</span>
+                                    <h3 class="producto-title">@producto.Name</h3>
+
+                                    <div class="producto-attributes">
+                                        @if (producto.Centimeters.HasValue)
+                                        {
+                                            <span class="attribute">@producto.Centimeters cm</span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(producto.Color))
+                                        {
+                                            <span class="attribute">@producto.Color</span>
+                                        }
+                                    </div>
+
+                                    <div class="producto-price">
+                                        <span class="price-current">@producto.Price.ToString("C")</span>
+                                    </div>
+
+                                    @if (producto.Stock < 10 && producto.Stock > 0)
+                                    {
+                                        <p class="stock-warning">¡Solo quedan @producto.Stock unidades!</p>
+                                    }
+                                    else if (producto.Stock == 0)
+                                    {
+                                        <p class="stock-out">Agotado</p>
+                                    }
+                                </div>
+                            </a>
+
+                            <div class="producto-actions">
+                                <button class="btn-primary"
+                                        disabled="@(producto.Stock == 0)"
+                                        @onclick="() => AgregarAlCarrito(producto)"
+                                        @onclick:stopPropagation="true">
+                                    @if (producto.Stock > 0)
+                                    {
+                                        <text>Añadir al Carrito</text>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                            <line x1="3" y1="6" x2="21" y2="6" />
+                                            <path d="M16 10a4 4 0 0 1-8 0" />
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <text>No Disponible</text>
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -65,15 +169,51 @@
         min-height: 60vh;
     }
 
+    .favoritos-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 24px;
+    }
+
+    .favorito-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .2s;
+        z-index: 2;
+    }
+
+    .favorito-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .favorito-btn svg {
+        color: var(--rose);
+    }
+
+    .favorito-btn.active svg {
+        fill: var(--rose);
+    }
+
     .empty-state {
         text-align: center;
-        padding: 0px 20px;
+        padding: 60px 20px;
     }
 
     .empty-icon {
         margin: 0 auto 32px;
         color: var(--rose);
-        justify-self: center;
         opacity: .3;
     }
 
@@ -110,4 +250,163 @@
         color: var(--rose);
         flex-shrink: 0;
     }
+
+    /* Productos Grid (reutilizando estilos de Productos.razor) */
+    .productos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 28px;
+    }
+
+    .producto-card {
+        position: relative;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: box-shadow .3s, transform .3s;
+    }
+
+    .producto-card:hover {
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        transform: translateY(-4px);
+    }
+
+    .producto-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .producto-image {
+        aspect-ratio: 1;
+        overflow: hidden;
+        background: var(--bg-secondary);
+    }
+
+    .producto-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform .3s;
+    }
+
+    .producto-card:hover .producto-image img {
+        transform: scale(1.05);
+    }
+
+    .producto-info {
+        padding: 20px;
+    }
+
+    .producto-category {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .15em;
+        text-transform: uppercase;
+        color: var(--rose);
+        margin-bottom: 8px;
+    }
+
+    .producto-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--ink);
+        min-height: 44px;
+        line-height: 1.4;
+    }
+
+    .producto-attributes {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    .attribute {
+        padding: 4px 10px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        font-size: 12px;
+        color: var(--ink-light);
+    }
+
+    .producto-price {
+        margin-bottom: 12px;
+    }
+
+    .price-current {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--rose);
+    }
+
+    .stock-warning {
+        font-size: 12px;
+        color: #D97706;
+        margin: 8px 0 0;
+    }
+
+    .stock-out {
+        font-size: 12px;
+        color: #DC2626;
+        margin: 8px 0 0;
+    }
+
+    .producto-actions {
+        padding: 0 20px 20px;
+    }
+
+    .producto-actions .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    @@media (max-width: 768px) {
+        .productos-grid {
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        }
+    }
 </style>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Verificar autenticación
+        if (!AuthService.IsAuthenticated)
+        {
+            // Redirigir a cuenta si no está logueado
+            Navigation.NavigateTo("/cuenta");
+            return;
+        }
+
+        FavoritosService.OnChange += StateHasChanged;
+    }
+
+    private async Task QuitarDeFavoritos(int productId)
+    {
+        await FavoritosService.RemoveFavoritoAsync(productId);
+    }
+
+    private async Task LimpiarFavoritos()
+    {
+        if (FavoritosService.Count > 0)
+        {
+            await FavoritosService.ClearFavoritosAsync();
+        }
+    }
+
+    private async Task AgregarAlCarrito(Product producto)
+    {
+        await CartState.AgregarProducto(producto, 1);
+        // Opcional: Mostrar notificación o navegar
+    }
+
+    public void Dispose()
+    {
+        FavoritosService.OnChange -= StateHasChanged;
+    }
+}
+

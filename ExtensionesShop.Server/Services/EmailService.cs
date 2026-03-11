@@ -200,4 +200,12 @@ public class EmailService : IEmailService
             return false;
         }
     }
+
+    /// <summary>
+    /// Obtiene el email del propietario desde configuración
+    /// </summary>
+    public string GetOwnerEmail()
+    {
+        return _config["Email:OwnerEmail"] ?? "juancarlosah.daw@gmail.com";
+    }
 }

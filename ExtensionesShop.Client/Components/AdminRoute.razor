@@ -1,0 +1,122 @@
+@using ExtensionesShop.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+@if (!hasChecked)
+{
+    <div class="loading-container">
+        <div class="spinner">✦</div>
+        <p>Verificando permisos...</p>
+    </div>
+}
+else if (!isAuthorized)
+{
+    <div class="unauthorized-container">
+        <div class="unauthorized-icon">🔒</div>
+        <h2>Acceso Denegado</h2>
+        <p>@errorMessage</p>
+        <a href="/" class="btn-primary">Volver al Inicio</a>
+    </div>
+}
+else
+{
+    @ChildContent
+}
+
+<style>
+    .loading-container,
+    .unauthorized-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 40px 20px;
+        text-align: center;
+        background: #F5F7FA;
+    }
+
+    .spinner {
+        font-size: 48px;
+        color: var(--rose);
+        animation: spin 2s linear infinite;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .unauthorized-icon {
+        font-size: 80px;
+        margin-bottom: 24px;
+        opacity: 0.3;
+    }
+
+    .unauthorized-container h2 {
+        font-size: 32px;
+        color: var(--ink);
+        margin-bottom: 16px;
+    }
+
+    .unauthorized-container p {
+        font-size: 16px;
+        color: #64748B;
+        margin-bottom: 32px;
+        max-width: 500px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool hasChecked = false;
+    private bool isAuthorized = false;
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAccess();
+    }
+
+    private async Task CheckAccess()
+    {
+        await Task.Delay(100);
+
+        Console.WriteLine("🔐 AdminRoute - Verificando acceso...");
+        Console.WriteLine($"   IsAuthenticated: {AuthService.IsAuthenticated}");
+        Console.WriteLine($"   CurrentUser: {AuthService.CurrentUser?.Email ?? "null"}");
+        Console.WriteLine($"   Role: {AuthService.CurrentUser?.Role ?? "null"}");
+        Console.WriteLine($"   IsAdmin: {AuthService.IsAdmin}");
+
+        if (!AuthService.IsAuthenticated)
+        {
+            Console.WriteLine("❌ No autenticado - Redirigiendo");
+            errorMessage = "Debes iniciar sesión para acceder al panel de administración";
+            hasChecked = true;
+            await Task.Delay(1000);
+            Navigation.NavigateTo("/cuenta", forceLoad: true);
+            return;
+        }
+
+        if (!AuthService.IsAdmin)
+        {
+            Console.WriteLine($"❌ No es admin - Role: {AuthService.CurrentUser?.Role}");
+            errorMessage = $"Acceso denegado. Tu rol actual es '{AuthService.CurrentUser?.Role}'. Se requiere rol 'Admin'.";
+            hasChecked = true;
+            isAuthorized = false;
+            return;
+        }
+
+        Console.WriteLine("✅ Acceso autorizado");
+        isAuthorized = true;
+        hasChecked = true;
+    }
+
+    protected override bool ShouldRender()
+    {
+        // Solo renderizar cuando hayamos verificado
+        return hasChecked;
+    }
+}

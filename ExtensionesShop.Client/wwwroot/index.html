@@ -27,6 +27,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
+    <!-- Google reCAPTCHA v3 -->
+    <script src="https://www.google.com/recaptcha/api.js?render=6LcBwoYsAAAAAMYFgTaSwQjsY3DxTR48Ps6zTpCf"></script>
+
     <!-- App CSS -->
     <link href="css/app.css" rel="stylesheet" />
 
@@ -74,6 +77,25 @@
             sentinel.style.cssText = 'position:absolute;top:1px;left:0;width:1px;height:1px;';
             document.body.prepend(sentinel);
             observer.observe(sentinel);
+        };
+
+        // reCAPTCHA helper function
+        window.getRecaptchaToken = async function (action) {
+            return new Promise((resolve, reject) => {
+                try {
+                    grecaptcha.ready(function () {
+                        grecaptcha.execute('6LcBwoYsAAAAAMYFgTaSwQjsY3DxTR48Ps6zTpCf', { action: action })
+                            .then(function (token) {
+                                resolve(token);
+                            })
+                            .catch(function (error) {
+                                reject(error);
+                            });
+                    });
+                } catch (error) {
+                    reject(error);
+                }
+            });
         };
     </script>
 

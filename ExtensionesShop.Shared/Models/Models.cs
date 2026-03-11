@@ -61,6 +61,9 @@ public class User
     public string? PostalCode { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Rol del usuario (Admin, User)
+    public string Role { get; set; } = "User";
+
     // Verificación de email
     public bool EmailVerified { get; set; } = false;
     public string? EmailVerificationToken { get; set; }
@@ -112,7 +115,7 @@ public class OrderItem
     public int OrderId { get; set; }
     public Order? Order { get; set; }
 
-    public int ProductId { get; set; }
+    public int? ProductId { get; set; }  // ✅ Ahora es nullable
     public Product? Product { get; set; }
 
     // Datos persistidos para histórico
@@ -151,5 +154,80 @@ public class CartSummary
     public string? DiscountCode { get; set; }
     public decimal Total => Subtotal + ShippingCost - (DiscountAmount ?? 0);
     public int TotalItems => Items.Sum(i => i.Quantity);
+}
+
+// =============================================
+// MODELOS PARA BACKEND (BD)
+// =============================================
+
+/// <summary>
+/// Favorito de un usuario (Backend - BD).
+/// </summary>
+public class Favorite
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public int ProductId { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    // Navigation properties
+    public User? User { get; set; }
+    public Product? Product { get; set; }
+}
+
+/// <summary>
+/// Item del carrito de un usuario (Backend - BD).
+/// </summary>
+public class CartItemEntity
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public int ProductId { get; set; }
+    public int Quantity { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+
+    // Navigation properties
+    public User? User { get; set; }
+    public Product? Product { get; set; }
+}
+
+// =============================================
+// DTOs PARA API
+// =============================================
+
+/// <summary>
+/// DTO para sincronizar carrito local con BD.
+/// </summary>
+public class SyncCartRequest
+{
+    public List<CartItemSync> Items { get; set; } = new();
+}
+
+/// <summary>
+/// Item del carrito para sincronización.
+/// </summary>
+public class CartItemSync
+{
+    public int ProductId { get; set; }
+    public int Quantity { get; set; }
+}
+
+/// <summary>
+/// DTO para agregar/actualizar item en carrito.
+/// </summary>
+public class AddToCartRequest
+{
+    public int ProductId { get; set; }
+    public int Quantity { get; set; } = 1;
+}
+
+/// <summary>
+/// Respuesta genérica de operaciones.
+/// </summary>
+public class OperationResult
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
 }
 

@@ -3,6 +3,7 @@
 @using ExtensionesShop.Client.Services
 @using System.ComponentModel.DataAnnotations
 @inject CartStateService CartState
+@inject AuthService AuthService
 @inject NavigationManager Navigation
 @inject HttpClient Http
 
@@ -505,6 +506,22 @@
         if (!CartState.Items.Any())
         {
             Navigation.NavigateTo("/carrito");
+            return;
+        }
+
+        // ✅ Prellenar datos si el usuario está logueado
+        if (AuthService.IsAuthenticated && AuthService.CurrentUser != null)
+        {
+            var user = AuthService.CurrentUser;
+
+            checkoutForm.NombreCompleto = $"{user.FirstName} {user.LastName}".Trim();
+            checkoutForm.Email = user.Email;
+            checkoutForm.Telefono = user.Phone ?? string.Empty;
+            checkoutForm.Direccion = user.Address ?? string.Empty;
+            checkoutForm.Ciudad = user.City ?? string.Empty;
+            checkoutForm.CodigoPostal = user.PostalCode ?? string.Empty;
+
+            Console.WriteLine($"✅ Datos del usuario prellenados: {checkoutForm.NombreCompleto}");
         }
     }
 

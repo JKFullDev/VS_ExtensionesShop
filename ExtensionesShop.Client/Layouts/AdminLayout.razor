@@ -1,0 +1,369 @@
+@inherits LayoutComponentBase
+@using ExtensionesShop.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <a href="/admin" class="logo">
+                <span class="logo-icon">👑</span>
+                <span class="logo-text">Admin Panel</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/admin" class="nav-item @GetActiveClass("/admin")">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                Dashboard
+            </a>
+
+            <a href="/admin/pedidos" class="nav-item @GetActiveClass("/admin/pedidos")">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                </svg>
+                Pedidos
+            </a>
+
+            <a href="/admin/productos" class="nav-item @GetActiveClass("/admin/productos")">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                Productos
+            </a>
+
+            <a href="/admin/categorias" class="nav-item @GetActiveClass("/admin/categorias")">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path>
+                    <path d="M13 4h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path>
+                    <path d="M4 13h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z"></path>
+                    <path d="M13 13h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z"></path>
+                </svg>
+                Categorías
+            </a>
+
+            <a href="/admin/usuarios" class="nav-item @GetActiveClass("/admin/usuarios")">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Usuarios
+            </a>
+
+            <div class="nav-divider"></div>
+
+            <a href="/" class="nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                    <polyline points="10 17 15 12 10 7"></polyline>
+                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                </svg>
+                Ver Tienda
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">
+                    @if (AuthService.CurrentUser?.FirstName != null)
+                    {
+                        @AuthService.CurrentUser.FirstName.Substring(0, 1)
+                    }
+                    else
+                    {
+                        <text>?</text>
+                    }
+                </div>
+                <div class="user-details">
+                    <div class="user-name">
+                        @if (AuthService.CurrentUser != null)
+                        {
+                            @AuthService.CurrentUser.FirstName
+                        }
+                        else
+                        {
+                            <text>Usuario</text>
+                        }
+                    </div>
+                    <div class="user-role">Administrador</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+        <header class="admin-header">
+            <div class="header-left">
+                <button class="mobile-menu-btn" @onclick="ToggleSidebar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <h1>@pageTitle</h1>
+            </div>
+
+            <div class="header-right">
+                <a href="/" class="btn-secondary">Ver Tienda</a>
+            </div>
+        </header>
+
+        <main class="admin-content">
+            @Body
+        </main>
+    </div>
+</div>
+
+<style>
+    /* Layout principal - FLEX en lugar de GRID para evitar conflictos */
+    .admin-layout {
+        display: flex;
+        min-height: 100vh;
+        background: #F5F7FA;
+    }
+
+    /* === SIDEBAR === */
+    .admin-sidebar {
+        background: white;
+        border-right: 1px solid #E2E8F0;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 260px;
+        z-index: 100;
+        overflow-y: auto;
+    }
+
+    .sidebar-header {
+        padding: 24px;
+        border-bottom: 1px solid #E2E8F0;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--ink);
+        font-weight: 600;
+        font-size: 18px;
+    }
+
+    .logo-icon {
+        font-size: 24px;
+    }
+
+    .sidebar-nav {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #64748B;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 4px;
+        transition: all .2s;
+    }
+
+    .nav-item:hover {
+        background: #F1F5F9;
+        color: var(--rose);
+    }
+
+    .nav-item.active {
+        background: #FFF1F5;
+        color: var(--rose);
+    }
+
+    .nav-divider {
+        height: 1px;
+        background: #E2E8F0;
+        margin: 16px 0;
+    }
+
+    .sidebar-footer {
+        padding: 16px;
+        border-top: 1px solid #E2E8F0;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--rose), #E85D88);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .user-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .user-role {
+        font-size: 12px;
+        color: #64748B;
+    }
+
+    /* === MAIN CONTENT === */
+    .admin-main {
+        margin-left: 260px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        width: calc(100% - 260px);
+    }
+
+    .admin-header {
+        background: white;
+        border-bottom: 1px solid #E2E8F0;
+        padding: 20px 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        padding: 8px;
+        cursor: pointer;
+        color: var(--ink);
+    }
+
+    .admin-header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 0;
+    }
+
+    .header-right {
+        display: flex;
+        gap: 12px;
+    }
+
+    .admin-content {
+        flex: 1;
+        padding: 32px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* === RESPONSIVE === */
+    @@media (max-width: 768px) {
+        .admin-layout {
+            flex-direction: column;
+        }
+
+        .admin-sidebar {
+            transform: translateX(-100%);
+            transition: transform .3s;
+        }
+
+        .admin-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .admin-main {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        .mobile-menu-btn {
+            display: block;
+        }
+    }
+</style>
+
+@code {
+    private string pageTitle = "Dashboard";
+    private bool sidebarOpen = false;
+
+    protected override void OnInitialized()
+    {
+        UpdatePageTitle();
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdatePageTitle();
+        StateHasChanged();
+    }
+
+    private void UpdatePageTitle()
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath;
+        pageTitle = path switch
+        {
+            "/admin" => "Dashboard",
+            "/admin/pedidos" => "Gestión de Pedidos",
+            "/admin/productos" => "Gestión de Productos",
+            "/admin/categorias" => "Gestión de Categorías",
+            "/admin/usuarios" => "Gestión de Usuarios",
+            _ => "Admin Panel"
+        };
+    }
+
+    private string GetActiveClass(string path)
+    {
+        var currentPath = new Uri(Navigation.Uri).AbsolutePath;
+        return currentPath == path || (path != "/admin" && currentPath.StartsWith(path)) ? "active" : "";
+    }
+
+    private void ToggleSidebar()
+    {
+        sidebarOpen = !sidebarOpen;
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

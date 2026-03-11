@@ -1,0 +1,429 @@
+@page "/admin/pedidos"
+@layout ExtensionesShop.Client.Layouts.AdminLayout
+@using ExtensionesShop.Shared.Models
+@using ExtensionesShop.Client.Services
+@inject HttpClient Http
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<AdminRoute>
+
+<PageTitle>Gestión de Pedidos - Admin</PageTitle>
+
+<div class="admin-pedidos-page">
+    <div class="page-header">
+        <div class="section-inner">
+            <h1 class="page-title">📦 Gestión de Pedidos</h1>
+            <p class="page-subtitle">Administra el estado de todos los pedidos</p>
+        </div>
+    </div>
+
+    <div class="pedidos-content">
+        <div class="section-inner">
+            @if (isLoading)
+            {
+                <div class="loading-state">
+                    <div class="spinner">✦</div>
+                    <p>Cargando pedidos...</p>
+                </div>
+            }
+            else if (!pedidos.Any())
+            {
+                <div class="empty-state">
+                    <p>No hay pedidos registrados</p>
+                </div>
+            }
+            else
+            {
+                <!-- Filtros -->
+                <div class="filtros-section">
+                    <label>
+                        Filtrar por estado:
+                        <select @onchange="FiltrarPorEstado" class="filtro-select">
+                            <option value="-1">Todos</option>
+                            <option value="0">Pendientes</option>
+                            <option value="1">Confirmados</option>
+                            <option value="2">En Proceso</option>
+                            <option value="3">Enviados</option>
+                            <option value="4">Entregados</option>
+                            <option value="5">Cancelados</option>
+                        </select>
+                    </label>
+                </div>
+
+                <!-- Tabla de pedidos -->
+                <div class="pedidos-table-container">
+                    <table class="pedidos-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Total</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pedido in pedidosFiltrados)
+                            {
+                                <tr>
+                                    <td><strong>#@pedido.Id</strong></td>
+                                    <td>@pedido.CustomerName</td>
+                                    <td>
+                                        <a href="mailto:@pedido.CustomerEmail">@pedido.CustomerEmail</a>
+                                    </td>
+                                    <td>
+                                        <a href="tel:@pedido.CustomerPhone">@pedido.CustomerPhone</a>
+                                    </td>
+                                    <td><strong>$@pedido.Total.ToString("N2")</strong></td>
+                                    <td>@pedido.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <span class="status-badge @GetStatusClass(pedido.Status)">
+                                            @GetStatusText(pedido.Status)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="acciones-cell">
+                                            <select class="estado-select" 
+                                                    value="@pedido.Status"
+                                                    @onchange="@(e => CambiarEstado(pedido.Id, int.Parse(e.Value?.ToString() ?? "0")))">
+                                                <option value="0">Pendiente</option>
+                                                <option value="1">Confirmado</option>
+                                                <option value="2">En Proceso</option>
+                                                <option value="3">Enviado</option>
+                                                <option value="4">Entregado</option>
+                                                <option value="5">Cancelado</option>
+                                            </select>
+                                            <button class="btn-detalle" @onclick="() => VerDetalle(pedido.Id)">
+                                                👁️ Ver
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Modal de detalle (opcional) -->
+    @if (pedidoSeleccionado != null)
+    {
+        <div class="modal-overlay" @onclick="CerrarDetalle">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>Pedido #@pedidoSeleccionado.Id</h2>
+                    <button class="btn-close" @onclick="CerrarDetalle">✕</button>
+                </div>
+                <div class="modal-body">
+                    <h3>Cliente:</h3>
+                    <p><strong>Nombre:</strong> @pedidoSeleccionado.CustomerName</p>
+                    <p><strong>Email:</strong> @pedidoSeleccionado.CustomerEmail</p>
+                    <p><strong>Teléfono:</strong> @pedidoSeleccionado.CustomerPhone</p>
+                    <p><strong>Dirección:</strong> @pedidoSeleccionado.ShippingAddress, @pedidoSeleccionado.City</p>
+
+                    <h3>Productos:</h3>
+                    @if (pedidoSeleccionado.OrderItems != null)
+                    {
+                        <ul>
+                            @foreach (var item in pedidoSeleccionado.OrderItems)
+                            {
+                                <li>
+                                    @item.ProductName
+                                    @if (!string.IsNullOrEmpty(item.SelectedColor)) { <span>(Color: @item.SelectedColor)</span> }
+                                    @if (item.SelectedCentimeters.HasValue) { <span>(@item.SelectedCentimeters cm)</span> }
+                                    - Cantidad: @item.Quantity - $@item.UnitPrice
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    @if (!string.IsNullOrEmpty(pedidoSeleccionado.Notes))
+                    {
+                        <h3>Notas:</h3>
+                        <p>@pedidoSeleccionado.Notes</p>
+                    }
+
+                    <h3>Total: $@pedidoSeleccionado.Total.ToString("N2")</h3>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+</AdminRoute>
+
+<style>
+    .admin-pedidos-page {
+        padding: 40px 0;
+        min-height: 100vh;
+    }
+
+    .loading-state {
+        text-align: center;
+        padding: 60px;
+    }
+
+    .spinner {
+        font-size: 48px;
+        color: var(--rose);
+        animation: spin 2s linear infinite;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .filtros-section {
+        margin-bottom: 24px;
+        padding: 16px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+    }
+
+    .filtro-select {
+        margin-left: 12px;
+        padding: 8px 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .pedidos-table-container {
+        overflow-x: auto;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+    }
+
+    .pedidos-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .pedidos-table th {
+        background: var(--rose);
+        color: white;
+        padding: 16px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .pedidos-table td {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        font-size: 14px;
+    }
+
+    .pedidos-table tr:hover {
+        background: var(--off-white);
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .status-pending { background: #FFF3CD; color: #856404; }
+    .status-confirmed { background: #D1ECF1; color: #0C5460; }
+    .status-processing { background: #D1ECF1; color: #0C5460; }
+    .status-shipped { background: #D4EDDA; color: #155724; }
+    .status-delivered { background: #D4EDDA; color: #155724; }
+    .status-cancelled { background: #F8D7DA; color: #721C24; }
+
+    .acciones-cell {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .estado-select {
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 13px;
+        background: white;
+        cursor: pointer;
+    }
+
+    .btn-detalle {
+        padding: 6px 12px;
+        background: var(--rose);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-detalle:hover {
+        background: #C53A5A;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 32px;
+        border-radius: 16px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--muted);
+    }
+
+    .btn-close:hover {
+        color: var(--ink);
+    }
+</style>
+
+@code {
+    private List<Order> pedidos = new();
+    private List<Order> pedidosFiltrados = new();
+    private bool isLoading = true;
+    private Order? pedidoSeleccionado;
+    private int filtroEstado = -1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Agregar verificación de admin
+        // if (!AuthService.IsAdmin) { Navigation.NavigateTo("/"); return; }
+
+        await CargarPedidos();
+    }
+
+    private async Task CargarPedidos()
+    {
+        try
+        {
+            isLoading = true;
+            pedidos = await Http.GetFromJsonAsync<List<Order>>("api/orders") ?? new();
+            pedidosFiltrados = pedidos;
+            Console.WriteLine($"✅ Pedidos cargados: {pedidos.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando pedidos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void FiltrarPorEstado(ChangeEventArgs e)
+    {
+        filtroEstado = int.Parse(e.Value?.ToString() ?? "-1");
+        
+        if (filtroEstado == -1)
+        {
+            pedidosFiltrados = pedidos;
+        }
+        else
+        {
+            pedidosFiltrados = pedidos.Where(p => p.Status == filtroEstado).ToList();
+        }
+    }
+
+    private async Task CambiarEstado(int pedidoId, int nuevoEstado)
+    {
+        try
+        {
+            Console.WriteLine($"🔄 Cambiando estado del pedido {pedidoId} a {nuevoEstado}");
+            
+            var response = await Http.PutAsJsonAsync($"api/orders/{pedidoId}/status", new { Status = nuevoEstado });
+            
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("✅ Estado actualizado correctamente");
+                await CargarPedidos(); // Recargar para ver cambios
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ Error al actualizar estado: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error: {ex.Message}");
+        }
+    }
+
+    private void VerDetalle(int pedidoId)
+    {
+        pedidoSeleccionado = pedidos.FirstOrDefault(p => p.Id == pedidoId);
+    }
+
+    private void CerrarDetalle()
+    {
+        pedidoSeleccionado = null;
+    }
+
+    private string GetStatusText(int status)
+    {
+        return status switch
+        {
+            0 => "Pendiente",
+            1 => "Confirmado",
+            2 => "En Proceso",
+            3 => "Enviado",
+            4 => "Entregado",
+            5 => "Cancelado",
+            _ => "Desconocido"
+        };
+    }
+
+    private string GetStatusClass(int status)
+    {
+        return status switch
+        {
+            0 => "status-pending",
+            1 => "status-confirmed",
+            2 => "status-processing",
+            3 => "status-shipped",
+            4 => "status-delivered",
+            5 => "status-cancelled",
+            _ => "status-pending"
+        };
+    }
+}

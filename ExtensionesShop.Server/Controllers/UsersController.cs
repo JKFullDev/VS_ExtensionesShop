@@ -3,9 +3,13 @@ using ExtensionesShop.Server.Services;
 using ExtensionesShop.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using BCrypt.Net;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace ExtensionesShop.Server.Controllers;
@@ -18,17 +22,20 @@ public class UsersController : ControllerBase
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<UsersController> _logger;
+    private readonly IRecaptchaService _recaptchaService;
 
     public UsersController(
         AppDbContext context, 
         IEmailService emailService, 
         IConfiguration configuration,
-        ILogger<UsersController> logger)
+        ILogger<UsersController> logger,
+        IRecaptchaService recaptchaService)
     {
         _context = context;
         _emailService = emailService;
         _configuration = configuration;
         _logger = logger;
+        _recaptchaService = recaptchaService;
     }
 
     // POST: api/users/register
@@ -49,6 +56,28 @@ public class UsersController : ControllerBase
 
         try
         {
+            // Verificar reCAPTCHA
+            var recaptchaResponse = await _recaptchaService.VerifyTokenAsync(request.RecaptchaToken);
+
+            if (!recaptchaResponse.Success)
+            {
+                _logger.LogWarning("Verificación de reCAPTCHA fallida para {Email}: {Errors}", 
+                    request.Email, 
+                    string.Join(", ", recaptchaResponse.ErrorCodes ?? Array.Empty<string>()));
+                return BadRequest(new { message = "Verificación de seguridad fallida. Por favor, inténtalo de nuevo." });
+            }
+
+            // Score mínimo aceptable (0.5 = 50% de confianza)
+            // Puedes ajustar este valor: 0.0 = bot, 1.0 = humano
+            const float minScore = 0.5f;
+            if (recaptchaResponse.Score < minScore)
+            {
+                _logger.LogWarning("Score de reCAPTCHA bajo ({Score}) para {Email}", recaptchaResponse.Score, request.Email);
+                return BadRequest(new { message = "Verificación de seguridad fallida. Si eres humano, inténtalo de nuevo." });
+            }
+
+            _logger.LogInformation("reCAPTCHA verificado exitosamente para {Email} con score {Score}", request.Email, recaptchaResponse.Score);
+
             // Validar que el email no exista
             var existingUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
@@ -150,9 +179,13 @@ public class UsersController : ControllerBase
 
         _logger.LogInformation("Login exitoso para usuario {Email}", user.Email);
 
+        // ✅ Generar JWT Token
+        var token = GenerateJwtToken(user);
+
         return Ok(new
         {
             message = "Login exitoso",
+            token, // ✅ Devolver token
             user = new
             {
                 user.Id,
@@ -165,6 +198,37 @@ public class UsersController : ControllerBase
                 user.PostalCode
             }
         });
+    }
+
+    /// <summary>
+    /// Genera un token JWT para el usuario
+    /// </summary>
+    private string GenerateJwtToken(User user)
+    {
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+            _configuration["Jwt:Key"] ?? "DefaultKeyForDevelopmentOnly12345678901234567890"));
+
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+            new Claim("FirstName", user.FirstName),
+            new Claim("LastName", user.LastName)
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(
+                int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "1440")),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     // POST: api/users/forgot-password
@@ -305,6 +369,100 @@ public class UsersController : ControllerBase
 
         return Ok(new { message = "Perfil actualizado exitosamente" });
     }
+
+    // GET: api/users - Obtener todos los usuarios (para admin)
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<User>>> GetAll()
+    {
+        try
+        {
+            var users = await _context.Users
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Email,
+                    u.FirstName,
+                    u.LastName,
+                    u.Phone,
+                    u.Address,
+                    u.City,
+                    u.PostalCode,
+                    u.Role,
+                    u.EmailVerified,
+                    u.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo usuarios");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    // GET: api/users/{id} - Obtener un usuario por ID
+    [HttpGet("{id}")]
+    public async Task<ActionResult<User>> GetById(int id)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+                return NotFound(new { message = "Usuario no encontrado" });
+
+            return Ok(new
+            {
+                user.Id,
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                user.Phone,
+                user.Address,
+                user.City,
+                user.PostalCode,
+                user.Role,
+                user.EmailVerified,
+                user.CreatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo usuario {UserId}", id);
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    // PUT: api/users/{id} - Actualizar usuario (incluye cambio de rol)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] User updatedUser)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+                return NotFound(new { message = "Usuario no encontrado" });
+
+            // Actualizar campos
+            user.FirstName = updatedUser.FirstName;
+            user.LastName = updatedUser.LastName;
+            user.Phone = updatedUser.Phone;
+            user.Address = updatedUser.Address;
+            user.City = updatedUser.City;
+            user.PostalCode = updatedUser.PostalCode;
+            user.Role = updatedUser.Role; // Permitir cambio de rol
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Usuario actualizado correctamente" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error actualizando usuario {UserId}", id);
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
 }
 
 // DTOs para las peticiones
@@ -332,6 +490,9 @@ public class RegisterRequest
     [Phone(ErrorMessage = "El formato del teléfono no es válido")]
     [MaxLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
     public string Phone { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El token de reCAPTCHA es obligatorio")]
+    public string RecaptchaToken { get; set; } = string.Empty;
 }
 
 public class LoginRequest

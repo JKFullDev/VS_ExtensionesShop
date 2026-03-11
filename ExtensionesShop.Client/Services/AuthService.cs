@@ -9,6 +9,11 @@ public class AuthService
     private readonly HttpClient _http;
     private readonly IJSRuntime _js;
     private const string USER_KEY = "currentUser";
+    private const string TOKEN_KEY = "authToken";
+
+    // Referencias a servicios que necesitan sincronizar
+    private CartStateService? _cartService;
+    private FavoritosService? _favoritosService;
 
     public event Action? OnAuthStateChanged;
 
@@ -18,8 +23,18 @@ public class AuthService
         _js = js;
     }
 
+    /// <summary>
+    /// Permite inyectar servicios después de la inicialización (para evitar dependencias circulares)
+    /// </summary>
+    public void SetDependencies(CartStateService cartService, FavoritosService favoritosService)
+    {
+        _cartService = cartService;
+        _favoritosService = favoritosService;
+    }
+
     public UserData? CurrentUser { get; private set; }
     public bool IsAuthenticated => CurrentUser != null;
+    public bool IsAdmin => CurrentUser?.Role == "Admin";
 
     // Inicializar el servicio (llamar desde OnInitializedAsync en App o MainLayout)
     public async Task InitializeAsync()
@@ -53,7 +68,18 @@ public class AuthService
                 if (result?.User != null)
                 {
                     CurrentUser = result.User;
+
+                    // ✅ Guardar token JWT si viene en la respuesta
+                    if (!string.IsNullOrEmpty(result.Token))
+                    {
+                        await _js.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, result.Token);
+                    }
+
                     await SaveUserToLocalStorage();
+
+                    // 🔄 SINCRONIZAR CARRITO Y FAVORITOS
+                    await SyncAfterLoginAsync();
+
                     NotifyAuthStateChanged();
                     return new AuthResult { Success = true };
                 }
@@ -94,6 +120,14 @@ public class AuthService
     {
         CurrentUser = null;
         await _js.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
+        await _js.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY); // ✅ Limpiar token
+
+        // 🔄 LIMPIAR CARRITO AL LOGOUT (volver a modo guest)
+        if (_cartService != null)
+        {
+            await _cartService.OnLogoutAsync();
+        }
+
         NotifyAuthStateChanged();
     }
 
@@ -181,6 +215,33 @@ public class AuthService
         }
     }
 
+    /// <summary>
+    /// Sincroniza carrito y favoritos después de hacer login
+    /// </summary>
+    private async Task SyncAfterLoginAsync()
+    {
+        try
+        {
+            // Sincronizar carrito local con backend
+            if (_cartService != null)
+            {
+                await _cartService.SyncWithBackendAsync();
+            }
+
+            // Recargar favoritos desde backend
+            if (_favoritosService != null)
+            {
+                await _favoritosService.ReloadFavoritesAsync();
+            }
+
+            Console.WriteLine("✅ Datos sincronizados correctamente");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sincronizando datos: {ex.Message}");
+        }
+    }
+
     private void NotifyAuthStateChanged()
     {
         OnAuthStateChanged?.Invoke();
@@ -198,6 +259,7 @@ public class UserData
     public string? Address { get; set; }
     public string? City { get; set; }
     public string? PostalCode { get; set; }
+    public string Role { get; set; } = "User";
 }
 
 public class RegisterData
@@ -206,14 +268,15 @@ public class RegisterData
     public string Password { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public string? Phone { get; set; }
+    public string Phone { get; set; } = string.Empty;
+    public string RecaptchaToken { get; set; } = string.Empty;
 }
 
 public class UpdateProfileData
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public string? Phone { get; set; }
+    public string Phone { get; set; } = string.Empty;
     public string? Address { get; set; }
     public string? City { get; set; }
     public string? PostalCode { get; set; }
@@ -228,6 +291,7 @@ public class AuthResult
 public class LoginResponse
 {
     public string Message { get; set; } = string.Empty;
+    public string? Token { get; set; } // ✅ JWT Token
     public UserData? User { get; set; }
 }
 
