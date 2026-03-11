@@ -10,31 +10,46 @@
 
 <PageTitle>Gestión de Pedidos - Admin</PageTitle>
 
-<div class="admin-pedidos-page">
     <div class="page-header">
         <div class="section-inner">
-            <h1 class="page-title">📦 Gestión de Pedidos</h1>
-            <p class="page-subtitle">Administra el estado de todos los pedidos</p>
+            <div class="breadcrumb">
+                <a href="/" class="breadcrumb-link">Inicio</a>
+                <span class="breadcrumb-separator">→</span>
+                <a href="/admin" class="breadcrumb-link">Admin</a>
+                <span class="breadcrumb-separator">→</span>
+                <span class="breadcrumb-current">Pedidos</span>
+            </div>
+            <h1 class="page-title">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+                Gestión de Pedidos
+            </h1>
+            <p class="page-subtitle">Administra el estado y seguimiento de todas las ventas</p>
         </div>
     </div>
 
-    <div class="pedidos-content">
-        <div class="section-inner">
-            @if (isLoading)
-            {
-                <div class="loading-state">
-                    <div class="spinner">✦</div>
-                    <p>Cargando pedidos...</p>
-                </div>
-            }
-            else if (!pedidos.Any())
-            {
-                <div class="empty-state">
-                    <p>No hay pedidos registrados</p>
-                </div>
-            }
-            else
-            {
+    <div class="section-inner">
+        @if (isLoading)
+        {
+            <div class="loading-state">
+                <div class="spinner">✦</div>
+                <p>Cargando pedidos...</p>
+            </div>
+        }
+        else if (!pedidos.Any())
+        {
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                </svg>
+                <p>No hay pedidos registrados</p>
+            </div>
+        }
+        else
+        {
                 <!-- Filtros -->
                 <div class="filtros-section">
                     <label>
@@ -109,7 +124,6 @@
                 </div>
             }
         </div>
-    </div>
 
     <!-- Modal de detalle (opcional) -->
     @if (pedidoSeleccionado != null)
@@ -154,10 +168,17 @@
             </div>
         </div>
     }
-</div>
 </AdminRoute>
 
 <style>
+    /* Page Header - Heredado del estilo global */
+    .page-header {
+        background: linear-gradient(to bottom, var(--rose-pale), var(--white));
+        padding: 36px 0 40px;
+        text-align: center;
+        margin: -32px -32px 32px -32px;
+    }
+
     .admin-pedidos-page {
         padding: 40px 0;
         min-height: 100vh;

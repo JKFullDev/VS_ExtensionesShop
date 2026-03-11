@@ -5,17 +5,42 @@
 @inject IJSRuntime JS
 
 <AdminRoute>
-    <div class="usuarios-admin-page">
-        <div class="page-header">
-            <h2>Gestión de Usuarios (@usuarios.Count)</h2>
-            <div class="filtros">
-                <select @onchange="FiltrarPorRol" class="filtro-select">
-                    <option value="">Todos</option>
-                    <option value="Admin">Solo Admins</option>
-                    <option value="User">Solo Usuarios</option>
-                </select>
+    <div class="page-header">
+        <div class="section-inner">
+            <div class="breadcrumb">
+                <a href="/" class="breadcrumb-link">Inicio</a>
+                <span class="breadcrumb-separator">→</span>
+                <a href="/admin" class="breadcrumb-link">Admin</a>
+                <span class="breadcrumb-separator">→</span>
+                <span class="breadcrumb-current">Usuarios</span>
+            </div>
+
+            <div class="header-content-flex" style="display: flex; flex-direction:column; gap:20px; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="page-title">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        Gestión de Usuarios
+                    </h1>
+                    <p class="page-subtitle">Controla los accesos y roles de los clientes (@usuarios.Count registrados)</p>
+                </div>
+
+                <div class="filtros">
+                    <select @onchange="FiltrarPorRol" class="filtro-select">
+                        <option value="">Todos los roles</option>
+                        <option value="Admin">Solo Admins</option>
+                        <option value="User">Solo Usuarios</option>
+                    </select>
+                </div>
             </div>
         </div>
+    </div>
+
+    <div class="section-inner">
 
         @if (isLoading)
         {
@@ -193,6 +218,14 @@
 </AdminRoute>
 
 <style>
+    /* Page Header - Heredado del estilo global */
+    .page-header {
+        background: linear-gradient(to bottom, var(--rose-pale), var(--white));
+        padding: 36px 0 40px;
+        text-align: center;
+        margin: -32px -32px 32px -32px;
+    }
+
     .usuarios-admin-page {
         max-width: 1600px;
         margin: 0 auto;

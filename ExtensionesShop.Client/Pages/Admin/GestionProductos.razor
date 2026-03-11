@@ -6,21 +6,45 @@
 @inject IJSRuntime JS
 
 <AdminRoute>
-    <div class="productos-admin-page">
+        <div class="page-header">
+        <div class="section-inner">
+            <div class="breadcrumb">
+                <a href="/" class="breadcrumb-link">Inicio</a>
+                <span class="breadcrumb-separator">→</span>
+                <a href="/admin" class="breadcrumb-link">Admin</a>
+                <span class="breadcrumb-separator">→</span>
+                <span class="breadcrumb-current">Productos</span>
+            </div>
+            
+            <div class="header-content-flex" style="display: flex; flex-direction:column; gap:20px; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="page-title">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                        </svg>
+                        Catálogo de Productos
+                    </h1>
+                    <p class="page-subtitle">Administra tu inventario y añade nuevos artículos (@productos.Count en total)</p>
+                </div>
+                
+                @if (vistaActual == "lista")
+                {
+                    <button class="btn-primary" @onclick="() => MostrarFormulario(null)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Nuevo Producto
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="section-inner">
         @if (vistaActual == "lista")
         {
-            <!-- VISTA LISTA -->
-            <div class="page-actions">
-                <h2>Gestión de Productos (@productos.Count)</h2>
-                <button class="btn-primary" @onclick="() => MostrarFormulario(null)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Nuevo Producto
-                </button>
-            </div>
-
             @if (isLoading)
             {
                 <div class="loading-state">
@@ -190,6 +214,15 @@
 </AdminRoute>
 
 <style>
+    /* Page Header - Heredado del estilo global */
+    .page-header {
+        background: linear-gradient(to bottom, var(--rose-pale), var(--white));
+        padding: 36px 0 40px;
+        text-align: center;
+        margin: -32px -32px 32px -32px;
+    }
+
+
     .productos-admin-page {
         max-width: 1400px;
         margin: 0 auto;
