@@ -240,7 +240,7 @@ public class UsersController : ControllerBase
             new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
             new Claim("FirstName", user.FirstName),
             new Claim("LastName", user.LastName),
-            new Claim(ClaimTypes.Role, user.Role ?? "User"), // ✅ Incluir rol en el JWT
+            new Claim(ClaimTypes.Role, user.Role ?? "User")
         };
 
         var token = new JwtSecurityToken(
@@ -346,16 +346,22 @@ public class UsersController : ControllerBase
         return Ok(new { message = "Email verificado exitosamente. Ya puedes iniciar sesión." });
     }
 
-    // GET: api/users/profile (requiere autenticación - por ahora sin token)
+    // GET: api/users/profile (requiere autenticación)
+    [Authorize]
     [HttpGet("profile/{id}")]
     public async Task<IActionResult> GetProfile(int id)
     {
+        // 🔒 CANDADO DE SEGURIDAD: Verificar que el usuario solo vea su propio perfil
+        var currentUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (currentUserIdStr != id.ToString())
+        {
+            return Forbid(); // 403: No puedes ver perfiles de otros
+        }
+
         var user = await _context.Users.FindAsync(id);
 
         if (user == null)
-        {
             return NotFound(new { message = "Usuario no encontrado" });
-        }
 
         return Ok(new
         {
@@ -372,15 +378,21 @@ public class UsersController : ControllerBase
     }
 
     // PUT: api/users/profile/{id}
+    [Authorize]
     [HttpPut("profile/{id}")]
     public async Task<IActionResult> UpdateProfile(int id, [FromBody] UpdateProfileRequest request)
     {
+        // 🔒 CANDADO DE SEGURIDAD: Verificar que el usuario solo edite su propio perfil
+        var currentUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (currentUserIdStr != id.ToString())
+        {
+            return Forbid(); // 403: No puedes editar perfiles de otros
+        }
+
         var user = await _context.Users.FindAsync(id);
 
         if (user == null)
-        {
             return NotFound(new { message = "Usuario no encontrado" });
-        }
 
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
@@ -393,8 +405,8 @@ public class UsersController : ControllerBase
 
         return Ok(new { message = "Perfil actualizado exitosamente" });
     }
-
     // GET: api/users - Obtener todos los usuarios (para admin)
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<User>>> GetAll()
     {
@@ -427,6 +439,7 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/users/{id} - Obtener un usuario por ID
+    [Authorize(Roles = "Admin")]
     [HttpGet("{id}")]
     public async Task<ActionResult<User>> GetById(int id)
     {
@@ -459,6 +472,7 @@ public class UsersController : ControllerBase
     }
 
     // PUT: api/users/{id} - Actualizar usuario (incluye cambio de rol)
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] User updatedUser)
     {

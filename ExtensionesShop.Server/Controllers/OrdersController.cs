@@ -3,6 +3,8 @@ using ExtensionesShop.Server.Services;
 using ExtensionesShop.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace ExtensionesShop.Server.Controllers;
 
@@ -22,6 +24,7 @@ public class OrdersController : ControllerBase
     }
 
     // GET api/orders
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Order>>> GetAll(
         [FromQuery] int? userId,
@@ -29,6 +32,15 @@ public class OrdersController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        if (!User.IsInRole("Admin"))
+        {
+            var currentUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(currentUserIdStr, out var currentUserId))
+                userId = currentUserId; // Forzamos a que busque su propio ID
+            else
+                return Unauthorized();
+        }
+
         var query = _db.Orders
             .Include(o => o.OrderItems)
             .ThenInclude(oi => oi.Product)
@@ -52,6 +64,7 @@ public class OrdersController : ControllerBase
     }
 
     // GET api/orders/{id}
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<Order>> GetById(int id)
     {
@@ -60,7 +73,18 @@ public class OrdersController : ControllerBase
             .ThenInclude(oi => oi.Product)
             .FirstOrDefaultAsync(o => o.Id == id);
 
-        return order is null ? NotFound() : Ok(order);
+        // 1. Si no existe en la base de datos
+        if (order is null)
+            return NotFound();
+
+        // 2. Si existe, verificamos que el pedido sea tuyo (salvo que seas Admin)
+        if (!User.IsInRole("Admin") && order.UserId.ToString() != User.FindFirst(ClaimTypes.NameIdentifier)?.Value)
+        {
+            return Forbid(); // 403: Prohibido husmear pedidos ajenos
+        }
+
+        // 3. Si existe y tienes permiso para verlo
+        return Ok(order);
     }
 
     // POST api/orders
@@ -157,6 +181,7 @@ public class OrdersController : ControllerBase
     }
 
     // PUT api/orders/{id}/status
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}/status")]
     public async Task<ActionResult<Order>> UpdateStatus(int id, [FromBody] UpdateOrderStatusRequest request)
     {
