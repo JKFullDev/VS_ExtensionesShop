@@ -59,27 +59,46 @@ public class UsersController : ControllerBase
 
         try
         {
-            // Verificar reCAPTCHA
-            var recaptchaResponse = await _recaptchaService.VerifyTokenAsync(request.RecaptchaToken);
+            // Verificar reCAPTCHA:
+            // - En PRODUCCIÓN: siempre se verifica si la SecretKey está configurada
+            // - En DESARROLLO: se omite para facilitar pruebas locales
+            var secretKey = _configuration["Recaptcha:SecretKey"];
+            var isRecaptchaConfigured = !string.IsNullOrEmpty(secretKey)
+                && !secretKey.StartsWith("PON_AQUI")
+                && secretKey.Length > 20;
 
-            if (!recaptchaResponse.Success)
+            // Bypass automático en entorno de desarrollo
+            var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+
+            if (isRecaptchaConfigured && !isDevelopment)
             {
-                _logger.LogWarning("Verificación de reCAPTCHA fallida para {Email}: {Errors}", 
+                var recaptchaResponse = await _recaptchaService.VerifyTokenAsync(request.RecaptchaToken);
+
+                if (!recaptchaResponse.Success)
+                {
+                    _logger.LogWarning("Verificación de reCAPTCHA fallida para {Email}: {Errors}", 
+                        request.Email, 
+                        string.Join(", ", recaptchaResponse.ErrorCodes ?? Array.Empty<string>()));
+                    return BadRequest(new { message = "Verificación de seguridad fallida. Por favor, inténtalo de nuevo." });
+                }
+
+                const float minScore = 0.5f;
+                if (recaptchaResponse.Score < minScore)
+                {
+                    _logger.LogWarning("Score de reCAPTCHA bajo ({Score}) para {Email}", recaptchaResponse.Score, request.Email);
+                    return BadRequest(new { message = "Verificación de seguridad fallida. Si eres humano, inténtalo de nuevo." });
+                }
+
+                _logger.LogInformation("reCAPTCHA verificado para {Email} con score {Score}", request.Email, recaptchaResponse.Score);
+            }
+            else
+            {
+                _logger.LogWarning("reCAPTCHA OMITIDO para {Email} (entorno: {Env}, SecretKey configurada: {Configured})",
                     request.Email, 
-                    string.Join(", ", recaptchaResponse.ErrorCodes ?? Array.Empty<string>()));
-                return BadRequest(new { message = "Verificación de seguridad fallida. Por favor, inténtalo de nuevo." });
+                    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "unknown",
+                    isRecaptchaConfigured);
             }
 
-            // Score mínimo aceptable (0.5 = 50% de confianza)
-            // Puedes ajustar este valor: 0.0 = bot, 1.0 = humano
-            const float minScore = 0.5f;
-            if (recaptchaResponse.Score < minScore)
-            {
-                _logger.LogWarning("Score de reCAPTCHA bajo ({Score}) para {Email}", recaptchaResponse.Score, request.Email);
-                return BadRequest(new { message = "Verificación de seguridad fallida. Si eres humano, inténtalo de nuevo." });
-            }
-
-            _logger.LogInformation("reCAPTCHA verificado exitosamente para {Email} con score {Score}", request.Email, recaptchaResponse.Score);
 
             // Validar que el email no exista
             var existingUser = await _context.Users
@@ -198,7 +217,8 @@ public class UsersController : ControllerBase
                 user.Phone,
                 user.Address,
                 user.City,
-                user.PostalCode
+                user.PostalCode,
+                user.Role // ✅ Incluir Role para que el cliente pueda detectar si es Admin
             }
         });
     }
@@ -220,6 +240,7 @@ public class UsersController : ControllerBase
             new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
             new Claim("FirstName", user.FirstName),
             new Claim("LastName", user.LastName),
+            new Claim(ClaimTypes.Role, user.Role ?? "User"), // ✅ Incluir rol en el JWT
         };
 
         var token = new JwtSecurityToken(
