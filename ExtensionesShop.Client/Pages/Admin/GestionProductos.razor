@@ -5,151 +5,214 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-
-        <div class="page-header">
-        <div class="section-inner">
-            <div class="breadcrumb">
-                <a href="/" class="breadcrumb-link">Inicio</a>
-                <span class="breadcrumb-separator">→</span>
-                <a href="/admin" class="breadcrumb-link">Admin</a>
-                <span class="breadcrumb-separator">→</span>
-                <span class="breadcrumb-current">Productos</span>
+<div class="page-header">
+    <div class="section-inner">
+        <div class="breadcrumb">
+            <a href="/" class="breadcrumb-link">Inicio</a>
+            <span class="breadcrumb-separator">→</span>
+            <a href="/admin" class="breadcrumb-link">Admin</a>
+            <span class="breadcrumb-separator">→</span>
+            <span class="breadcrumb-current">Productos</span>
+        </div>
+        
+        <div class="header-content-flex">
+            <div>
+                <h1 class="page-title">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                    </svg>
+                    Catálogo de Productos
+                </h1>
+                <p class="page-subtitle">Estrategia: 1 Producto = 1 Color. Variantes por Longitud. (@productos.Count total)</p>
             </div>
             
-            <div class="header-content-flex" style="display: flex; flex-direction:column; gap:20px; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1 class="page-title">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                        </svg>
-                        Catálogo de Productos
-                    </h1>
-                    <p class="page-subtitle">Administra tu inventario y añade nuevos artículos (@productos.Count en total)</p>
-                </div>
-                
-                @if (vistaActual == "lista")
-                {
-                    <button class="btn-primary" @onclick="() => MostrarFormulario(null)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Nuevo Producto
-                    </button>
-                }
-            </div>
+            @if (vistaActual == "lista")
+            {
+                <button class="btn-primary" @onclick="() => MostrarFormulario(null)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Nuevo Producto
+                </button>
+            }
         </div>
     </div>
+</div>
 
-    <div class="section-inner">
-        @if (vistaActual == "lista")
+<div class="section-inner">
+    @if (vistaActual == "lista")
+    {
+        <!-- BARRA DE BÚSQUEDA Y FILTROS -->
+        <div class="search-bar-container">
+            <div class="search-inputs">
+                <input type="text" 
+                       placeholder="🔍 Buscar por nombre, color o descripción..." 
+                       @bind="filtroSearch"
+                       @bind:event="oninput"
+                       @oninput="@(async _ => await FiltrarProductos())"
+                       class="search-input" />
+
+                <select @bind="filtroCategoria" 
+                        @onchange="@(async _ => await FiltrarProductos())"
+                        class="filter-select">
+                    <option value="">Todas las categorías</option>
+                    @foreach (var cat in categorias)
+                    {
+                        <option value="@cat.Id">@cat.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (isLoading)
         {
-            @if (isLoading)
-            {
-                <div class="loading-state">
-                    <div class="spinner">✦</div>
-                    <p>Cargando productos...</p>
-                </div>
-            }
-            else
-            {
-                <div class="table-card">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Imagen</th>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Categoría</th>
-                                <th>Precio</th>
-                                <th>Stock</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var producto in productos)
-                            {
-                                <tr>
-                                    <td>
-                                        <img src="@(producto.ImageUrl ?? "/images/placeholder.jpg")" alt="@producto.Name" class="producto-thumb" />
-                                    </td>
-                                    <td><strong>#@producto.Id</strong></td>
-                                    <td>@producto.Name</td>
-                                    <td>@producto.Category?.Name</td>
-                                    <td><strong>$@producto.Price.ToString("N2")</strong></td>
-                                    <td>
-                                        <span class="stock-badge @(producto.Stock < 10 ? "low-stock" : "")">
-                                            @producto.Stock
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn-icon" @onclick="() => MostrarFormulario(producto)" title="Editar">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                                </svg>
-                                            </button>
-                                            <button class="btn-icon btn-delete" @onclick="() => EliminarProducto(producto)" title="Eliminar">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
+            <div class="loading-state">
+                <div class="spinner">✦</div>
+                <p>Cargando productos...</p>
+            </div>
         }
         else
         {
-            <!-- VISTA FORMULARIO -->
-            <div class="form-header">
-                <button class="btn-back" @onclick="VolverALista">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                    Volver
-                </button>
-                <h2>@(productoEditando?.Id == 0 ? "Nuevo Producto" : $"Editar: {productoEditando?.Name}")</h2>
-            </div>
+            <div class="table-card">
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead class="table-header-fixed">
+                            <tr>
+                                <th class="col-thumb">Imagen</th>
+                                <th class="col-id">ID</th>
+                                <th class="col-name">Nombre / Color</th>
+                                <th class="col-category">Categoría</th>
+                                <th class="col-price">Precio</th>
+                                <th class="col-stock">Stock</th>
+                                <th class="col-variants">Tallas</th>
+                                <th class="col-actions">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (productosFiltrados.Any())
+                            {
+                                @foreach (var producto in productosFiltrados.Skip((paginaActual - 1) * productosPorPagina).Take(productosPorPagina))
+                                {
+                                    <tr>
+                                        <td class="col-thumb">
+                                            <img src="@(producto.ImageUrl ?? "/images/placeholder.jpg")" alt="@producto.Name" class="producto-thumb" />
+                                        </td>
+                                        <td class="col-id"><strong>#@producto.Id</strong></td>
+                                        <td class="col-name">
+                                            <div class="product-info">
+                                                <strong>@producto.Name</strong>
+                                                @if (!string.IsNullOrEmpty(producto.Color))
+                                                {
+                                                    <small>@producto.Color</small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="col-category">@producto.Category?.Name</td>
+                                        <td class="col-price"><strong>$@producto.Price.ToString("N2")</strong></td>
+                                        <td class="col-stock">
+                                            <span class="stock-badge @(producto.Stock < 10 ? "low-stock" : "")">
+                                                @producto.Stock
+                                            </span>
+                                        </td>
+                                        <td class="col-variants">
+                                            <span class="variant-count">@(producto.Variants?.Count ?? 0)</span>
+                                        </td>
+                                        <td class="col-actions">
+                                            <div class="action-buttons">
+                                                <button class="btn-icon" @onclick="() => MostrarFormulario(producto)" title="Editar">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                    </svg>
+                                                </button>
+                                                <button class="btn-icon btn-duplicate" @onclick="() => DuplicarProducto(producto)" title="Duplicar">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                                        <rect x="8" y="2" width="8" height="4"></rect>
+                                                    </svg>
+                                                </button>
+                                                <button class="btn-icon btn-delete" @onclick="() => EliminarProducto(producto)" title="Eliminar">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
 
-            <div class="form-card">
+                    @if (productosFiltrados.Any())
+                    {
+                        <div class="pagination-controls">
+                            <button class="btn-pagination" 
+                                    @onclick="() => PaginaAnterior()" 
+                                    disabled="@(paginaActual <= 1)">
+                                ← Anterior
+                            </button>
+
+                            <div class="pagination-info">
+                                Página @paginaActual de @((int)Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))
+                                <span class="pagination-results">(@productosFiltrados.Count() productos encontrados)</span>
+                            </div>
+
+                            <button class="btn-pagination" 
+                                    @onclick="() => PaginaSiguiente()" 
+                                    disabled="@(paginaActual >= Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))">
+                                Siguiente →
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state">
+                            <p>No hay productos que coincidan con tu búsqueda.</p>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    }
+    else
+    {
+        <!-- VISTA FORMULARIO: UN PRODUCTO = UN COLOR -->
+        <div class="form-header">
+            <button class="btn-back" @onclick="VolverALista">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Volver
+            </button>
+            <h2>@(formularioRequest.Id.HasValue ? $"Editar: {formularioRequest.Name} - {formularioRequest.Color}" : "Nuevo Producto")</h2>
+        </div>
+
+        <div class="form-card">
+            <!-- SECCIÓN 1: INFORMACIÓN BASE (Nombre, Color, Categoría, etc.) -->
+            <div class="form-section">
+                <h3 class="section-title">📦 Información Base</h3>
+                
                 <div class="form-grid">
-                    <!-- Nombre -->
                     <div class="form-group full-width">
                         <label>Nombre del Producto *</label>
-                        <input type="text" @bind="productoEditando.Name" class="form-control" placeholder="Ej: Extensiones Remy 60cm" />
+                        <input type="text" @bind="formularioRequest.Name" class="form-control" placeholder="Ej: Extensiones Remy" />
+                        <small>Este es el nombre de la extensión (ej: Remy, Humanas, Sintéticas)</small>
                     </div>
 
-                    <!-- Descripción -->
-                    <div class="form-group full-width">
-                        <label>Descripción</label>
-                        <textarea @bind="productoEditando.Description" class="form-control" rows="4" placeholder="Descripción del producto..."></textarea>
-                    </div>
-
-                    <!-- Precio -->
                     <div class="form-group">
-                        <label>Precio *</label>
-                        <input type="number" step="0.01" @bind="productoEditando.Price" class="form-control" placeholder="0.00" />
+                        <label>Color / Variante *</label>
+                        <input type="text" @bind="formularioRequest.Color" class="form-control" placeholder="Ej: Castaño, Rubio, Negro" />
+                        <small>Cada producto = 1 color. Para otros colores, duplica este producto.</small>
                     </div>
 
-                    <!-- Stock -->
-                    <div class="form-group">
-                        <label>Stock *</label>
-                        <input type="number" @bind="productoEditando.Stock" class="form-control" placeholder="0" />
-                    </div>
-
-                    <!-- Categoría -->
                     <div class="form-group">
                         <label>Categoría *</label>
-                        <select @bind="productoEditando.CategoryId" class="form-control">
+                        <select @bind="formularioRequest.CategoryId" @bind:event="onchange" class="form-control">
                             <option value="0">Seleccionar...</option>
                             @foreach (var cat in categorias)
                             {
@@ -158,63 +221,215 @@
                         </select>
                     </div>
 
-                    <!-- Subcategoría -->
                     <div class="form-group">
                         <label>Subcategoría</label>
-                        <select @bind="productoEditando.SubcategoryId" class="form-control">
+                        <select @bind="formularioRequest.SubcategoryId" class="form-control">
                             <option value="">Ninguna</option>
-                            @foreach (var sub in subcategorias.Where(s => s.CategoryId == productoEditando.CategoryId))
+                            @foreach (var sub in subcategorias.Where(s => s.CategoryId == formularioRequest.CategoryId))
                             {
                                 <option value="@sub.Id">@sub.Name</option>
                             }
                         </select>
                     </div>
 
-                    <!-- Color -->
-                    <div class="form-group">
-                        <label>Color</label>
-                        <input type="text" @bind="productoEditando.Color" class="form-control" placeholder="Ej: Castaño" />
-                    </div>
-
-                    <!-- Centímetros -->
-                    <div class="form-group">
-                        <label>Longitud (cm)</label>
-                        <input type="number" step="0.1" @bind="productoEditando.Centimeters" class="form-control" placeholder="Ej: 60" />
-                    </div>
-
-                    <!-- Imagen URL -->
                     <div class="form-group full-width">
-                        <label>URL de Imagen</label>
-                        <input type="text" @bind="productoEditando.ImageUrl" class="form-control" placeholder="https://..." />
-                        @if (!string.IsNullOrEmpty(productoEditando.ImageUrl))
+                        <label>Descripción</label>
+                        <textarea @bind="formularioRequest.Description" class="form-control" rows="3" placeholder="Descripción del producto..."></textarea>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>URL de Imagen Principal</label>
+                        <input type="text" @bind="formularioRequest.ImageUrl" class="form-control" placeholder="https://..." />
+                        @if (!string.IsNullOrEmpty(formularioRequest.ImageUrl))
                         {
                             <div class="image-preview">
-                                <img src="@productoEditando.ImageUrl" alt="Preview" />
+                                <img src="@formularioRequest.ImageUrl" alt="Preview" />
                             </div>
                         }
                     </div>
-                </div>
 
-                <div class="form-actions">
-                    <button type="button" class="btn-secondary" @onclick="VolverALista">Cancelar</button>
-                    <button type="button" class="btn-primary" @onclick="GuardarProducto" disabled="@guardando">
-                        @if (guardando)
+                    <div class="form-group">
+                        <label>Stock Total</label>
+                        <input type="number" value="@formularioRequest.Variants.Sum(v => v.Stock)" class="form-control" readonly disabled />
+                        <small>Calculado automáticamente desde las variantes</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 2: VARIANTES POR MEDIDA/TALLA -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        @if (EsProductoCapilar(formularioRequest.CategoryId))
                         {
-                            <span>Guardando...</span>
+                            <span>📏 Variantes por Longitud (cm)</span>
                         }
                         else
                         {
-                            <span>Guardar Producto</span>
+                            <span>📦 Variantes / Medidas</span>
                         }
+                    </h3>
+                    <button type="button" class="btn-add-variant" @onclick="AgregarVariante">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Nueva Variante
                     </button>
                 </div>
-            </div>
-        }
-    </div>
 
+                @if (formularioRequest.Variants.Any())
+                {
+                    <div class="variants-table-wrapper">
+                        <table class="variants-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        @if (EsProductoCapilar(formularioRequest.CategoryId))
+                                        {
+                                            <span>Longitud (cm)</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Medida / Tipo</span>
+                                        }
+                                    </th>
+                                    <th>Precio *</th>
+                                    <th>Stock</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < formularioRequest.Variants.Count; i++)
+                                {
+                                    int index = i; // Capturar por valor
+                                    var variante = formularioRequest.Variants[i];
+                                    <tr>
+                                        <td>
+                                            @if (EsProductoCapilar(formularioRequest.CategoryId))
+                                            {
+                                                <input type="number" step="0.1" @bind="variante.Centimeters" @bind:event="oninput" class="form-control" placeholder="Ej: 60" />
+                                            }
+                                            else
+                                            {
+                                                <input type="text" @bind="variante.Color" class="form-control" placeholder="Ej: Estándar, Grande, Pequeño" />
+                                            }
+                                        </td>
+                                        <td class="price-cell">
+                                            <input type="number" step="0.01" @bind="variante.Price" @bind:event="oninput" class="form-control" placeholder="0.00" />
+                                            @if (variante.Price <= 0)
+                                            {
+                                                <small class="error-msg">⚠️ Precio requerido</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <input type="number" @bind="variante.Stock" @bind:event="oninput" class="form-control" placeholder="0" min="0" />
+                                        </td>
+                                        <td class="action-cell">
+                                            <button type="button" class="btn-action btn-clone" @onclick="@(() => ClonarVariante(index))" title="Clonar variante">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                                    <rect x="8" y="2" width="8" height="4"></rect>
+                                                </svg>
+                                            </button>
+                                            <button type="button" class="btn-action btn-remove" @onclick="@(() => EliminarVariante(index))" title="Eliminar variante">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <p>No hay variantes definidas. Haz clic en "Nueva Variante" para agregar una.</p>
+                    </div>
+                }
+            </div>
+
+            <!-- SECCIÓN 3: IMÁGENES ADICIONALES -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3 class="section-title">🖼️ Imágenes Adicionales</h3>
+                    <button type="button" class="btn-add-image" @onclick="AgregarImagen">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Añadir Imagen
+                    </button>
+                </div>
+
+                @if (formularioRequest.Images.Any())
+                {
+                    <div class="images-grid">
+                        @for (int i = 0; i < formularioRequest.Images.Count; i++)
+                        {
+                            int index = i; // Capturar por valor para evitar closure issues
+                            var imagen = formularioRequest.Images[i];
+                            <div class="image-item">
+                                <button type="button" class="btn-close-image" @onclick="@(() => EliminarImagen(index))" title="Eliminar imagen">
+                                    ×
+                                </button>
+
+                                <div class="image-preview-box">
+                                    @if (!string.IsNullOrEmpty(imagen.ImageUrl))
+                                    {
+                                        <img src="@imagen.ImageUrl" alt="@imagen.AltText" />
+                                    }
+                                    else
+                                    {
+                                        <div class="image-placeholder">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="3" width="18" height="18"></rect>
+                                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                <polyline points="21 15 16 10 5 21"></polyline>
+                                            </svg>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="image-form">
+                                    <input type="text" @bind="imagen.ImageUrl" class="form-control" placeholder="URL de la imagen" />
+                                    <input type="text" @bind="imagen.AltText" class="form-control" placeholder="Texto alt (SEO)" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <p>No hay imágenes adicionales. Haz clic en "Añadir Imagen" para agregar fotos del producto.</p>
+                    </div>
+                }
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" @onclick="VolverALista">Cancelar</button>
+                <button type="button" class="btn-primary" @onclick="GuardarProducto" disabled="@guardando">
+                    @if (guardando)
+                    {
+                        <span>Guardando...</span>
+                    }
+                    else
+                    {
+                        <span>@(formularioRequest.Id.HasValue ? "Actualizar Producto" : "Crear Producto")</span>
+                    }
+                </button>
+            </div>
+        </div>
+    }
+</div>
 
 <style>
-    /* Page Header - Heredado del estilo global */
     .page-header {
         background: linear-gradient(to bottom, var(--rose-pale), var(--white));
         padding: 36px 0 40px;
@@ -222,24 +437,17 @@
         margin: -32px -32px 32px -32px;
     }
 
-
-    .productos-admin-page {
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .page-actions {
+    .header-content-flex {
         display: flex;
+        flex-direction: column;
+        gap: 20px;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
     }
 
-    .page-actions h2 {
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--ink);
-        margin: 0;
+    .page-subtitle {
+        font-size: 14px;
+        color: #64748B;
     }
 
     .loading-state {
@@ -263,6 +471,7 @@
         border: 1px solid #E2E8F0;
         border-radius: 12px;
         overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .data-table {
@@ -290,6 +499,24 @@
         background: #F8FAFC;
     }
 
+    .product-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        align-items: flex-start;
+    }
+
+    .product-info strong {
+        font-size: 14px;
+        line-height: 1.2;
+    }
+
+    .product-info small {
+        font-size: 12px;
+        color: #64748B;
+        font-weight: 400;
+    }
+
     .producto-thumb {
         width: 50px;
         height: 50px;
@@ -309,6 +536,15 @@
     .stock-badge.low-stock {
         background: #FFF3CD;
         color: #856404;
+    }
+
+    .variant-count {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #DDD6FE;
+        color: #4F46E5;
     }
 
     .action-buttons {
@@ -331,11 +567,14 @@
         color: white;
     }
 
-    .btn-delete:hover {
+    .btn-icon.btn-duplicate:hover {
+        background: #4F46E5;
+    }
+
+    .btn-icon.btn-delete:hover {
         background: #DC2626;
     }
 
-    /* FORMULARIO */
     .form-header {
         display: flex;
         align-items: center;
@@ -374,13 +613,34 @@
         border: 1px solid #E2E8F0;
         border-radius: 12px;
         padding: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+    }
+
+    .form-section {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 0;
     }
 
     .form-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 24px;
-        margin-bottom: 32px;
     }
 
     .form-group {
@@ -399,17 +659,25 @@
         color: var(--ink);
     }
 
+    .form-group small {
+        font-size: 12px;
+        color: #64748B;
+        margin-top: 4px;
+    }
+
     .form-control {
         padding: 10px 14px;
         border: 1px solid #E2E8F0;
         border-radius: 8px;
         font-size: 14px;
         transition: border-color .2s;
+        font-family: inherit;
     }
 
     .form-control:focus {
         outline: none;
         border-color: var(--rose);
+        box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1);
     }
 
     .image-preview {
@@ -423,6 +691,235 @@
         border: 1px solid #E2E8F0;
     }
 
+    /* VARIANTES TABLE */
+    .btn-add-variant {
+        padding: 8px 16px;
+        background: #4F46E5;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all .2s;
+    }
+
+    .btn-add-variant:hover {
+        background: #4338CA;
+    }
+
+    .variants-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .variants-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .variants-table th {
+        background: #F8FAFC;
+        padding: 12px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+        border-bottom: 1px solid #E2E8F0;
+    }
+
+    .variants-table td {
+        padding: 12px;
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+     .variants-table tr:hover {
+         background: #F8FAFC;
+     }
+
+    .price-cell {
+        position: relative;
+    }
+
+    .price-cell .error-msg {
+        position: absolute;
+        font-size: 10px;
+        color: #DC2626;
+        font-weight: 600;
+        margin-top: 2px;
+        white-space: nowrap;
+    }
+
+    .action-cell {
+         display: flex;
+         gap: 8px;
+         justify-content: center;
+     }
+
+     .btn-action {
+         padding: 6px 10px;
+         border: none;
+         border-radius: 6px;
+         cursor: pointer;
+         display: flex;
+         align-items: center;
+         gap: 4px;
+         transition: all .2s;
+         background: none;
+     }
+
+    .btn-action.btn-clone {
+        background: #DBEAFE;
+        color: #0369A1;
+    }
+
+    .btn-action.btn-clone:hover {
+        background: #0369A1;
+        color: white;
+    }
+
+    .btn-action.btn-remove {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+
+    .btn-action.btn-remove:hover {
+        background: #DC2626;
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        background: #F8FAFC;
+        border-radius: 8px;
+        border: 1px dashed #E2E8F0;
+        color: #64748B;
+    }
+
+    /* IMÁGENES */
+    .btn-add-image {
+        padding: 8px 16px;
+        background: #059669;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all .2s;
+    }
+
+    .btn-add-image:hover {
+        background: #047857;
+    }
+
+    .images-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .image-item {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+        background: #F8FAFC;
+        border-radius: 8px;
+        border: 1px solid #E2E8F0;
+        position: relative;
+    }
+
+    .btn-close-image {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: #DC2626;
+        color: white;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 24px;
+        font-weight: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .2s;
+        z-index: 10;
+    }
+
+    .btn-close-image:hover {
+        background: #991B1B;
+        transform: scale(1.1);
+    }
+
+    .image-preview-box {
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 6px;
+        border: 1px solid #E2E8F0;
+        overflow: hidden;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .image-preview-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .image-placeholder {
+        color: #CBD5E1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .image-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .image-form input {
+        font-size: 12px !important;
+        padding: 8px 10px !important;
+    }
+
+    .btn-remove {
+        padding: 6px 12px;
+        background: #FEE2E2;
+        color: #DC2626;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all .2s;
+    }
+
+    .btn-remove:hover {
+        background: #DC2626;
+        color: white;
+    }
+
     .form-actions {
         display: flex;
         justify-content: flex-end;
@@ -431,9 +928,51 @@
         border-top: 1px solid #E2E8F0;
     }
 
+    .btn-primary,
+    .btn-secondary {
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all .2s;
+        border: none;
+    }
+
+    .btn-primary {
+        background: var(--rose);
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #DC2626;
+    }
+
+    .btn-primary:disabled {
+        background: #F87171;
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: #E2E8F0;
+        color: var(--ink);
+    }
+
+    .btn-secondary:hover {
+        background: #CBD5E1;
+    }
+
     @@media (max-width: 768px) {
         .form-grid {
             grid-template-columns: 1fr;
+        }
+
+        .images-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-section {
+            padding-bottom: 20px;
+            border-bottom: 1px solid #E2E8F0;
         }
     }
 </style>
@@ -441,15 +980,39 @@
 @code {
     private string vistaActual = "lista";
     private List<Product> productos = new();
+    private List<Product> productosFiltrados = new();
     private List<Category> categorias = new();
     private List<Subcategory> subcategorias = new();
-    private Product productoEditando = new();
+    private CreateProductRequest formularioRequest = new();
     private bool isLoading = true;
     private bool guardando = false;
+    private int? _lastCategoryId = null; // Detectar cambios de categoría
+
+    // Paginación y Búsqueda
+    private string filtroSearch = "";
+    private string filtroCategoria = "";
+    private int paginaActual = 1;
+    private int productosPorPagina = 12;
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
+    }
+
+    /// <summary>
+    /// Detecta cambios de categoría y resetea subcategoría automáticamente
+    /// También fuerza el re-render del selector de subcategorías
+    /// </summary>
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender && _lastCategoryId != formularioRequest.CategoryId)
+        {
+            // Categoría cambió, resetear subcategoría
+            formularioRequest.SubcategoryId = null;
+            _lastCategoryId = formularioRequest.CategoryId;
+            Console.WriteLine($"📂 Categoría cambió a {formularioRequest.CategoryId} → Subcategoría reseteada");
+            StateHasChanged();
+        }
     }
 
     private async Task CargarDatos()
@@ -473,64 +1036,230 @@
 
     private void MostrarFormulario(Product? producto)
     {
-        productoEditando = producto != null ? new Product
+        if (producto != null)
         {
-            Id = producto.Id,
-            Name = producto.Name,
-            Description = producto.Description,
-            Price = producto.Price,
-            Stock = producto.Stock,
-            CategoryId = producto.CategoryId,
-            SubcategoryId = producto.SubcategoryId,
-            Color = producto.Color,
-            Centimeters = producto.Centimeters,
-            ImageUrl = producto.ImageUrl
-        } : new Product();
+            formularioRequest = new CreateProductRequest
+            {
+                Id = producto.Id,
+                Name = producto.Name,
+                Description = producto.Description,
+                Price = producto.Price,
+                Stock = producto.Stock,
+                CategoryId = producto.CategoryId,
+                SubcategoryId = producto.SubcategoryId,
+                Color = producto.Color,
+                Centimeters = producto.Centimeters,
+                ImageUrl = producto.ImageUrl,
+                Variants = producto.Variants?.Select(v => new ProductVariantDto
+                {
+                    Id = v.Id,
+                    Color = v.Color,
+                    Centimeters = v.Centimeters,
+                    Stock = v.Stock,
+                    Price = v.Price,
+                    IsActive = v.IsActive
+                }).ToList() ?? new(),
+                Images = producto.Images?.Select(i => new ProductImageDto
+                {
+                    Id = i.Id,
+                    ProductVariantId = i.ProductVariantId,
+                    ImageUrl = i.ImageUrl,
+                    AltText = i.AltText,
+                    DisplayOrder = i.DisplayOrder,
+                    IsActive = i.IsActive
+                }).ToList() ?? new()
+            };
+        }
+        else
+        {
+            formularioRequest = new CreateProductRequest();
+        }
 
+        _lastCategoryId = formularioRequest.CategoryId;
         vistaActual = "formulario";
     }
 
     private void VolverALista()
     {
         vistaActual = "lista";
-        productoEditando = new();
+        formularioRequest = new();
+        _lastCategoryId = null;
+    }
+
+    private void AgregarVariante()
+    {
+        formularioRequest.Variants.Add(new ProductVariantDto
+        {
+            Id = 0, // Nuevo registro
+            Price = formularioRequest.Price,
+            IsActive = true
+        });
+        StateHasChanged();
+    }
+
+    private void EliminarVariante(int index)
+    {
+        if (index >= 0 && index < formularioRequest.Variants.Count)
+        {
+            var varianteEliminada = formularioRequest.Variants[index];
+            formularioRequest.Variants.RemoveAt(index);
+            StateHasChanged();
+            Console.WriteLine($"✅ Variante {index + 1} eliminada (Precio: ${varianteEliminada.Price})");
+        }
+    }
+
+    private void ClonarVariante(int index)
+    {
+        if (index >= 0 && index < formularioRequest.Variants.Count)
+        {
+            var original = formularioRequest.Variants[index];
+            var clon = new ProductVariantDto
+            {
+                Id = 0, // Nuevo registro (0 indica que no existe en BD)
+                Color = original.Color,
+                Centimeters = original.Centimeters,
+                Stock = original.Stock,
+                Price = original.Price,
+                IsActive = original.IsActive
+            };
+
+            formularioRequest.Variants.Insert(index + 1, clon);
+            StateHasChanged();
+            Console.WriteLine($"✅ Variante {index + 1} clonada correctamente");
+        }
+    }
+
+    private void AgregarImagen()
+    {
+        formularioRequest.Images.Add(new ProductImageDto
+        {
+            DisplayOrder = formularioRequest.Images.Count,
+            IsActive = true
+        });
+        StateHasChanged();
+    }
+
+    private void EliminarImagen(int index)
+    {
+        if (index >= 0 && index < formularioRequest.Images.Count)
+        {
+            var imagenEliminada = formularioRequest.Images[index];
+            formularioRequest.Images.RemoveAt(index);
+            StateHasChanged();
+            Console.WriteLine($"✅ Imagen {index + 1} eliminada: {imagenEliminada.ImageUrl}");
+        }
+    }
+
+    private async Task DuplicarProducto(Product producto)
+    {
+        try
+        {
+            var confirmado = await JS.InvokeAsync<bool>("confirm", 
+                $"¿Duplicar '{producto.Name}' (color: {producto.Color})?\n\nPodría cambiar el color después.");
+            
+            if (!confirmado) return;
+
+            // Crear una copia del producto
+            MostrarFormulario(producto);
+            
+            // Limpiar el ID para que sea un nuevo producto
+            formularioRequest.Id = null;
+            
+            // Cambiar el nombre para indicar que es un duplicado
+            formularioRequest.Color = ""; // El usuario debe ingresar el nuevo color
+            formularioRequest.Name = producto.Name; // Mantener el mismo nombre
+            
+            vistaActual = "formulario";
+            StateHasChanged();
+            
+            // Scroll al formulario
+            await JS.InvokeVoidAsync("window.scrollTo", 0, 0);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error: {ex.Message}");
+        }
     }
 
     private async Task GuardarProducto()
     {
         try
         {
-            if (string.IsNullOrEmpty(productoEditando.Name) || productoEditando.Price <= 0 || productoEditando.CategoryId == 0)
+            // Validación 1: Campos base requeridos
+            if (string.IsNullOrEmpty(formularioRequest.Name) || 
+                formularioRequest.Price <= 0 || 
+                formularioRequest.CategoryId == 0 ||
+                string.IsNullOrEmpty(formularioRequest.Color))
             {
-                await JS.InvokeVoidAsync("alert", "❌ Por favor completa los campos obligatorios");
+                await JS.InvokeVoidAsync("alert", "❌ Por favor completa: Nombre, Color, Precio y Categoría");
+                return;
+            }
+
+            // Validación 2: Debe haber al menos 1 variante
+            if (!formularioRequest.Variants.Any())
+            {
+                await JS.InvokeVoidAsync("alert", "❌ Debes agregar al menos 1 variante");
+                return;
+            }
+
+            // Validación 3: Ninguna variante puede tener precio 0
+            var variantesSinPrecio = formularioRequest.Variants.Where(v => v.Price <= 0).ToList();
+            if (variantesSinPrecio.Any())
+            {
+                var indices = string.Join(", ", formularioRequest.Variants
+                    .Select((v, idx) => (v, idx))
+                    .Where(x => x.v.Price <= 0)
+                    .Select(x => $"Variante {x.idx + 1}"));
+
+                await JS.InvokeVoidAsync("alert", 
+                    $"❌ Las siguientes variantes tienen precio 0 o vacío:\n{indices}\n\nTodas las variantes deben tener un precio > 0");
                 return;
             }
 
             guardando = true;
 
-            if (productoEditando.Id == 0)
+            Console.WriteLine("═══════════════════════════════════════════════");
+            Console.WriteLine("📤 ENVIANDO PRODUCTO");
+            Console.WriteLine("═══════════════════════════════════════════════");
+            Console.WriteLine($"Nombre: {formularioRequest.Name}");
+            Console.WriteLine($"Color: {formularioRequest.Color}");
+            Console.WriteLine($"Precio: {formularioRequest.Price}");
+            Console.WriteLine($"Variantes: {formularioRequest.Variants.Count}");
+
+            foreach (var v in formularioRequest.Variants)
             {
-                var response = await Http.PostAsJsonAsync("api/products", productoEditando);
-                if (response.IsSuccessStatusCode)
-                {
-                    await JS.InvokeVoidAsync("alert", "✅ Producto creado correctamente");
-                }
+                Console.WriteLine($"  - Variante: Precio=${v.Price}, Stock={v.Stock}, Centimeters={v.Centimeters}");
+            }
+
+            Console.WriteLine($"Imágenes: {formularioRequest.Images.Count}");
+            Console.WriteLine("═══════════════════════════════════════════════");
+
+            var response = await Http.PostAsJsonAsync("api/products/with-variants", formularioRequest);
+
+            Console.WriteLine($"📥 RESPUESTA: {response.StatusCode}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", 
+                    $"✅ Producto {(formularioRequest.Id.HasValue ? "actualizado" : "creado")} correctamente");
+                await CargarDatos();
+                VolverALista();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                await JS.InvokeVoidAsync("alert", 
+                    "❌ ERROR 401: No estás autorizado.\n\nDebes estar logueado como Admin.");
             }
             else
             {
-                var response = await Http.PutAsJsonAsync($"api/products/{productoEditando.Id}", productoEditando);
-                if (response.IsSuccessStatusCode)
-                {
-                    await JS.InvokeVoidAsync("alert", "✅ Producto actualizado correctamente");
-                }
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ ERROR: {errorContent}");
+                await JS.InvokeVoidAsync("alert", $"❌ Error: {errorContent}");
             }
-
-            await CargarDatos();
-            VolverALista();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error guardando producto: {ex.Message}");
+            Console.WriteLine($"❌ Exception: {ex.Message}");
             await JS.InvokeVoidAsync("alert", $"❌ Error: {ex.Message}");
         }
         finally
@@ -541,7 +1270,9 @@
 
     private async Task EliminarProducto(Product producto)
     {
-        var confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Estás seguro de eliminar '{producto.Name}'?");
+        var confirmado = await JS.InvokeAsync<bool>("confirm", 
+            $"⚠️ ¿Estás seguro de eliminar '{producto.Name} ({producto.Color})'?\n\nEsta acción NO se puede deshacer.");
+        
         if (!confirmado) return;
 
         try
@@ -555,8 +1286,79 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Error eliminando producto: {ex.Message}");
+            Console.WriteLine($"❌ Error eliminando: {ex.Message}");
             await JS.InvokeVoidAsync("alert", $"❌ Error: {ex.Message}");
         }
     }
+
+    private string GetColorHex(string colorName)
+    {
+        // Mapa de colores comunes
+        var colorMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Castaño", "#8B4513" },
+            { "Rubio", "#FFD700" },
+            { "Negro", "#000000" },
+            { "Rojo", "#FF0000" },
+            { "Marrón", "#A52A2A" },
+            { "Dorado", "#FFD700" },
+            { "Platino", "#E5E4E2" },
+            { "Oscuro", "#333333" },
+            { "Claro", "#F5DEB3" }
+        };
+
+        return colorMap.TryGetValue(colorName, out var hex) ? hex : "#CCCCCC";
+    }
+
+    /// <summary>
+    /// Determina si el producto actual es de tipo capilar (pelo)
+    /// basado en su categoría
+    /// </summary>
+    private bool EsProductoCapilar(int? categoryId)
+    {
+        if (!categoryId.HasValue || categoryId.Value == 0)
+            return true; // Por defecto, asumimos que es capilar
+
+        // Buscar la categoría
+        var categoria = categorias.FirstOrDefault(c => c.Id == categoryId.Value);
+        if (categoria == null)
+            return true; // Por defecto capilar
+
+        // Lógica: considera capilar si la categoría contiene palabras clave
+        var nombreCategoria = categoria.Name?.ToLower() ?? "";
+        return nombreCategoria.Contains("pelo") || 
+               nombreCategoria.Contains("cabello") || 
+               nombreCategoria.Contains("extensión") ||
+               nombreCategoria.Contains("remy") ||
+               nombreCategoria.Contains("sintético");
+    }
+
+    /// <summary>
+    /// Obtiene un label amigable para mostrar el valor de Centimeters
+    /// Si es 0 o null, muestra "Estándar"
+    /// </summary>
+    private string GetMedidaLabel(decimal? centimeters)
+    {
+        if (!centimeters.HasValue || centimeters.Value == 0)
+            return "Estándar";
+
+        return $"{centimeters:F1} cm";
+    }
+
+    /// <summary>
+    /// Valida si una variante tiene todos los campos requeridos
+    /// </summary>
+    private bool EsVarianteValida(ProductVariantDto variante)
+    {
+        return variante.Price > 0;
+    }
+
+    /// <summary>
+    /// Obtiene el total de variantes con precio válido
+    /// </summary>
+    private int ContarVariantesValidas()
+    {
+        return formularioRequest.Variants.Count(v => EsVarianteValida(v));
+    }
 }
+

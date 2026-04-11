@@ -33,7 +33,15 @@ public class Product
     public string Description { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public string? ImageUrl { get; set; }
-    public int Stock { get; set; }
+
+    /// <summary>
+    /// Stock calculado automáticamente desde las variantes.
+    /// Si no hay variantes, retorna 0.
+    /// </summary>
+    public int Stock 
+    { 
+        get => Variants?.Sum(v => v.Stock) ?? 0;
+    }
 
     public int CategoryId { get; set; }
     public Category? Category { get; set; }
@@ -43,6 +51,10 @@ public class Product
 
     public string? Color { get; set; }
     public decimal? Centimeters { get; set; }
+
+    // Navigation properties para variantes e imágenes
+    public List<ProductVariant> Variants { get; set; } = new();
+    public List<ProductImage> Images { get; set; } = new();
 }
 
 /// <summary>
@@ -231,3 +243,112 @@ public class OperationResult
     public string? Message { get; set; }
 }
 
+// =============================================
+// MODELOS PARA VARIANTES E IMÁGENES DE PRODUCTOS
+// =============================================
+
+/// <summary>
+/// Variante de un producto (Color, Talla/Longitud, Stock, Precio).
+/// Permite gestionar múltiples combinaciones de atributos para un mismo producto base.
+/// </summary>
+public class ProductVariant
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+
+    // Atributos de la variante
+    public string? Color { get; set; }
+    public decimal? Centimeters { get; set; }
+
+    // Inventario
+    public int Stock { get; set; }
+
+    // Precio puede variar por variante
+    public decimal Price { get; set; }
+
+    // Orden de visualización
+    public int DisplayOrder { get; set; }
+
+    // Control
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public Product? Product { get; set; }
+    public List<ProductImage> Images { get; set; } = new();
+}
+
+/// <summary>
+/// Imagen de un producto o variante.
+/// Permite gestionar múltiples imágenes por producto o por variante específica.
+/// </summary>
+public class ProductImage
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public int? ProductVariantId { get; set; }
+
+    // Información de la imagen
+    public string ImageUrl { get; set; } = string.Empty;
+    public string? AltText { get; set; }
+    public int DisplayOrder { get; set; }
+
+    // Control
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public Product? Product { get; set; }
+    public ProductVariant? ProductVariant { get; set; }
+}
+
+/// <summary>
+/// DTO para crear/actualizar productos con sus variantes e imágenes.
+/// </summary>
+public class CreateProductRequest
+{
+    public int? Id { get; set; } // NULL para nuevo, valor para editar
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string? ImageUrl { get; set; }
+    public int Stock { get; set; }
+
+    public int CategoryId { get; set; }
+    public int? SubcategoryId { get; set; }
+    public string? Color { get; set; }
+    public decimal? Centimeters { get; set; }
+
+    // Variantes
+    public List<ProductVariantDto> Variants { get; set; } = new();
+
+    // Imágenes
+    public List<ProductImageDto> Images { get; set; } = new();
+}
+
+/// <summary>
+/// DTO para variantes.
+/// </summary>
+public class ProductVariantDto
+{
+    public int? Id { get; set; }
+    public string? Color { get; set; }
+    public decimal? Centimeters { get; set; }
+    public int Stock { get; set; }
+    public decimal Price { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>
+/// DTO para imágenes.
+/// </summary>
+public class ProductImageDto
+{
+    public int? Id { get; set; }
+    public int? ProductVariantId { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
+    public string? AltText { get; set; }
+    public int DisplayOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+}

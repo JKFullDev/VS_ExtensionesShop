@@ -22,6 +22,8 @@ public class ProductsController(AppDbContext db) : ControllerBase
         var query = db.Products
             .Include(p => p.Category)
             .Include(p => p.Subcategory)
+            .Include(p => p.Variants)
+            .Include(p => p.Images)
             .AsQueryable();
 
         if (categoryId.HasValue)
@@ -51,23 +53,173 @@ public class ProductsController(AppDbContext db) : ControllerBase
         var product = await db.Products
             .Include(p => p.Category)
             .Include(p => p.Subcategory)
+            .Include(p => p.Variants)
+                .ThenInclude(v => v.Images)
+            .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         return product is null ? NotFound() : Ok(product);
     }
 
-    // POST api/products
+    // GET api/products/{id}/variants
+    [HttpGet("{id:int}/variants")]
+    public async Task<ActionResult<IEnumerable<ProductVariant>>> GetProductVariants(int id)
+    {
+        var variants = await db.ProductVariants
+            .Where(v => v.ProductId == id)
+            .Include(v => v.Images)
+            .OrderBy(v => v.DisplayOrder)
+            .ToListAsync();
+
+        return Ok(variants);
+    }
+
+    // POST api/products/with-variants
     [Authorize(Roles = "Admin")]
-    [HttpPost]
-    public async Task<ActionResult<Product>> Create([FromBody] Product product)
+    [HttpPost("with-variants")]
+    public async Task<ActionResult<Product>> CreateProductWithVariants(
+        [FromBody] CreateProductRequest request)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        db.Products.Add(product);
-        await db.SaveChangesAsync();
+        using var transaction = await db.Database.BeginTransactionAsync();
 
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+        try
+        {
+            // 1. Crear o actualizar el producto base
+            Product product;
+            if (request.Id.HasValue && request.Id.Value > 0)
+            {
+                product = await db.Products
+                    .Include(p => p.Variants)
+                    .Include(p => p.Images)
+                    .FirstOrDefaultAsync(p => p.Id == request.Id.Value);
+
+                if (product == null)
+                    return NotFound(new { message = "Producto no encontrado" });
+
+                // Actualizar propiedades
+                product.Name = request.Name;
+                product.Description = request.Description;
+                product.Price = request.Price;
+                product.ImageUrl = request.ImageUrl;
+                product.CategoryId = request.CategoryId;
+                product.SubcategoryId = request.SubcategoryId;
+                product.Color = request.Color;
+                product.Centimeters = request.Centimeters;
+
+                db.Products.Update(product);
+            }
+            else
+            {
+                // Crear nuevo producto
+                product = new Product
+                {
+                    Name = request.Name,
+                    Description = request.Description,
+                    Price = request.Price,
+                    ImageUrl = request.ImageUrl,
+                    CategoryId = request.CategoryId,
+                    SubcategoryId = request.SubcategoryId,
+                    Color = request.Color,
+                    Centimeters = request.Centimeters
+                };
+
+                db.Products.Add(product);
+            }
+
+            await db.SaveChangesAsync();
+
+            // 2. Gestionar variantes
+            if (request.Variants != null && request.Variants.Any())
+            {
+                // Si es actualización, eliminar variantes existentes
+                if (request.Id.HasValue && request.Id.Value > 0)
+                {
+                    var existingVariants = await db.ProductVariants
+                        .Where(v => v.ProductId == product.Id)
+                        .ToListAsync();
+                    db.ProductVariants.RemoveRange(existingVariants);
+                    await db.SaveChangesAsync();
+                }
+
+                // Crear nuevas variantes
+                var displayOrder = 0;
+                foreach (var variantDto in request.Variants)
+                {
+                    var variant = new ProductVariant
+                    {
+                        ProductId = product.Id,
+                        Color = variantDto.Color,
+                        Centimeters = variantDto.Centimeters,
+                        Stock = variantDto.Stock,
+                        Price = variantDto.Price,
+                        IsActive = variantDto.IsActive,
+                        DisplayOrder = displayOrder++
+                    };
+
+                    db.ProductVariants.Add(variant);
+                }
+
+                await db.SaveChangesAsync();
+            }
+
+            // 3. Gestionar imágenes
+            if (request.Images != null && request.Images.Any())
+            {
+                // Si es actualización, eliminar imágenes existentes
+                if (request.Id.HasValue && request.Id.Value > 0)
+                {
+                    var existingImages = await db.ProductImages
+                        .Where(i => i.ProductId == product.Id)
+                        .ToListAsync();
+                    db.ProductImages.RemoveRange(existingImages);
+                    await db.SaveChangesAsync();
+                }
+
+                // Crear nuevas imágenes
+                foreach (var imageDto in request.Images)
+                {
+                    var image = new ProductImage
+                    {
+                        ProductId = product.Id,
+                        ProductVariantId = imageDto.ProductVariantId,
+                        ImageUrl = imageDto.ImageUrl,
+                        AltText = imageDto.AltText,
+                        DisplayOrder = imageDto.DisplayOrder,
+                        IsActive = imageDto.IsActive
+                    };
+
+                    db.ProductImages.Add(image);
+                }
+
+                await db.SaveChangesAsync();
+            }
+
+            // Confirmar transacción
+            await transaction.CommitAsync();
+
+            // Retornar el producto completo
+            var resultProduct = await db.Products
+                .Include(p => p.Category)
+                .Include(p => p.Subcategory)
+                .Include(p => p.Variants)
+                    .ThenInclude(v => v.Images)
+                .Include(p => p.Images)
+                .FirstOrDefaultAsync(p => p.Id == product.Id);
+
+            return CreatedAtAction(nameof(GetById), new { id = product.Id }, resultProduct);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, new
+            {
+                message = "Error al guardar el producto",
+                error = ex.Message
+            });
+        }
     }
 
     // PUT api/products/{id}
@@ -87,7 +239,6 @@ public class ProductsController(AppDbContext db) : ControllerBase
         existingProduct.Description = product.Description;
         existingProduct.Price = product.Price;
         existingProduct.ImageUrl = product.ImageUrl;
-        existingProduct.Stock = product.Stock;
         existingProduct.CategoryId = product.CategoryId;
         existingProduct.SubcategoryId = product.SubcategoryId;
         existingProduct.Color = product.Color;
@@ -111,14 +262,52 @@ public class ProductsController(AppDbContext db) : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var product = await db.Products.FindAsync(id);
+        var product = await db.Products
+            .Include(p => p.Variants)
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
         if (product == null)
             return NotFound();
 
-        db.Products.Remove(product);
-        await db.SaveChangesAsync();
+        using var transaction = await db.Database.BeginTransactionAsync();
+        try
+        {
+            // 1. Eliminar imágenes de variantes
+            var variantImages = await db.ProductImages
+                .Where(i => i.ProductVariantId != null && 
+                       db.ProductVariants.Where(v => v.ProductId == id).Select(v => v.Id).Contains(i.ProductVariantId.Value))
+                .ToListAsync();
+            db.ProductImages.RemoveRange(variantImages);
+            await db.SaveChangesAsync();
 
-        return NoContent();
+            // 2. Eliminar imágenes del producto
+            var productImages = await db.ProductImages
+                .Where(i => i.ProductId == id && i.ProductVariantId == null)
+                .ToListAsync();
+            db.ProductImages.RemoveRange(productImages);
+            await db.SaveChangesAsync();
+
+            // 3. Eliminar variantes
+            var variants = await db.ProductVariants
+                .Where(v => v.ProductId == id)
+                .ToListAsync();
+            db.ProductVariants.RemoveRange(variants);
+            await db.SaveChangesAsync();
+
+            // 4. Eliminar producto
+            db.Products.Remove(product);
+            await db.SaveChangesAsync();
+
+            // Confirmar transacción
+            await transaction.CommitAsync();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, new { message = "Error al eliminar el producto", error = ex.Message });
+        }
     }
 }
 
