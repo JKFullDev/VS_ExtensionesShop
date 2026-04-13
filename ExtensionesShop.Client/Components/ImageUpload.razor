@@ -1,0 +1,425 @@
+@using System.IO
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net.Http.Headers
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<div class="image-upload-container">
+    <div class="upload-section">
+        <h4>@(string.IsNullOrEmpty(Label) ? "Cargar Imagen" : Label)</h4>
+
+        <div class="upload-tabs">
+            <button class="tab-btn @(activeTab == "file" ? "active" : "")" 
+                    @onclick="@(() => { activeTab = "file"; error = null; })">
+                📁 Archivo
+            </button>
+            <button class="tab-btn @(activeTab == "url" ? "active" : "")" 
+                    @onclick="@(() => { activeTab = "url"; error = null; })">
+                🔗 URL
+            </button>
+        </div>
+
+        @if (activeTab == "file")
+        {
+            <div class="upload-file-area">
+                <InputFile @ref="fileInput" 
+                           OnChange="@HandleFileSelected" 
+                           accept="image/*"
+                           id="@inputId"
+                           class="file-input" />
+                <button type="button" 
+                        class="file-label"
+                        @onclick="ClickFileInput"
+                        disabled="@isUploading">
+                    @if (isUploading)
+                    {
+                        <span>⏳ Cargando...</span>
+                    }
+                    else if (!string.IsNullOrEmpty(selectedFileName))
+                    {
+                        <span>✓ @selectedFileName</span>
+                    }
+                    else
+                    {
+                        <span>📸 Seleccionar imagen</span>
+                    }
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="upload-url-area">
+                <input type="text" 
+                       @bind="urlInput" 
+                       placeholder="https://ejemplo.com/imagen.jpg"
+                       class="url-input"
+                       @onkeyup="@((KeyboardEventArgs e) => { if (e.Key == "Enter") HandleUrlSubmit(); })" />
+                <button @onclick="HandleUrlSubmit" 
+                        class="btn-upload-url"
+                        disabled="@string.IsNullOrWhiteSpace(urlInput)">
+                    Usar URL
+                </button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="alert alert-error">
+                ❌ @error
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(uploadedImageUrl))
+        {
+            <div class="upload-success">
+                <div class="image-preview">
+                    <img src="@uploadedImageUrl" alt="Preview" />
+                </div>
+                <div class="upload-actions">
+                    <button class="btn-use-image" @onclick="UseImage">
+                        ✓ Usar esta imagen
+                    </button>
+                    <button class="btn-reset-image" @onclick="Reset">
+                        ↻ Elegir otra
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .image-upload-container {
+        width: 100%;
+        margin: 16px 0;
+    }
+
+    .upload-section {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .upload-section h4 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .upload-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #E2E8F0;
+    }
+
+    .tab-btn {
+        padding: 8px 16px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #94A3B8;
+        font-weight: 500;
+        transition: all .2s;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+    }
+
+    .tab-btn.active {
+        color: var(--rose);
+        border-bottom-color: var(--rose);
+    }
+
+    .tab-btn:hover:not(.active) {
+        color: #475569;
+    }
+
+    /* FILE UPLOAD */
+    .upload-file-area {
+        position: relative;
+        margin-bottom: 12px;
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .file-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        border: 2px dashed #CBD5E1;
+        border-radius: 8px;
+        cursor: pointer;
+        background: white;
+        transition: all .2s;
+        font-weight: 500;
+        color: #64748B;
+    }
+
+    .file-label:hover {
+        border-color: var(--rose);
+        background: #FFF5F7;
+        color: var(--rose);
+    }
+
+    /* URL UPLOAD */
+    .upload-url-area {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .url-input {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: monospace;
+    }
+
+    .url-input:focus {
+        outline: none;
+        border-color: var(--rose);
+        box-shadow: 0 0 0 3px rgba(214, 70, 112, 0.1);
+    }
+
+    .btn-upload-url {
+        padding: 10px 16px;
+        background: var(--rose);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all .2s;
+        white-space: nowrap;
+    }
+
+    .btn-upload-url:hover:not(:disabled) {
+        background: #DC2626;
+    }
+
+    .btn-upload-url:disabled {
+        background: #F1F5F9;
+        color: #94A3B8;
+        cursor: not-allowed;
+    }
+
+    /* ALERTS */
+    .alert {
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+
+    .alert-error {
+        background: #FEE2E2;
+        color: #DC2626;
+        border: 1px solid #FECACA;
+    }
+
+    .alert-success {
+        background: #DCFCE7;
+        color: #166534;
+        border: 1px solid #BBFBDC;
+    }
+
+    /* IMAGE PREVIEW */
+    .upload-success {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .image-preview {
+        width: 100%;
+        height: 200px;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 12px;
+        background: #F1F5F9;
+    }
+
+    .image-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .btn-use-image {
+        width: 100%;
+        padding: 10px;
+        background: #10B981;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all .2s;
+        margin-bottom: 8px;
+    }
+
+    .btn-use-image:hover {
+        background: #059669;
+    }
+
+    .upload-actions {
+        display: flex;
+        gap: 8px;
+        flex-direction: column;
+    }
+
+    .btn-reset-image {
+        width: 100%;
+        padding: 10px;
+        background: #94A3B8;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all .2s;
+    }
+
+    .btn-reset-image:hover {
+        background: #64748B;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = "Cargar Imagen";
+
+    [Parameter]
+    public EventCallback<string> OnImageSelected { get; set; }
+
+    private string activeTab = "file";
+    private string? selectedFileName = null;
+    private string? uploadedImageUrl = null;
+    private string? urlInput = null;
+    private string? error = null;
+    private bool isUploading = false;
+    private InputFile? fileInput;
+    private string inputId = $"file-input-{Guid.NewGuid()}";
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        error = null;
+        selectedFileName = null;
+        uploadedImageUrl = null;
+
+        var file = e.File;
+
+        if (file == null)
+            return;
+
+        // Validar tipo
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+        if (!allowedTypes.Contains(file.ContentType?.ToLower() ?? ""))
+        {
+            error = "Solo se permiten formatos: JPG, PNG, WebP, GIF";
+            return;
+        }
+
+        // Validar tamaño (10MB)
+        const long maxSize = 10 * 1024 * 1024;
+        if (file.Size > maxSize)
+        {
+            error = $"La imagen debe ser menor a 10MB (actual: {(file.Size / (1024 * 1024)):F2}MB)";
+            return;
+        }
+
+        try
+        {
+            isUploading = true;
+            selectedFileName = file.Name;
+
+            // Enviar archivo al servidor
+            using var content = new MultipartFormDataContent();
+            using var fileStream = file.OpenReadStream(maxSize);
+            var fileContent = new StreamContent(fileStream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync("api/upload", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var result = System.Text.Json.JsonSerializer.Deserialize<UploadResponse>(jsonContent, options);
+
+                if (result?.ImageUrl != null)
+                {
+                    uploadedImageUrl = result.ImageUrl;
+                    Console.WriteLine($"✅ Imagen cargada: {uploadedImageUrl}");
+                }
+                else
+                {
+                    error = "No se pudo obtener la URL de la imagen";
+                }
+            }
+            else
+            {
+                error = $"Error en servidor: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Error cargando imagen: {ex.Message}";
+            selectedFileName = null;
+            uploadedImageUrl = null;
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private async Task HandleUrlSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(urlInput))
+            return;
+
+        error = null;
+        uploadedImageUrl = urlInput;
+        activeTab = "url";
+    }
+
+    private async Task UseImage()
+    {
+        if (string.IsNullOrEmpty(uploadedImageUrl))
+            return;
+
+        await OnImageSelected.InvokeAsync(uploadedImageUrl);
+        Reset();
+    }
+
+    private void Reset()
+    {
+        activeTab = "file";
+        selectedFileName = null;
+        uploadedImageUrl = null;
+        urlInput = null;
+        error = null;
+    }
+
+    private async Task ClickFileInput()
+    {
+        await JS.InvokeVoidAsync("eval", $"document.getElementById('{inputId}')?.click()");
+    }
+
+    public class UploadResponse
+    {
+        public bool Success { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+    }
+}

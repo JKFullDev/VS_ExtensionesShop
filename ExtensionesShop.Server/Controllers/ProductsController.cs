@@ -329,3 +329,29 @@ public class CategoriesController(AppDbContext db) : ControllerBase
         return category is null ? NotFound() : Ok(category);
     }
 }
+
+[ApiController]
+[Route("api/[controller]")]
+public class SubcategoriesController(AppDbContext db) : ControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Subcategory>>> GetAll()
+        => Ok(await db.Subcategories.Include(s => s.Category).OrderBy(s => s.Name).ToListAsync());
+
+    [HttpGet("by-category/{categoryId}")]
+    public async Task<ActionResult<IEnumerable<Subcategory>>> GetByCategory(int categoryId)
+        => Ok(await db.Subcategories
+            .Where(s => s.CategoryId == categoryId)
+            .OrderBy(s => s.Name)
+            .ToListAsync());
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Subcategory>> GetById(int id)
+    {
+        var subcategory = await db.Subcategories
+            .Include(s => s.Category)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        return subcategory is null ? NotFound() : Ok(subcategory);
+    }
+}
