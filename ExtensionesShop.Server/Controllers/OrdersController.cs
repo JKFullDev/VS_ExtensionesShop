@@ -117,7 +117,10 @@ public class OrdersController : ControllerBase
             // Agregar los items
             foreach (var item in request.Items)
             {
-                var product = await _db.Products.FindAsync(item.ProductId);
+                var product = await _db.Products
+                    .Include(p => p.Variants)
+                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
                 if (product == null)
                     return BadRequest(new { message = $"Producto {item.ProductId} no encontrado" });
 
@@ -134,8 +137,26 @@ public class OrdersController : ControllerBase
                     SelectedCentimeters = item.SelectedCentimeters
                 });
 
-                // Reducir stock
-                product.Stock -= item.Quantity;
+                // Reducir stock de la variante específica
+                if (product.Variants.Any())
+                {
+                    // Buscar la variante que coincida con color y centimeters
+                    var variant = product.Variants.FirstOrDefault(v =>
+                        v.Color == item.SelectedColor &&
+                        v.Centimeters == item.SelectedCentimeters);
+
+                    if (variant != null && variant.Stock >= item.Quantity)
+                    {
+                        variant.Stock -= item.Quantity;
+                    }
+                    else if (variant == null)
+                    {
+                        // Si no encuentra una variante exacta, buscar la primera disponible
+                        variant = product.Variants.FirstOrDefault(v => v.Stock >= item.Quantity);
+                        if (variant != null)
+                            variant.Stock -= item.Quantity;
+                    }
+                }
             }
 
             _db.Orders.Add(order);

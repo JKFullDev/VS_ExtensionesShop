@@ -13,6 +13,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<CartItemEntity> CartItems => Set<CartItemEntity>();
+    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -187,6 +189,50 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
             entity.HasIndex(oi => oi.OrderId);
             entity.HasIndex(oi => oi.ProductId);
+        });
+
+        // ── ProductVariant ────────────────────────────────────────────────────
+        modelBuilder.Entity<ProductVariant>(entity =>
+        {
+            entity.HasKey(pv => pv.Id);
+            entity.Property(pv => pv.Color).HasMaxLength(50);
+            entity.Property(pv => pv.Centimeters).HasPrecision(5, 2);
+            entity.Property(pv => pv.Price).HasPrecision(18, 2);
+            entity.Property(pv => pv.CreatedAt)
+                  .HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(pv => pv.UpdatedAt)
+                  .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(pv => pv.Product)
+                  .WithMany(p => p.Variants)
+                  .HasForeignKey(pv => pv.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(pv => pv.ProductId);
+        });
+
+        // ── ProductImage ──────────────────────────────────────────────────────
+        modelBuilder.Entity<ProductImage>(entity =>
+        {
+            entity.HasKey(pi => pi.Id);
+            entity.Property(pi => pi.ImageUrl).HasMaxLength(int.MaxValue).IsRequired();
+            entity.Property(pi => pi.AltText).HasMaxLength(255);
+            entity.Property(pi => pi.CreatedAt)
+                  .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(pi => pi.Product)
+                  .WithMany(p => p.Images)
+                  .HasForeignKey(pi => pi.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(pi => pi.ProductVariant)
+                  .WithMany(pv => pv.Images)
+                  .HasForeignKey(pi => pi.ProductVariantId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(pi => pi.ProductId);
+            entity.HasIndex(pi => pi.ProductVariantId);
+            entity.HasIndex(pi => new { pi.ProductId, pi.DisplayOrder });
         });
     }
 }

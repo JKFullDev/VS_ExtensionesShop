@@ -1,0 +1,207 @@
+@using ExtensionesShop.Client.Services
+@inject AuthService AuthService
+@inject IJSRuntime JS
+
+<!-- COMPONENTE DE DEBUG: MUESTRA ESTADO DE AUTENTICACIÓN -->
+<!-- USO: @if (showDebug) { <AuthDebugPanel /> } -->
+
+<div class="auth-debug-panel">
+    <div class="debug-header">
+        <h4>🔐 Debug: Estado de Autenticación</h4>
+        <button class="close-btn" @onclick="Close">×</button>
+    </div>
+
+    <div class="debug-content">
+        <div class="debug-row">
+            <span class="label">Estado de Login:</span>
+            <span class="value @(AuthService.IsAuthenticated ? "success" : "error")">
+                @(AuthService.IsAuthenticated ? "✅ Logueado" : "❌ No logueado")
+            </span>
+        </div>
+
+        @if (AuthService.IsAuthenticated && AuthService.CurrentUser != null)
+        {
+            <div class="debug-row">
+                <span class="label">Email:</span>
+                <span class="value">@AuthService.CurrentUser.Email</span>
+            </div>
+
+            <div class="debug-row">
+                <span class="label">Rol:</span>
+                <span class="value @(AuthService.IsAdmin ? "success" : "warning")">
+                    @AuthService.CurrentUser.Role
+                    @if (AuthService.IsAdmin)
+                    {
+                        <span>✅ ADMIN</span>
+                    }
+                </span>
+            </div>
+
+            <div class="debug-row">
+                <span class="label">Token JWT:</span>
+                <button class="copy-btn" @onclick="CopyToken">Copiar al portapapeles</button>
+            </div>
+
+            <div class="debug-row">
+                <span class="label">LocalStorage Data:</span>
+                <button class="copy-btn" @onclick="ShowLocalStorage">Ver datos</button>
+            </div>
+        }
+        else
+        {
+            <div class="debug-warning">
+                ⚠️ No estás autenticado. No puedes acceder a funciones protegidas.
+                <br />
+                <a href="/login" style="color: #F43F5E; text-decoration: underline;">Ir a Login</a>
+            </div>
+        }
+
+        <div class="debug-row">
+            <button class="refresh-btn" @onclick="RefreshAuth">🔄 Refrescar Estado</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .auth-debug-panel {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #1E293B;
+        color: #E2E8F0;
+        border: 1px solid #475569;
+        border-radius: 8px;
+        padding: 16px;
+        font-size: 12px;
+        font-family: monospace;
+        max-width: 400px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        z-index: 9999;
+    }
+
+    .debug-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #475569;
+    }
+
+    .debug-header h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: #E2E8F0;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 0;
+    }
+
+    .close-btn:hover {
+        color: #F43F5E;
+    }
+
+    .debug-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .debug-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .label {
+        font-weight: 600;
+        color: #94A3B8;
+    }
+
+    .value {
+        color: #CBD5E1;
+        word-break: break-all;
+    }
+
+    .value.success {
+        color: #34D399;
+    }
+
+    .value.error {
+        color: #F87171;
+    }
+
+    .value.warning {
+        color: #FBBF24;
+    }
+
+    .copy-btn,
+    .refresh-btn {
+        padding: 4px 8px;
+        background: #334155;
+        border: 1px solid #475569;
+        color: #E2E8F0;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.2s;
+    }
+
+    .copy-btn:hover,
+    .refresh-btn:hover {
+        background: #475569;
+        border-color: #64748B;
+    }
+
+    .debug-warning {
+        padding: 8px;
+        background: #7C2D12;
+        border: 1px solid #EA580C;
+        border-radius: 4px;
+        color: #FDBA74;
+        line-height: 1.5;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task CopyToken()
+    {
+        var token = await JS.InvokeAsync<string?>("localStorage.getItem", "authToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", token);
+            await JS.InvokeVoidAsync("alert", "✅ Token copiado al portapapeles");
+        }
+    }
+
+    private async Task ShowLocalStorage()
+    {
+        var user = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUser");
+        var token = await JS.InvokeAsync<string?>("localStorage.getItem", "authToken");
+        
+        var data = $"USER: {user}\n\nTOKEN: {token}";
+        Console.WriteLine(data);
+        await JS.InvokeVoidAsync("alert", data);
+    }
+
+    private async Task RefreshAuth()
+    {
+        // Forzar actualización del estado
+        await JS.InvokeVoidAsync("location.reload");
+    }
+}
