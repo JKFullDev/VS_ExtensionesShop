@@ -76,27 +76,20 @@
         <div class="sidebar-footer">
             <div class="user-info">
                 <div class="user-avatar">
-                    @if (AuthService.CurrentUser?.FirstName != null)
+                    @if (!string.IsNullOrWhiteSpace(AuthService.CurrentUser?.FirstName))
                     {
-                        @AuthService.CurrentUser.FirstName.Substring(0, 1)
+                        @AuthService.CurrentUser.FirstName.Substring(0, 1).ToUpper()
                     }
                     else
                     {
-                        <text>?</text>
+                        <text>👑</text>
                     }
                 </div>
                 <div class="user-details">
                     <div class="user-name">
-                        @if (AuthService.CurrentUser != null)
-                        {
-                            @AuthService.CurrentUser.FirstName
-                        }
-                        else
-                        {
-                            <text>Usuario</text>
-                        }
+                        @(string.IsNullOrWhiteSpace(AuthService.CurrentUser?.FirstName) ? "Administrador" : AuthService.CurrentUser.FirstName)
                     </div>
-                    <div class="user-role">Administrador</div>
+                    <div class="user-role">Admin Panel</div>
                 </div>
             </div>
         </div>

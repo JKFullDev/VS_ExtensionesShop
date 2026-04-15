@@ -108,6 +108,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
                 product.SubcategoryId = request.SubcategoryId;
                 product.Color = request.Color;
                 product.Centimeters = request.Centimeters;
+                product.StockValue = request.Stock;  // ✅ CRÍTICO: Guardar el stock manual en StockValue
 
                 db.Products.Update(product);
             }
@@ -123,7 +124,8 @@ public class ProductsController(AppDbContext db) : ControllerBase
                     CategoryId = request.CategoryId,
                     SubcategoryId = request.SubcategoryId,
                     Color = request.Color,
-                    Centimeters = request.Centimeters
+                    Centimeters = request.Centimeters,
+                    StockValue = request.Stock  // ✅ CRÍTICO: Guardar el stock manual en StockValue
                 };
 
                 db.Products.Add(product);
@@ -134,13 +136,31 @@ public class ProductsController(AppDbContext db) : ControllerBase
             // 2. Gestionar variantes
             if (request.Variants != null && request.Variants.Any())
             {
-                // Si es actualización, eliminar variantes existentes
+                // Si es actualización, sincronizar variantes inteligentemente
                 if (request.Id.HasValue && request.Id.Value > 0)
                 {
+                    // ✅ NUEVO: Cargar variantes existentes
                     var existingVariants = await db.ProductVariants
                         .Where(v => v.ProductId == product.Id)
                         .ToListAsync();
-                    db.ProductVariants.RemoveRange(existingVariants);
+
+                    // Identificar variantes 'zombis' (en BD pero no en request)
+                    var requestVariantIds = request.Variants
+                        .Where(v => v.Id.HasValue && v.Id.Value > 0)
+                        .Select(v => v.Id.Value)
+                        .ToList();
+
+                    var orphanedVariants = existingVariants
+                        .Where(v => !requestVariantIds.Contains(v.Id))
+                        .ToList();
+
+                    // ✅ Eliminar variantes huérfanas
+                    if (orphanedVariants.Any())
+                    {
+                        db.ProductVariants.RemoveRange(orphanedVariants);
+                        Console.WriteLine($"🗑️ Eliminadas {orphanedVariants.Count} variantes huérfanas");
+                    }
+
                     await db.SaveChangesAsync();
                 }
 
@@ -163,6 +183,27 @@ public class ProductsController(AppDbContext db) : ControllerBase
                 }
 
                 await db.SaveChangesAsync();
+            }
+            else
+            {
+                // ✅ NUEVO: Si NO hay variantes, eliminar todas las existentes y guardar stock manual
+                if (request.Id.HasValue && request.Id.Value > 0)
+                {
+                    var existingVariants = await db.ProductVariants
+                        .Where(v => v.ProductId == product.Id)
+                        .ToListAsync();
+
+                    if (existingVariants.Any())
+                    {
+                        db.ProductVariants.RemoveRange(existingVariants);
+                        Console.WriteLine($"🗑️ Eliminadas todas las variantes ({existingVariants.Count}) del producto");
+                    }
+
+                    await db.SaveChangesAsync();
+                }
+
+                // No hay variantes, por lo que el stock es manual (ya está guardado en request.Stock)
+                Console.WriteLine($"📦 Producto sin variantes - Stock manual: {request.Stock}");
             }
 
             // 3. Gestionar imágenes

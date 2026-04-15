@@ -207,24 +207,48 @@
             </div>
 
             <div class="cart-action">
-                <button class="btn-cta-hover"
-                        disabled="@(producto.Stock == 0)"
-                        @onclick="() => AgregarAlCarrito(producto)"
-                        @onclick:stopPropagation="true">
-                    @if (producto.Stock > 0)
-                    {
+                @if (producto.Variants != null && producto.Variants.Any())
+                {
+                    <!-- Producto con variantes: Botón "Ver opciones" -->
+                    <button class="btn-cta-hover"
+                            @onclick="() => IrAlDetalle(producto)"
+                            @onclick:stopPropagation="true">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
-                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <path d="M16 10a4 4 0 0 1-8 0" />
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
-                        <text>Añadir al Carrito</text>
-                    }
-                    else
-                    {
-                        <text>No Disponible</text>
-                    }
-                </button>
+                        <text>Ver opciones</text>
+                    </button>
+                }
+                else
+                {
+                    <!-- Producto simple: Botón "Añadir al carrito" -->
+                    <button class="btn-cta-hover"
+                            disabled="@(producto.Stock == 0)"
+                            @onclick="() => AgregarAlCarrito(producto)"
+                            @onclick:stopPropagation="true">
+                        @if (productosAñadidos.ContainsKey(producto.Id) && productosAñadidos[producto.Id])
+                        {
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <text>¡Añadido!</text>
+                        }
+                        else if (producto.Stock > 0)
+                        {
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                <line x1="3" y1="6" x2="21" y2="6" />
+                                <path d="M16 10a4 4 0 0 1-8 0" />
+                            </svg>
+                            <text>Añadir al Carrito</text>
+                        }
+                        else
+                        {
+                            <text>No Disponible</text>
+                        }
+                    </button>
+                }
             </div>
         </div>
 
@@ -246,7 +270,11 @@
             </div>
 
             <div class="product-pricing">
-                <span class="price-current">€@producto.Price.ToString("N0")</span>
+                @if (producto.Variants != null && producto.Variants.Any())
+                {
+                    <span class="price-label">Desde</span>
+                }
+                <span class="price-current">€@producto.PrecioMinimo.ToString("N2")</span>
             </div>
         </a>
     </div>
@@ -363,7 +391,7 @@
     /* ── Grid de Productos ──────────────────────────────────── */
     .productos-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
         gap: 24px;
     }
 
@@ -568,6 +596,13 @@
         gap: 8px;
     }
 
+    .price-label {
+        font-family: var(--font-body, sans-serif);
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 500;
+    }
+
     .price-current {
         font-family: var(--font-body, sans-serif);
         font-size: 18px;
@@ -648,6 +683,9 @@
 
     // Ordenación
     private string ordenActual = "nombre-asc";
+
+    // Estado de productos añadidos al carrito
+    private Dictionary<int, bool> productosAñadidos = new();
 
     private IEnumerable<Product> productosFiltrados => OrdenarProductos(FiltrarProductos());
 
@@ -881,10 +919,33 @@
         await FavoritosService.ToggleFavoritoAsync(producto);
     }
 
+    private void IrAlDetalle(Product producto)
+    {
+        Navigation.NavigateTo($"/producto/{producto.Id}");
+    }
+
     private async Task AgregarAlCarrito(Product producto)
     {
-        await CartState.AgregarProducto(producto);
-        Console.WriteLine($"✅ Producto {producto.Name} añadido al carrito");
+        try
+        {
+            await CartState.AgregarProducto(producto);
+
+            // Establecer estado visual temporal SOLO si fue exitoso
+            productosAñadidos[producto.Id] = true;
+            StateHasChanged();
+
+            // Resetear después de 2 segundos
+            await Task.Delay(2000);
+            productosAñadidos[producto.Id] = false;
+            StateHasChanged();
+
+            Console.WriteLine($"✅ Producto {producto.Name} añadido al carrito");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al añadir {producto.Name}: {ex.Message}");
+            // El error será manejado por CartStateService (notificación al usuario)
+        }
     }
 
     public void Dispose()

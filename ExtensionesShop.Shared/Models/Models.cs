@@ -35,12 +35,32 @@ public class Product
     public string? ImageUrl { get; set; }
 
     /// <summary>
-    /// Stock calculado automáticamente desde las variantes.
-    /// Si no hay variantes, retorna 0.
+    /// Stock de la base de datos (para productos sin variantes).
+    /// Para productos con variantes, se calcula desde las variantes.
+    /// </summary>
+    public int StockValue { get; set; }
+
+    /// <summary>
+    /// Stock calculado inteligentemente:
+    /// - Si hay variantes: suma del stock de todas las variantes
+    /// - Si no hay variantes: usa el valor de StockValue
     /// </summary>
     public int Stock 
     { 
-        get => Variants?.Sum(v => v.Stock) ?? 0;
+        get => (Variants != null && Variants.Any())
+            ? Variants.Sum(v => v.Stock)
+            : StockValue;
+    }
+
+    /// <summary>
+    /// Precio mínimo: el menor precio entre variantes, o el precio base si no hay variantes.
+    /// Se usa para mostrar "Desde $80" en el catálogo.
+    /// </summary>
+    public decimal PrecioMinimo
+    {
+        get => (Variants != null && Variants.Any()) 
+            ? Variants.Min(v => v.Price) 
+            : Price;
     }
 
     public int CategoryId { get; set; }
@@ -144,6 +164,7 @@ public class OrderItem
 public class CartItem
 {
     public int ProductId { get; set; }
+    public int? ProductVariantId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public decimal UnitPrice { get; set; }
@@ -152,6 +173,38 @@ public class CartItem
     public decimal? SelectedCentimeters { get; set; }
 
     public decimal Subtotal => UnitPrice * Quantity;
+}
+
+/// <summary>
+/// Respuesta de item del carrito desde la API (incluye datos de variante).
+/// </summary>
+public class CartItemResponse
+{
+    public int ProductId { get; set; }
+    public int? ProductVariantId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public decimal UnitPrice { get; set; }  // Precio de la variante o producto
+    public int Quantity { get; set; }
+    public string? VariantColor { get; set; }  // ✅ NUEVO
+    public decimal? VariantCentimeters { get; set; }  // ✅ NUEVO
+
+    public decimal Subtotal => UnitPrice * Quantity;
+}
+
+/// <summary>
+/// Item del carrito para el cliente (compatible con vista actual).
+/// </summary>
+public class CarritoItemView
+{
+    public Product Producto { get; set; } = new();
+    public int Cantidad { get; set; }
+    public decimal PrecioUnitario { get; set; }  // ✅ NUEVO: Precio en el momento de la compra
+    public int? VariantId { get; set; }  // ✅ NUEVO: ID de variante si existe
+    public string? VariantColor { get; set; }  // ✅ NUEVO
+    public decimal? VariantCentimeters { get; set; }  // ✅ NUEVO
+
+    public decimal Subtotal => PrecioUnitario * Cantidad;
 }
 
 /// <summary>
@@ -189,13 +242,23 @@ public class Favorite
 
 /// <summary>
 /// Item del carrito de un usuario (Backend - BD).
+/// Ahora guarda explícitamente los datos de la variante seleccionada.
 /// </summary>
 public class CartItemEntity
 {
     public int Id { get; set; }
     public int UserId { get; set; }
     public int ProductId { get; set; }
+    public int? ProductVariantId { get; set; }
     public int Quantity { get; set; }
+
+    // ✅ NUEVO: Guardar precio de la variante en el momento de la compra
+    public decimal UnitPrice { get; set; }
+
+    // ✅ NUEVO: Guardar detalles de la variante para historial
+    public string? VariantColor { get; set; }
+    public decimal? VariantCentimeters { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
@@ -222,6 +285,7 @@ public class SyncCartRequest
 public class CartItemSync
 {
     public int ProductId { get; set; }
+    public int? ProductVariantId { get; set; }  // ✅ NUEVO: Identificar variante específica
     public int Quantity { get; set; }
 }
 
@@ -231,6 +295,7 @@ public class CartItemSync
 public class AddToCartRequest
 {
     public int ProductId { get; set; }
+    public int? ProductVariantId { get; set; }
     public int Quantity { get; set; } = 1;
 }
 

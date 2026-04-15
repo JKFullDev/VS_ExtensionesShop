@@ -265,24 +265,46 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Precio Base (Se mostrará en el catálogo) *</label>
+                        <input type="number" step="0.01" @bind="formularioRequest.Price" class="form-control" placeholder="0.00" />
+                        <small>Precio que se muestra en el catálogo. El precio de cada variante puede ser diferente.</small>
+                    </div>
+
+                    <div class="form-group">
                         <label>Stock Total</label>
-                        <input type="number" value="@(formularioRequest.Variants.Any() ? formularioRequest.Variants.Sum(v => v.Stock) : 0)" class="form-control" readonly disabled />
-                        <small>Calculado automáticamente desde las variantes de este producto</small>
+                        @if (formularioRequest.Variants.Any())
+                        {
+                            <input type="number" 
+                                   value="@(formularioRequest.Variants.Sum(v => v.Stock))" 
+                                   class="form-control" 
+                                   readonly 
+                                   disabled />
+                            <small>Calculado automáticamente desde las variantes de este producto</small>
+                        }
+                        else
+                        {
+                            <input type="number" 
+                                   @bind="formularioRequest.Stock" 
+                                   class="form-control" 
+                                   placeholder="Ingresa el stock disponible" 
+                                   min="0" />
+                            <small>Ingresa el stock manual para este producto (sin variantes)</small>
+                        }
                     </div>
                 </div>
             </div>
 
-            <!-- SECCIÓN 2: VARIANTES POR MEDIDA/TALLA -->
+            <!-- SECCIÓN 2: VARIANTES POR MEDIDA/TALLA (OPCIONAL) -->
             <div class="form-section">
                 <div class="section-header">
                     <h3 class="section-title">
                         @if (EsProductoCapilar(formularioRequest.CategoryId))
                         {
-                            <span>📏 Variantes por Longitud (cm)</span>
+                            <span>📏 Variantes por Longitud (cm) - Opcional</span>
                         }
                         else
                         {
-                            <span>📦 Variantes / Medidas</span>
+                            <span>📦 Variantes / Medidas - Opcional</span>
                         }
                     </h3>
                     <button type="button" class="btn-add-variant" @onclick="AgregarVariante">
@@ -364,7 +386,7 @@
                 else
                 {
                     <div class="empty-state">
-                        <p>No hay variantes definidas. Haz clic en "Nueva Variante" para agregar una.</p>
+                        <p>Sin variantes. El producto se venderá con el Precio Base. Haz clic en "Nueva Variante" para agregar opciones.</p>
                     </div>
                 }
             </div>
@@ -1248,6 +1270,10 @@
 </style>
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? editId { get; set; }
+
     private string vistaActual = "lista";
     private List<Product> productos = new();
     private List<Product> productosFiltrados = new();
@@ -1345,6 +1371,16 @@
             categorias = await Http.GetFromJsonAsync<List<Category>>("api/categories") ?? new();
             subcategorias = await Http.GetFromJsonAsync<List<Subcategory>>("api/subcategories") ?? new();
             Console.WriteLine($"✅ Cargadas {subcategorias.Count} subcategorías");
+
+            // Si existe editId en la URL, buscar y abrir el producto
+            if (editId.HasValue && productos.Any())
+            {
+                var productoAEditar = productos.FirstOrDefault(p => p.Id == editId.Value);
+                if (productoAEditar != null)
+                {
+                    MostrarFormulario(productoAEditar);
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -1354,6 +1390,7 @@
         {
             isLoading = false;
             await FiltrarProductos();
+            StateHasChanged();
         }
     }
 
@@ -1467,7 +1504,28 @@
             Price = formularioRequest.Price,
             IsActive = true
         });
+
+        // ✅ NUEVO: Sincronizar automáticamente el precio base con la variante más barata
+        ActualizarPrecioBase();
+
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Actualiza el precio base del producto con el precio de la variante más barata.
+    /// Esto asegura que el catálogo siempre muestre el precio correcto.
+    /// </summary>
+    private void ActualizarPrecioBase()
+    {
+        if (formularioRequest.Variants.Any())
+        {
+            var precioMasBarato = formularioRequest.Variants.Min(v => v.Price);
+            if (precioMasBarato > 0)
+            {
+                formularioRequest.Price = precioMasBarato;
+                Console.WriteLine($"💰 Precio base actualizado a ${precioMasBarato} (variante más barata)");
+            }
+        }
     }
 
     private void EliminarVariante(int index)
@@ -1477,6 +1535,10 @@
             var varianteEliminada = formularioRequest.Variants[index];
             formularioRequest.Variants.RemoveAt(index);
             Console.WriteLine($"✅ Variante eliminada (Precio: ${varianteEliminada.Price})");
+
+            // ✅ NUEVO: Resincronizar precio base después de eliminar
+            ActualizarPrecioBase();
+
             StateHasChanged();
         }
     }
@@ -1498,6 +1560,10 @@
 
             formularioRequest.Variants.Insert(index + 1, clon);
             Console.WriteLine($"✅ Variante clonada correctamente");
+
+            // ✅ NUEVO: Resincronizar precio base después de clonar
+            ActualizarPrecioBase();
+
             StateHasChanged();
         }
     }
@@ -1588,25 +1654,21 @@
                 return;
             }
 
-            // Validación 2: Debe haber al menos 1 variante
-            if (!formularioRequest.Variants.Any())
+            // Validación 2: Si hay variantes, validar que ninguna tenga precio 0
+            if (formularioRequest.Variants.Any())
             {
-                await JS.InvokeVoidAsync("alert", "❌ Debes agregar al menos 1 variante");
-                return;
-            }
+                var variantesSinPrecio = formularioRequest.Variants.Where(v => v.Price <= 0).ToList();
+                if (variantesSinPrecio.Any())
+                {
+                    var indices = string.Join(", ", formularioRequest.Variants
+                        .Select((v, idx) => (v, idx))
+                        .Where(x => x.v.Price <= 0)
+                        .Select(x => $"Variante {x.idx + 1}"));
 
-            // Validación 3: Ninguna variante puede tener precio 0
-            var variantesSinPrecio = formularioRequest.Variants.Where(v => v.Price <= 0).ToList();
-            if (variantesSinPrecio.Any())
-            {
-                var indices = string.Join(", ", formularioRequest.Variants
-                    .Select((v, idx) => (v, idx))
-                    .Where(x => x.v.Price <= 0)
-                    .Select(x => $"Variante {x.idx + 1}"));
-
-                await JS.InvokeVoidAsync("alert", 
-                    $"❌ Las siguientes variantes tienen precio 0 o vacío:\n{indices}\n\nTodas las variantes deben tener un precio > 0");
-                return;
+                    await JS.InvokeVoidAsync("alert", 
+                        $"❌ Las siguientes variantes tienen precio 0 o vacío:\n{indices}\n\nTodas las variantes deben tener un precio > 0");
+                    return;
+                }
             }
 
             guardando = true;

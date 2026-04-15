@@ -58,8 +58,30 @@
                     <!-- Galería de Imágenes -->
                     <div class="producto-gallery">
                         <div class="main-image">
-                            <img src="@producto.ImageUrl" alt="@producto.Name" />
+                            <img src="@currentImageUrl" alt="@producto.Name" />
                         </div>
+
+                        <!-- Galería de Miniaturas -->
+                        @if (producto.Images != null && producto.Images.Any())
+                        {
+                            <div class="gallery-thumbnails">
+                                <button class="thumbnail-btn @(currentImageUrl == producto.ImageUrl ? "active" : "")"
+                                        @onclick="() => CambiarImagenActual(producto.ImageUrl ?? string.Empty)"
+                                        title="Imagen principal">
+                                    <img src="@producto.ImageUrl" alt="Principal" loading="lazy" />
+                                </button>
+
+                                @foreach (var imagen in producto.Images.Where(i => i.IsActive).OrderBy(i => i.DisplayOrder))
+                                {
+                                    <button class="thumbnail-btn @(currentImageUrl == imagen.ImageUrl ? "active" : "")"
+                                            @onclick="() => CambiarImagenActual(imagen.ImageUrl)"
+                                            title="@(imagen.AltText ?? "Imagen adicional")">
+                                        <img src="@imagen.ImageUrl" alt="@imagen.AltText" loading="lazy" />
+                                    </button>
+                                }
+                            </div>
+                        }
+
                         @if (producto.Stock > 0)
                         {
                             <div class="stock-badge available">
@@ -88,7 +110,7 @@
 
                         <!-- Precio -->
                         <div class="precio-section">
-                            <span class="precio-actual">@producto.Price.ToString("C")</span>
+                            <span class="precio-actual">@GetPrecio().ToString("C")</span>
                         </div>
 
                         <!-- Atributos -->
@@ -97,7 +119,7 @@
                             <div class="atributos-section">
                                 <h3>Características</h3>
                                 <div class="atributos-list">
-                                    @if (producto.Centimeters.HasValue)
+                                    @if (producto.Centimeters.HasValue || (selectedVariant != null && selectedVariant.Centimeters.HasValue))
                                     {
                                         <div class="atributo-item">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -108,10 +130,11 @@
                                             </svg>
                                             <div>
                                                 <strong>Longitud</strong>
-                                                <span>@producto.Centimeters cm</span>
+                                                <span>@((selectedVariant?.Centimeters ?? producto.Centimeters) ?? 0) cm</span>
                                             </div>
                                         </div>
                                     }
+                                    
                                     @if (!string.IsNullOrEmpty(producto.Color))
                                     {
                                         <div class="atributo-item">
@@ -147,6 +170,31 @@
                             </div>
                         }
 
+                        <!-- Selector de Variantes -->
+                        @if (producto.Variants != null && producto.Variants.Any())
+                        {
+                            <div class="variante-selector">
+                                <label>Selecciona tu variante *</label>
+                                <select class="form-control" @onchange="OnVarianteChanged">
+                                    <option value="0">-- Elige Color / Longitud --</option>
+                                    @foreach (var variante in producto.Variants.OrderBy(v => v.DisplayOrder))
+                                    {
+                                        <option value="@variante.Id">
+                                            @if (!string.IsNullOrEmpty(variante.Color))
+                                            {
+                                                @variante.Color
+                                            }
+                                            @if (variante.Centimeters.HasValue)
+                                            {
+                                                <text> - @variante.Centimeters cm</text>
+                                            }
+                                            (Stock: @variante.Stock)
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        }
+
                         <!-- Cantidad y Botones -->
                         <div class="cantidad-section">
                             <label>Cantidad</label>
@@ -156,8 +204,8 @@
                                         <line x1="5" y1="12" x2="19" y2="12"/>
                                     </svg>
                                 </button>
-                                <input type="number" class="cantidad-input" @bind="cantidad" min="1" max="@producto.Stock" />
-                                <button class="btn-cantidad" @onclick="IncrementarCantidad" disabled="@(cantidad >= producto.Stock)">
+                                <input type="number" class="cantidad-input" @bind="cantidad" min="1" max="@GetMaxStock()" />
+                                <button class="btn-cantidad" @onclick="IncrementarCantidad" disabled="@(cantidad >= GetMaxStock())">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="12" y1="5" x2="12" y2="19"/>
                                         <line x1="5" y1="12" x2="19" y2="12"/>
@@ -175,34 +223,75 @@
                                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                     </svg>
-                                    ¡Añadido al carrito! Redirigiendo...
+                                    ¡Producto añadido al carrito!
+                                </div>
+
+                                <div class="acciones-botones-success">
+                                    <button class="btn-primary btn-lg" @onclick="VerCarrito">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                            <line x1="3" y1="6" x2="21" y2="6" />
+                                            <path d="M16 10a4 4 0 0 1-8 0" />
+                                        </svg>
+                                        <text>Ver mi Carrito</text>
+                                    </button>
+                                    <button class="btn-secondary btn-lg" @onclick="SeguidCompra">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                        </svg>
+                                        <text>Seguir Comprando</text>
+                                    </button>
                                 </div>
                             }
-
-                            <button class="btn-primary btn-lg" 
-                                    disabled="@(producto.Stock == 0 || agregadoAlCarrito)" 
-                                    @onclick="AgregarAlCarrito">
-                                @if (producto.Stock > 0)
+                            else
+                            {
+                                @if (producto.Variants?.Any() == true && selectedVariant == null)
                                 {
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                                        <line x1="3" y1="6" x2="21" y2="6" />
-                                        <path d="M16 10a4 4 0 0 1-8 0" />
+                                    <div style="color: #F59E0B; font-size: 13px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                        Por favor, selecciona una opción
+                                    </div>
+                                }
+
+                                <button class="btn-primary btn-lg" 
+                                        disabled="@(producto.Stock == 0 || (producto.Variants?.Any() == true && selectedVariant == null))" 
+                                        @onclick="AgregarAlCarrito"
+                                        title="@GetButtonTooltip()">
+                                    @if (producto.Stock > 0)
+                                    {
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                            <line x1="3" y1="6" x2="21" y2="6" />
+                                            <path d="M16 10a4 4 0 0 1-8 0" />
+                                        </svg>
+                                        <text>Añadir al Carrito</text>
+                                    }
+                                    else
+                                    {
+                                        <text>No Disponible</text>
+                                    }
+                                </button>
+
+                                <button class="btn-secondary btn-lg" @onclick="ToggleFavorito">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="@(esFavorito ? "currentColor" : "none")" stroke="currentColor" stroke-width="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                                     </svg>
-                                    <text>Añadir al Carrito</text>
-                                }
-                                else
-                                {
-                                    <text>No Disponible</text>
-                                }
-                            </button>
+                                    @(esFavorito ? "Quitar de Favoritos" : "Añadir a Favoritos")
+                                </button>
 
-                            <button class="btn-secondary btn-lg" @onclick="ToggleFavorito">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="@(esFavorito ? "currentColor" : "none")" stroke="currentColor" stroke-width="2">
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                                </svg>
-                                @(esFavorito ? "Quitar de Favoritos" : "Añadir a Favoritos")
-                            </button>
+                                <!-- Botón de Edición exclusivo para Admin -->
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <a href="/admin/productos?editId=@Id" target="_top" class="btn-admin" style="border-color: #F59E0B; color: #D97706; text-decoration: none; margin-top: 10px;">
+                                            ⚙️ Editar este producto
+                                        </a>
+                                    </Authorized>
+                                </AuthorizeView>
+                            }
                         </div>
 
                         <!-- Info Adicional -->
@@ -365,6 +454,43 @@
         object-fit: cover;
     }
 
+    /* Galería de Miniaturas */
+    .gallery-thumbnails {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+    }
+
+    .thumbnail-btn {
+        width: 80px;
+        height: 80px;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        padding: 0;
+        background: white;
+        cursor: pointer;
+        overflow: hidden;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .thumbnail-btn img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .thumbnail-btn:hover {
+        border-color: var(--rose);
+        transform: scale(1.05);
+    }
+
+    .thumbnail-btn.active {
+        border-color: var(--rose);
+        box-shadow: 0 0 0 3px rgba(232, 96, 122, 0.2);
+    }
+
     .stock-badge {
         position: absolute;
         top: 20px;
@@ -386,6 +512,36 @@
     .stock-badge.out-of-stock {
         background: #FEE2E2;
         color: #991B1B;
+    }
+
+    /* Selector de Variantes */
+    .variante-selector {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .variante-selector label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .variante-selector select {
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        background: white;
+        color: var(--ink);
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+
+    .variante-selector select:focus {
+        outline: none;
+        border-color: var(--rose);
+        box-shadow: 0 0 0 3px rgba(232, 96, 122, 0.1);
     }
 
     /* Detalles */
@@ -556,6 +712,12 @@
         gap: 12px;
     }
 
+    .acciones-botones-success {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
     .success-message {
         display: flex;
         align-items: center;
@@ -594,6 +756,63 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
+    }
+
+    .btn-primary {
+        background: var(--rose);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: var(--rose-deep);
+        transform: translateY(-2px);
+    }
+
+    .btn-primary:disabled {
+        background: var(--border-dark);
+        color: var(--muted);
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .btn-secondary {
+        background: var(--off-white);
+        color: var(--ink);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+        background: var(--white);
+        border-color: var(--rose);
+        color: var(--rose);
+    }
+
+    .btn-secondary:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .btn-warning {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE047;
+        border-radius: 8px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-warning:hover {
+        background: #FCD34D;
+        border-color: #F59E0B;
+        color: #78350F;
     }
 
     /* Info Adicional */
@@ -715,8 +934,18 @@
             flex-direction: column;
         }
 
+        .acciones-botones-success {
+            grid-template-columns: 1fr 1fr;
+        }
+
         .btn-lg {
             width: 100%;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .acciones-botones-success {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -731,6 +960,8 @@
     private int cantidad = 1;
     private bool esFavorito = false;
     private bool agregadoAlCarrito = false;
+    private string currentImageUrl = string.Empty;
+    private ProductVariant? selectedVariant;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -745,6 +976,9 @@
 
             if (producto != null)
             {
+                // Inicializar imagen actual
+                currentImageUrl = producto.ImageUrl ?? string.Empty;
+
                 // Verificar si está en favoritos
                 esFavorito = FavoritosService.IsFavorito(Id);
 
@@ -788,12 +1022,37 @@
     {
         if (producto == null) return;
 
-        await CartState.AgregarProducto(producto, cantidad);
-        agregadoAlCarrito = true;
+        Console.WriteLine($"🛒 Intentando añadir al carrito:");
+        Console.WriteLine($"   Producto ID: {producto.Id}");
+        Console.WriteLine($"   Variante seleccionada: {selectedVariant?.Id} (Color: {selectedVariant?.Color}, Centimeters: {selectedVariant?.Centimeters})");
+        Console.WriteLine($"   Cantidad: {cantidad}");
 
-        // Mostrar mensaje temporal y luego navegar
+        try
+        {
+            // Pasar el variantId si está seleccionado
+            await CartState.AgregarProducto(producto, cantidad, selectedVariant?.Id);
+
+            // Cambiar estado visual SOLO si fue exitoso
+            agregadoAlCarrito = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al añadir al carrito: {ex.Message}");
+            // El error será manejado por CartStateService (notificación al usuario)
+        }
+    }
+
+    private void SeguidCompra()
+    {
+        agregadoAlCarrito = false;
+        cantidad = 1;
         StateHasChanged();
-        _ = Task.Delay(1500).ContinueWith(_ => Navigation.NavigateTo("/carrito"));
+    }
+
+    private void VerCarrito()
+    {
+        Navigation.NavigateTo("/carrito");
     }
 
     private async Task ToggleFavorito()
@@ -801,6 +1060,76 @@
         if (producto == null) return;
 
         esFavorito = await FavoritosService.ToggleFavoritoAsync(producto);
+        StateHasChanged();
+    }
+
+    private void CambiarVariante(int variantId)
+    {
+        if (variantId == 0)
+        {
+            selectedVariant = null;
+        }
+        else if (producto?.Variants != null)
+        {
+            Console.WriteLine($"🔍 Buscando variante con ID: {variantId}");
+            Console.WriteLine($"📊 Variantes disponibles:");
+            foreach (var v in producto.Variants)
+            {
+                Console.WriteLine($"   - ID: {v.Id}, Color: {v.Color}, Centimeters: {v.Centimeters}, Stock: {v.Stock}");
+            }
+
+            selectedVariant = producto.Variants.FirstOrDefault(v => v.Id == variantId);
+
+            Console.WriteLine($"✅ Variante seleccionada: ID={selectedVariant?.Id}, Color={selectedVariant?.Color}, Centimeters={selectedVariant?.Centimeters}");
+
+            // Resetear cantidad si excede el stock de la nueva variante
+            if (selectedVariant != null && cantidad > selectedVariant.Stock)
+            {
+                cantidad = 1;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void OnVarianteChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var variantId))
+        {
+            CambiarVariante(variantId);
+        }
+    }
+
+    private int GetMaxStock()
+    {
+        if (selectedVariant != null)
+            return selectedVariant.Stock;
+
+        return producto?.Stock ?? 0;
+    }
+
+    private decimal GetPrecio()
+    {
+        if (selectedVariant != null)
+            return selectedVariant.Price;
+
+        // Si no hay variante seleccionada, mostrar el precio mínimo (o price base)
+        return producto?.PrecioMinimo ?? 0;
+    }
+
+    private string GetButtonTooltip()
+    {
+        if (producto?.Stock == 0)
+            return "Producto agotado";
+
+        if (producto?.Variants?.Any() == true && selectedVariant == null)
+            return "Selecciona una variante primero";
+
+        return "Añadir al carrito";
+    }
+
+    private void CambiarImagenActual(string nuevaUrl)
+    {
+        currentImageUrl = nuevaUrl;
         StateHasChanged();
     }
 }

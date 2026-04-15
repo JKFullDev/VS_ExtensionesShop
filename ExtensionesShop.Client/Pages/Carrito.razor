@@ -63,13 +63,13 @@
                                     @if (!string.IsNullOrEmpty(item.Producto.Color) || item.Producto.Centimeters.HasValue)
                                     {
                                         <div class="item-attributes">
-                                            @if (!string.IsNullOrEmpty(item.Producto.Color))
+                                            @if (!string.IsNullOrEmpty(item.VariantColor ?? item.Producto.Color))
                                             {
-                                                <span>Color: @item.Producto.Color</span>
+                                                <span>Color: @(item.VariantColor ?? item.Producto.Color)</span>
                                             }
-                                            @if (item.Producto.Centimeters.HasValue)
+                                            @if ((item.VariantCentimeters ?? item.Producto.Centimeters).HasValue)
                                             {
-                                                <span>Largo: @item.Producto.Centimeters cm</span>
+                                                <span>Largo: @(item.VariantCentimeters ?? item.Producto.Centimeters) cm</span>
                                             }
                                         </div>
                                     }
@@ -78,7 +78,7 @@
                                 <!-- Precio unitario -->
                                 <div class="item-price">
                                     <span class="price-label">Precio</span>
-                                    <span class="price-value">$@item.Producto.Price.ToString("N2")</span>
+                                    <span class="price-value">$@item.PrecioUnitario.ToString("N2")</span>
                                 </div>
 
                                 <!-- Cantidad -->
@@ -86,7 +86,7 @@
                                     <span class="quantity-label">Cantidad</span>
                                     <div class="quantity-controls">
                                         <button class="qty-btn"
-                                                @onclick="() => CartState.DecrementarCantidad(item.Producto.Id)"
+                                                @onclick="() => CartState.DecrementarCantidad(item.Producto.Id, item.VariantId)"
                                                 aria-label="Disminuir cantidad">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -96,9 +96,9 @@
                                                class="qty-input"
                                                value="@item.Cantidad"
                                                min="1"
-                                               @onchange="(e) => ActualizarCantidad(item.Producto.Id, e)" />
+                                               @onchange="(e) => ActualizarCantidad(item.Producto.Id, item.VariantId, e)" />
                                         <button class="qty-btn"
-                                                @onclick="() => CartState.IncrementarCantidad(item.Producto.Id)"
+                                                @onclick="() => CartState.IncrementarCantidad(item.Producto.Id, item.VariantId)"
                                                 aria-label="Aumentar cantidad">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -116,7 +116,7 @@
 
                                 <!-- Eliminar -->
                                 <button class="item-remove"
-                                        @onclick="() => CartState.EliminarProducto(item.Producto.Id)"
+                                        @onclick="() => CartState.EliminarProducto(item.Producto.Id, item.VariantId)"
                                         aria-label="Eliminar producto">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -515,11 +515,11 @@
 </style>
 
 @code {
-    private async Task ActualizarCantidad(int productoId, ChangeEventArgs e)
+    private async Task ActualizarCantidad(int productoId, int? variantId, ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out int nuevaCantidad))
         {
-            await CartState.ActualizarCantidad(productoId, nuevaCantidad);
+            await CartState.ActualizarCantidad(productoId, nuevaCantidad, variantId);  // ✅ PASAR variantId
         }
     }
 
