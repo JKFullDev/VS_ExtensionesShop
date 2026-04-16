@@ -1,5 +1,7 @@
 ﻿@page "/contacto"
 @using System.ComponentModel.DataAnnotations
+@using ExtensionesShop.Shared.Models
+@inject HttpClient Http
 
 <PageTitle>Contacto - Extensiones Shop</PageTitle>
 
@@ -34,6 +36,18 @@
                     }
                     else
                     {
+                        @if (!string.IsNullOrEmpty(mensajeError))
+                        {
+                            <div class="error-message">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <span>@mensajeError</span>
+                            </div>
+                        }
+
                         <EditForm Model="@contactForm" OnValidSubmit="EnviarFormulario">
                             <DataAnnotationsValidator />
 
@@ -210,6 +224,24 @@
             margin-bottom: 12px;
         }
 
+    .error-message {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding: 16px;
+        background: #FEE2E2;
+        border-left: 4px solid #EF4444;
+        border-radius: 8px;
+        color: #DC2626;
+        font-size: 14px;
+    }
+
+        .error-message svg {
+            color: #DC2626;
+            flex-shrink: 0;
+        }
+
     .contact-info h3 {
         font-family: var(--font-display);
         font-size: 24px;
@@ -269,32 +301,34 @@
     private ContactFormModel contactForm = new();
     private bool enviando = false;
     private bool enviado = false;
+    private string? mensajeError = null;
 
     private async Task EnviarFormulario()
     {
         enviando = true;
-        await Task.Delay(1500); // Simular envío
-        enviando = false;
-        enviado = true;
-    }
+        mensajeError = null;
 
-    public class ContactFormModel
-    {
-        [Required(ErrorMessage = "El nombre es obligatorio")]
-        [MinLength(3, ErrorMessage = "Mínimo 3 caracteres")]
-        public string Nombre { get; set; } = string.Empty;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/contact", contactForm);
 
-        [Required(ErrorMessage = "El email es obligatorio")]
-        [EmailAddress(ErrorMessage = "Email no válido")]
-        public string Email { get; set; } = string.Empty;
-
-        public string? Telefono { get; set; }
-
-        [Required(ErrorMessage = "Selecciona un asunto")]
-        public string Asunto { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "El mensaje es obligatorio")]
-        [MinLength(10, ErrorMessage = "Mínimo 10 caracteres")]
-        public string Mensaje { get; set; } = string.Empty;
+            if (response.IsSuccessStatusCode)
+            {
+                enviando = false;
+                enviado = true;
+                contactForm = new();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                mensajeError = "Error al enviar el mensaje. Por favor, intenta de nuevo.";
+                enviando = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Error de conexión. Por favor, verifica tu conexión a internet e intenta de nuevo.";
+            enviando = false;
+        }
     }
 }

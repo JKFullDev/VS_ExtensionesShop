@@ -1,10 +1,13 @@
 namespace ExtensionesShop.Server.Services;
 
+using ExtensionesShop.Shared.Models;
+
 public interface IEmailService
 {
     Task<bool> SendOrderEmailAsync(OrderEmailData orderData);
     Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody);
     string GetOwnerEmail();
+    string GenerateContactEmailHtml(ContactFormModel form);
 }
 
 public class OrderEmailData

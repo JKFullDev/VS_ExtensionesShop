@@ -47,6 +47,18 @@
     {
         <!-- BARRA DE BÚSQUEDA Y FILTROS -->
         <div class="search-bar-container">
+            <!-- ✅ NUEVO: Checkbox para mostrar inactivos -->
+            <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" 
+                       id="chkMostrarInactivos"
+                       checked="@mostrarInactivos"
+                       @onchange="@HandleMostrarInactivosChanged"
+                       style="width: 18px; height: 18px; cursor: pointer;" />
+                <label for="chkMostrarInactivos" style="cursor: pointer; user-select: none; font-weight: 500; color: #475569;">
+                    Ver productos desactivados
+                </label>
+            </div>
+
            <div class="search-inputs">
                <input type="text" 
                       placeholder="🔍 Buscar por nombre, color o descripción..." 
@@ -90,12 +102,13 @@
                                 <th class="col-actions">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @if (productosFiltrados.Any())
-                            {
+                        @if (productosFiltrados.Any())
+                        {
+                            <tbody>
                                 @foreach (var producto in productosFiltrados.Skip((paginaActual - 1) * productosPorPagina).Take(productosPorPagina))
                                 {
-                                    <tr>
+                                    <!-- ✅ NUEVO: Agregar clase si producto está inactivo -->
+                                    <tr class="@(producto.IsActive == false ? "product-inactive" : "")">
                                         <td class="col-thumb">
                                             <img src="@(producto.ImageUrl ?? "/images/placeholder.jpg")" alt="@producto.Name" class="producto-thumb" />
                                         </td>
@@ -106,6 +119,10 @@
                                                 @if (!string.IsNullOrEmpty(producto.Color))
                                                 {
                                                     <small>@producto.Color</small>
+                                                }
+                                                @if (producto.IsActive == false)
+                                                {
+                                                    <span style="color: #DC2626; font-weight: 600; font-size: 11px; margin-left: 8px;">❌ DESACTIVADO</span>
                                                 }
                                             </div>
                                         </td>
@@ -133,48 +150,66 @@
                                                         <rect x="8" y="2" width="8" height="4"></rect>
                                                     </svg>
                                                 </button>
-                                                <button class="btn-icon btn-delete" @onclick="() => EliminarProducto(producto)" title="Eliminar">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                    </svg>
-                                                </button>
+                                                <!-- ✅ NUEVO: Mostrar botón de Reactivar si está inactivo, Eliminar si está activo -->
+                                                @if (producto.IsActive == false)
+                                                {
+                                                    <button class="btn-icon btn-reactivate" @onclick="() => ReactivarProducto(producto)" @onclick:stopPropagation="true" title="Reactivar">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M23 4v6h-6"/>
+                                                            <path d="M1 20v-6h6"/>
+                                                            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                                                        </svg>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn-icon btn-delete" @onclick="() => EliminarProducto(producto)" @onclick:stopPropagation="true" title="Eliminar">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                        </svg>
+                                                    </button>
+                                                }
                                             </div>
                                         </td>
                                     </tr>
                                 }
-                            }
-                        </tbody>
+                            </tbody>
+                        }
+                        else
+                        {
+                            <tbody>
+                                <tr>
+                                    <td colspan="8" style="padding: 40px; text-align: center; color: #94A3B8;">
+                                        No hay productos que coincidan con tu búsqueda.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        }
                     </table>
-                </div>
 
-                @if (productosFiltrados.Any())
-                {
-                    <div class="pagination-controls">
-                        <button class="btn-pagination" 
-                                @onclick="() => PaginaAnterior()" 
-                                disabled="@(paginaActual <= 1)">
-                            ← Anterior
-                        </button>
+                    @if (productosFiltrados.Any())
+                    {
+                        <div class="pagination-controls">
+                            <button class="btn-pagination" 
+                                    @onclick="() => PaginaAnterior()" 
+                                    disabled="@(paginaActual <= 1)">
+                                ← Anterior
+                            </button>
 
-                        <div class="pagination-info">
-                            Página @paginaActual de @((int)Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))
-                            <span class="pagination-results">(@productosFiltrados.Count() productos encontrados)</span>
+                            <div class="pagination-info">
+                                Página @paginaActual de @((int)Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))
+                                <span class="pagination-results">(@productosFiltrados.Count() productos encontrados)</span>
+                            </div>
+
+                            <button class="btn-pagination" 
+                                    @onclick="() => PaginaSiguiente()" 
+                                    disabled="@(paginaActual >= Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))">
+                                Siguiente →
+                            </button>
                         </div>
-
-                        <button class="btn-pagination" 
-                                @onclick="() => PaginaSiguiente()" 
-                                disabled="@(paginaActual >= Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))">
-                            Siguiente →
-                        </button>
-                    </div>
-                }
-                else
-                {
-                    <div class="empty-state">
-                        <p>No hay productos que coincidan con tu búsqueda.</p>
-                    </div>
-                }
+                    }
+                </div>
             </div>
         }
     }
@@ -193,11 +228,10 @@
             <h2>@(formularioRequest.Id.HasValue ? $"Editar: {formularioRequest.Name} - {formularioRequest.Color}" : "Nuevo Producto")</h2>
         </div>
 
-        <div class="form-card">
-            <!-- SECCIÓN 1: INFORMACIÓN BASE (Nombre, Color, Categoría, etc.) -->
+<EditForm Model="formularioRequest" class="form-card">            <!-- SECCIÓN 1: INFORMACIÓN BASE (Nombre, Color, Categoría, etc.) -->
             <div class="form-section">
                 <h3 class="section-title">📦 Información Base</h3>
-                
+
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Nombre del Producto *</label>
@@ -461,8 +495,7 @@
                     }
                 </button>
             </div>
-        </div>
-    }
+</EditForm>    }
 </div>
 
 <style>
@@ -609,6 +642,17 @@
 
     .btn-icon.btn-delete:hover {
         background: #DC2626;
+    }
+
+     ✅ NUEVO: Botón de reactivar 
+    .btn-icon.btn-reactivate:hover {
+        background: #059669;
+    }
+
+    ✅ NUEVO: Producto desactivado con opacidad 
+    .product-inactive {
+        opacity: 0.5;
+        background-color: #F8F9FA;
     }
 
     .form-header {
@@ -1290,6 +1334,8 @@
     private string filtroCategoria = "";
     private string _lastFiltroSearch = "";
     private string _lastFiltroCategoria = "";
+    private bool mostrarInactivos = false;  // ✅ NUEVO: Mostrar productos desactivados
+    private bool _lastMostrarInactivos = false;  // ✅ NUEVO: Rastrear cambios en checkbox
     private int paginaActual = 1;
     private int productosPorPagina = 12;
 
@@ -1307,11 +1353,12 @@
         }
         else
         {
-            // Detectar cambios en filtros
-            if (_lastFiltroSearch != filtroSearch || _lastFiltroCategoria != filtroCategoria)
+            // Detectar cambios en filtros (búsqueda, categoría, o checkbox de inactivos)
+            if (_lastFiltroSearch != filtroSearch || _lastFiltroCategoria != filtroCategoria || _lastMostrarInactivos != mostrarInactivos)
             {
                 _lastFiltroSearch = filtroSearch;
                 _lastFiltroCategoria = filtroCategoria;
+                _lastMostrarInactivos = mostrarInactivos;  // ✅ NUEVO: Rastrear cambio en checkbox
                 await FiltrarProductos();
             }
             else if (_lastCategoryId != formularioRequest.CategoryId && vistaActual == "formulario")
@@ -1367,9 +1414,11 @@
         try
         {
             isLoading = true;
-            productos = await Http.GetFromJsonAsync<List<Product>>("api/products") ?? new();
+            // ✅ Usar endpoint admin/all para obtener TODOS los productos (activos e inactivos)
+            productos = await Http.GetFromJsonAsync<List<Product>>("api/products/admin/all") ?? new();
             categorias = await Http.GetFromJsonAsync<List<Category>>("api/categories") ?? new();
             subcategorias = await Http.GetFromJsonAsync<List<Subcategory>>("api/subcategories") ?? new();
+            Console.WriteLine($"✅ Cargados {productos.Count} productos (incluyendo inactivos)");
             Console.WriteLine($"✅ Cargadas {subcategorias.Count} subcategorías");
 
             // Si existe editId en la URL, buscar y abrir el producto
@@ -1399,6 +1448,14 @@
         paginaActual = 1; // Reset a primera página cuando se filtra
 
         var query = productos.AsEnumerable();
+
+        // ✅ NUEVO: Filtro de productos activos/inactivos
+        if (!mostrarInactivos)
+        {
+            // Si el checkbox NO está marcado, mostrar solo activos
+            query = query.Where(p => p.IsActive == true);
+        }
+        // Si está marcado, mostrar todos (activos e inactivos)
 
         // Filtro de búsqueda por nombre, color o descripción
         if (!string.IsNullOrWhiteSpace(filtroSearch))
@@ -1479,6 +1536,7 @@
         }
         else
         {
+            // ✅ Al crear un nuevo producto, inicializar con IsActive = true automáticamente
             formularioRequest = new CreateProductRequest();
         }
 
@@ -1494,6 +1552,15 @@
         formularioRequest = new();
         filteredSubcategories = new();
         _lastCategoryId = null;
+    }
+
+    /// <summary>
+    /// Maneja el cambio del checkbox "Ver productos desactivados"
+    /// </summary>
+    private async Task HandleMostrarInactivosChanged(ChangeEventArgs e)
+    {
+        mostrarInactivos = (bool)e.Value;
+        await FiltrarProductos();
     }
 
     private void AgregarVariante()
@@ -1749,6 +1816,39 @@
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error eliminando: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"❌ Error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✅ NUEVO: Reactivar un producto desactivado (Soft Delete)
+    /// </summary>
+    private async Task ReactivarProducto(Product producto)
+    {
+        var confirmado = await JS.InvokeAsync<bool>("confirm", 
+            $"✅ ¿Reactivar '{producto.Name} ({producto.Color})'?\n\nVolverá a estar visible en el catálogo.");
+
+        if (!confirmado) return;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"api/products/{producto.Id}/reactivate", new { });
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", "✅ Producto reactivado correctamente");
+                await CargarDatos();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ Error al reactivar: {errorContent}");
+                await JS.InvokeVoidAsync("alert", $"❌ Error: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error reactivando: {ex.Message}");
             await JS.InvokeVoidAsync("alert", $"❌ Error: {ex.Message}");
         }
     }

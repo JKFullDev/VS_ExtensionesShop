@@ -177,7 +177,7 @@
                         </div>
 
                         <div class="productos-grid">
-                         @foreach (var producto in productosFiltrados)
+                         @foreach (var producto in productosFiltrados.Skip((paginaActual - 1) * productosPorPagina).Take(productosPorPagina))
 {
     <div class="lovable-product-card">
         <div class="product-visual">
@@ -279,6 +279,29 @@
         </a>
     </div>
 }</div>
+
+                        <!-- ✅ NUEVO: Controles de Paginación (DENTRO de productos-container) -->
+                        @if (productosFiltrados.Any())
+                        {
+                            <div class="pagination-controls">
+                                <button class="btn-pagination" 
+                                        @onclick="() => PaginaAnterior()" 
+                                        disabled="@(paginaActual <= 1)">
+                                    ← Anterior
+                                </button>
+
+                                <div class="pagination-info">
+                                    Página @paginaActual de @((int)Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))
+                                    <span class="pagination-results">(@productosFiltrados.Count() productos encontrados)</span>
+                                </div>
+
+                                <button class="btn-pagination" 
+                                        @onclick="() => PaginaSiguiente()" 
+                                        disabled="@(paginaActual >= Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))">
+                                    Siguiente →
+                                </button>
+                            </div>
+                        }
                     </div>
                 </div>
             }
@@ -619,6 +642,61 @@
         }
     }
 
+    /* ── Paginación ──────────────────────────────────────── */
+    .pagination-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 32px 20px;
+        border-top: 1px solid #E2E8F0;
+        background: #F8FAFC;
+        border-radius: 0 0 12px 12px;
+        gap: 16px;
+        margin-top: 24px;
+    }
+
+    .btn-pagination {
+        padding: 12px 24px;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        background: white;
+        color: var(--ink);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-pagination:hover:not(:disabled) {
+        border-color: var(--rose);
+        background: #FFF5F7;
+        color: var(--rose);
+    }
+
+    .btn-pagination:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-info {
+        color: #475569;
+        font-weight: 600;
+        font-size: 14px;
+        text-align: center;
+        flex: 1;
+    }
+
+    .pagination-results {
+        display: block;
+        color: #94A3B8;
+        font-size: 13px;
+        font-weight: 500;
+        margin-top: 4px;
+    }
+
     /* ── Responsive ──────────────────────────────────────── */
     @@media (max-width: 1024px) {
         .productos-layout {
@@ -683,6 +761,10 @@
 
     // Ordenación
     private string ordenActual = "nombre-asc";
+
+    // ✅ NUEVO: Paginación local en el cliente
+    private int paginaActual = 1;
+    private int productosPorPagina = 24;
 
     // Estado de productos añadidos al carrito
     private Dictionary<int, bool> productosAñadidos = new();
@@ -840,6 +922,7 @@
     private void CambiarOrden(ChangeEventArgs e)
     {
         ordenActual = e.Value?.ToString() ?? "nombre-asc";
+        paginaActual = 1;  // ✅ Resetear a primera página cuando cambia el orden
     }
 
     private void ToggleCategoria(int categoriaId)
@@ -848,6 +931,7 @@
             categoriasFiltradas.Remove(categoriaId);
         else
             categoriasFiltradas.Add(categoriaId);
+        paginaActual = 1;  // ✅ Resetear a primera página
     }
 
     private void ToggleSubcategoria(int subcategoriaId)
@@ -856,6 +940,7 @@
             subcategoriasFiltradas.Remove(subcategoriaId);
         else
             subcategoriasFiltradas.Add(subcategoriaId);
+        paginaActual = 1;  // ✅ Resetear a primera página
     }
 
     private void ToggleColor(string color)
@@ -864,6 +949,7 @@
             coloresFiltrados.Remove(color);
         else
             coloresFiltrados.Add(color);
+        paginaActual = 1;  // ✅ Resetear a primera página
     }
 
     private void ToggleLongitud(decimal longitud)
@@ -872,21 +958,25 @@
             longitudesFiltradas.Remove(longitud);
         else
             longitudesFiltradas.Add(longitud);
+        paginaActual = 1;  // ✅ Resetear a primera página
     }
 
     private void TogglePrecioMenor50()
     {
         precioMenor50 = !precioMenor50;
+        paginaActual = 1;  // ✅ Resetear a primera página
     }
 
     private void TogglePrecio50a100()
     {
         precio50a100 = !precio50a100;
+        paginaActual = 1;  // ✅ Resetear a primera página
     }
 
     private void TogglePrecioMayor100()
     {
         precioMayor100 = !precioMayor100;
+        paginaActual = 1;  // ✅ Resetear a primera página
     }
 
     private bool HasActiveFilters()
@@ -905,6 +995,7 @@
         precioMenor50 = false;
         precio50a100 = false;
         precioMayor100 = false;
+        paginaActual = 1;  // ✅ Resetear a primera página
     }
 
     private async Task ToggleFavorito(Product producto)
@@ -945,6 +1036,31 @@
         {
             Console.WriteLine($"❌ Error al añadir {producto.Name}: {ex.Message}");
             // El error será manejado por CartStateService (notificación al usuario)
+        }
+    }
+
+    /// <summary>
+    /// ✅ NUEVO: Ir a página anterior
+    /// </summary>
+    private void PaginaAnterior()
+    {
+        if (paginaActual > 1)
+        {
+            paginaActual--;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// ✅ NUEVO: Ir a página siguiente
+    /// </summary>
+    private void PaginaSiguiente()
+    {
+        var totalPaginas = (int)Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina);
+        if (paginaActual < totalPaginas)
+        {
+            paginaActual++;
+            StateHasChanged();
         }
     }
 

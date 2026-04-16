@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using System.Text;
+using ExtensionesShop.Shared.Models;
 
 namespace ExtensionesShop.Server.Services;
 
@@ -20,8 +21,8 @@ public class EmailService : IEmailService
         try
         {
             // Email de destino (el de tu clienta)
-            var toEmail = _config["Email:OwnerEmail"] ?? "hola@extensionesshop.com";
-            var fromEmail = _config["Email:FromEmail"] ?? "pedidos@extensionesshop.com";
+            var toEmail = _config["Email:OwnerEmail"] ?? "hola@extensiones.shop";
+            var fromEmail = _config["Email:FromEmail"] ?? "pedidos@extensiones.shop";
             var smtpHost = _config["Email:SmtpHost"] ?? "smtp.gmail.com";
             var smtpPort = int.Parse(_config["Email:SmtpPort"] ?? "587");
             var smtpUser = _config["Email:SmtpUser"] ?? "";
@@ -140,7 +141,7 @@ public class EmailService : IEmailService
 
         // Footer
         sb.AppendLine("<div class='footer'>");
-        sb.AppendLine("<p>Este email se generó automáticamente desde ExtensionesShop.com</p>");
+        sb.AppendLine("<p>Este email se generó automáticamente desde extensiones.shop</p>");
         sb.AppendLine("<p>Responde al email del cliente para confirmar el pedido y gestionar el pago.</p>");
         sb.AppendLine("</div>");
 
@@ -148,6 +149,106 @@ public class EmailService : IEmailService
         sb.AppendLine("</body></html>");
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Genera el HTML corporativo para emails de contacto
+    /// </summary>
+    public string GenerateContactEmailHtml(ContactFormModel form)
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html><head><meta charset='utf-8'><style>");
+        sb.AppendLine("body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; line-height: 1.6; }");
+        sb.AppendLine(".container { max-width: 600px; margin: 0 auto; padding: 20px; }");
+        sb.AppendLine(".header { background: #E8607A; color: white; padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0; }");
+        sb.AppendLine(".content { background: #fff; padding: 30px; border: 1px solid #ddd; }");
+        sb.AppendLine(".section { margin-bottom: 25px; }");
+        sb.AppendLine(".section-title { color: #E8607A; font-size: 18px; font-weight: 600; margin-bottom: 10px; border-bottom: 2px solid #E8607A; padding-bottom: 5px; }");
+        sb.AppendLine(".info-row { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }");
+        sb.AppendLine(".info-label { font-weight: 600; color: #555; display: inline-block; width: 120px; }");
+        sb.AppendLine(".info-value { color: #333; }");
+        sb.AppendLine(".message-box { background: #FDF0F3; padding: 20px; border-left: 4px solid #E8607A; border-radius: 4px; margin-top: 15px; }");
+        sb.AppendLine(".footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }");
+        sb.AppendLine("</style></head><body>");
+
+        sb.AppendLine("<div class='container'>");
+
+        // Header
+        sb.AppendLine("<div class='header'>");
+        sb.AppendLine("<h1 style='margin:0;'>✦ Nuevo Mensaje de Contacto</h1>");
+        sb.AppendLine($"<p style='margin:10px 0 0 0;'>Recibido el {DateTime.Now:dd/MM/yyyy} a las {DateTime.Now:HH:mm}</p>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("<div class='content'>");
+
+        // Datos del Remitente
+        sb.AppendLine("<div class='section'>");
+        sb.AppendLine("<div class='section-title'>👤 Datos del Remitente</div>");
+        sb.AppendLine($"<div class='info-row'><span class='info-label'>Nombre:</span> <span class='info-value'>{EscapeHtml(form.Nombre)}</span></div>");
+        sb.AppendLine($"<div class='info-row'><span class='info-label'>Email:</span> <span class='info-value'><a href='mailto:{form.Email}'>{form.Email}</a></span></div>");
+        if (!string.IsNullOrEmpty(form.Telefono))
+            sb.AppendLine($"<div class='info-row'><span class='info-label'>Teléfono:</span> <span class='info-value'>{EscapeHtml(form.Telefono)}</span></div>");
+        sb.AppendLine("</div>");
+
+        // Asunto
+        sb.AppendLine("<div class='section'>");
+        sb.AppendLine("<div class='section-title'>📋 Asunto</div>");
+        var asuntoTexto = ObtenerTextoAsunto(form.Asunto);
+        sb.AppendLine($"<p style='margin: 0; color: #E8607A; font-weight: 600;'>{asuntoTexto}</p>");
+        sb.AppendLine("</div>");
+
+        // Mensaje
+        sb.AppendLine("<div class='section'>");
+        sb.AppendLine("<div class='section-title'>💬 Mensaje</div>");
+        sb.AppendLine("<div class='message-box'>");
+        sb.AppendLine($"<p style='margin: 0; white-space: pre-wrap;'>{EscapeHtml(form.Mensaje)}</p>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("</div>"); // content
+
+        // Footer
+        sb.AppendLine("<div class='footer'>");
+        sb.AppendLine("<p>Este email se generó automáticamente desde ExtensionesShop.com</p>");
+        sb.AppendLine("<p>Responde directamente a este email para contactar con el remitente.</p>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("</div>"); // container
+        sb.AppendLine("</body></html>");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Escapa caracteres especiales de HTML
+    /// </summary>
+    private static string EscapeHtml(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+
+        return text
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;")
+            .Replace("'", "&#39;");
+    }
+
+    /// <summary>
+    /// Convierte el código de asunto a texto descriptivo
+    /// </summary>
+    private static string ObtenerTextoAsunto(string asunto)
+    {
+        return asunto switch
+        {
+            "pedido" => "Consulta sobre Pedido",
+            "producto" => "Información de Producto",
+            "devolucion" => "Devolución/Cambio",
+            _ => asunto
+        };
     }
 
     // Método genérico para enviar emails

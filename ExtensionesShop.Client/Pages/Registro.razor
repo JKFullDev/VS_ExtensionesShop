@@ -71,6 +71,26 @@
                             </div>
 
                             <div class="form-group">
+                                <label for="address">Dirección *</label>
+                                <InputText id="address" @bind-Value="registroForm.Address" class="form-control" placeholder="Calle, número y piso" />
+                                <ValidationMessage For="@(() => registroForm.Address)" />
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="city">Ciudad *</label>
+                                    <InputText id="city" @bind-Value="registroForm.City" class="form-control" placeholder="Ej: Madrid" />
+                                    <ValidationMessage For="@(() => registroForm.City)" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="postalCode">Código Postal *</label>
+                                    <InputText id="postalCode" @bind-Value="registroForm.PostalCode" class="form-control" placeholder="Ej: 28001" maxlength="10" />
+                                    <ValidationMessage For="@(() => registroForm.PostalCode)" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
                                 <label for="password">Contraseña *</label>
                                 <InputText id="password" type="password" @bind-Value="registroForm.Password" class="form-control" placeholder="Mínimo 8 caracteres" />
                                 <ValidationMessage For="@(() => registroForm.Password)" />
@@ -450,6 +470,9 @@
                 FirstName = registroForm.FirstName,
                 LastName = registroForm.LastName,
                 Phone = registroForm.Phone,
+                Address = registroForm.Address,
+                City = registroForm.City,
+                PostalCode = registroForm.PostalCode,
                 RecaptchaToken = recaptchaToken
             };
 
@@ -494,6 +517,18 @@
         [Phone(ErrorMessage = "El teléfono no es válido")]
         [MaxLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
         public string Phone { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La dirección es necesaria para el envío")]
+        [MaxLength(200, ErrorMessage = "La dirección no puede exceder 200 caracteres")]
+        public string Address { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La ciudad es necesaria para el envío")]
+        [MaxLength(100, ErrorMessage = "La ciudad no puede exceder 100 caracteres")]
+        public string City { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El código postal es necesario para el envío")]
+        [MaxLength(10, ErrorMessage = "El código postal no puede exceder 10 caracteres")]
+        public string PostalCode { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La contraseña es obligatoria")]
         [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]

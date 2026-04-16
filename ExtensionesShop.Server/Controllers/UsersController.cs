@@ -123,6 +123,9 @@ public class UsersController : ControllerBase
                 FirstName = request.FirstName.Trim(),
                 LastName = request.LastName.Trim(),
                 Phone = normalizedPhone,
+                Address = request.Address.Trim(),
+                City = request.City.Trim(),
+                PostalCode = request.PostalCode.Trim(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 CreatedAt = DateTime.UtcNow,
                 EmailVerified = false,
@@ -515,6 +518,18 @@ public class RegisterRequest
     [MaxLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
     public string Phone { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "La dirección es necesaria para el envío")]
+    [MaxLength(200, ErrorMessage = "La dirección no puede exceder 200 caracteres")]
+    public string Address { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "La ciudad es necesaria para el envío")]
+    [MaxLength(100, ErrorMessage = "La ciudad no puede exceder 100 caracteres")]
+    public string City { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El código postal es necesario para el envío")]
+    [MaxLength(10, ErrorMessage = "El código postal no puede exceder 10 caracteres")]
+    public string PostalCode { get; set; } = string.Empty;
+
     [Required(ErrorMessage = "El token de reCAPTCHA es obligatorio")]
     public string RecaptchaToken { get; set; } = string.Empty;
 }
@@ -568,12 +583,15 @@ public class UpdateProfileRequest
     [MaxLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
     public string Phone { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "La dirección es necesaria para el envío")]
     [MaxLength(200, ErrorMessage = "La dirección no puede exceder 200 caracteres")]
-    public string? Address { get; set; }
+    public string Address { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "La ciudad es necesaria para el envío")]
     [MaxLength(100, ErrorMessage = "La ciudad no puede exceder 100 caracteres")]
-    public string? City { get; set; }
+    public string City { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "El código postal es necesario para el envío")]
     [MaxLength(10, ErrorMessage = "El código postal no puede exceder 10 caracteres")]
-    public string? PostalCode { get; set; }
+    public string PostalCode { get; set; } = string.Empty;
 }

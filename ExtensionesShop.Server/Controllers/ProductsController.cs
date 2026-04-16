@@ -11,19 +11,19 @@ namespace ExtensionesShop.Server.Controllers;
 public class ProductsController(AppDbContext db) : ControllerBase
 {
     // GET api/products
+    // ✅ Sin paginación en backend - El frontend hace la paginación local
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Product>>> GetAll(
         [FromQuery] int? categoryId,
         [FromQuery] int? subcategoryId,
-        [FromQuery] string? search,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 24)
+        [FromQuery] string? search)
     {
         var query = db.Products
             .Include(p => p.Category)
             .Include(p => p.Subcategory)
             .Include(p => p.Variants)
             .Include(p => p.Images)
+            .Where(p => p.IsActive == true)  // Solo productos activos para clientes públicos
             .AsQueryable();
 
         if (categoryId.HasValue)
@@ -35,14 +35,30 @@ public class ProductsController(AppDbContext db) : ControllerBase
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.Name.Contains(search) || p.Description.Contains(search));
 
-        var total = await query.CountAsync();
         var items = await query
             .OrderByDescending(p => p.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            .ToListAsync();  // ✅ Sin Skip/Take - Devuelve la lista completa
 
-        Response.Headers.Append("X-Total-Count", total.ToString());
+        return Ok(items);
+    }
+
+    /// <summary>
+    /// GET /api/products/admin/all - Obtener TODOS los productos (incluso inactivos) para el admin
+    /// ✅ SIN paginación en backend - El frontend hace la paginación local
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin/all")]
+    public async Task<ActionResult<IEnumerable<Product>>> GetAllForAdmin()
+    {
+        var items = await db.Products
+            .Include(p => p.Category)
+            .Include(p => p.Subcategory)
+            .Include(p => p.Variants)
+            .Include(p => p.Images)
+            .OrderByDescending(p => p.Id)
+            .ToListAsync();  // ✅ SIN filtro IsActive - Ver activos e inactivos
+                             // ✅ SIN Skip/Take - Devolverá toda la lista
+
         return Ok(items);
     }
 
@@ -305,49 +321,62 @@ public class ProductsController(AppDbContext db) : ControllerBase
     {
         var product = await db.Products
             .Include(p => p.Variants)
-            .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product == null)
             return NotFound();
 
-        using var transaction = await db.Database.BeginTransactionAsync();
+        // ✅ SOFT DELETE: Marcar como inactivo en lugar de eliminar
         try
         {
-            // 1. Eliminar imágenes de variantes
-            var variantImages = await db.ProductImages
-                .Where(i => i.ProductVariantId != null && 
-                       db.ProductVariants.Where(v => v.ProductId == id).Select(v => v.Id).Contains(i.ProductVariantId.Value))
-                .ToListAsync();
-            db.ProductImages.RemoveRange(variantImages);
+            product.IsActive = false;
+
+            // ✅ También marcar sus variantes como inactivas
+            if (product.Variants != null && product.Variants.Any())
+            {
+                foreach (var variant in product.Variants)
+                {
+                    variant.IsActive = false;
+                }
+            }
+
             await db.SaveChangesAsync();
 
-            // 2. Eliminar imágenes del producto
-            var productImages = await db.ProductImages
-                .Where(i => i.ProductId == id && i.ProductVariantId == null)
-                .ToListAsync();
-            db.ProductImages.RemoveRange(productImages);
-            await db.SaveChangesAsync();
-
-            // 3. Eliminar variantes
-            var variants = await db.ProductVariants
-                .Where(v => v.ProductId == id)
-                .ToListAsync();
-            db.ProductVariants.RemoveRange(variants);
-            await db.SaveChangesAsync();
-
-            // 4. Eliminar producto
-            db.Products.Remove(product);
-            await db.SaveChangesAsync();
-
-            // Confirmar transacción
-            await transaction.CommitAsync();
-            return NoContent();
+            Console.WriteLine($"✅ Producto {id} ({product.Name}) marcado como inactivo (Soft Delete)");
+            return Ok(new { message = $"Producto '{product.Name}' desactivado correctamente. Puede reactivarlo desde el panel de administración." });
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
-            return StatusCode(500, new { message = "Error al eliminar el producto", error = ex.Message });
+            Console.WriteLine($"❌ Error al desactivar producto {id}: {ex.Message}");
+            return StatusCode(500, new { message = "Error al desactivar el producto", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// POST /api/products/{id}/reactivate - Reactivar un producto desactivado
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("{id}/reactivate")]
+    public async Task<IActionResult> Reactivate(int id)
+    {
+        var product = await db.Products
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (product == null)
+            return NotFound();
+
+        try
+        {
+            product.IsActive = true;
+            await db.SaveChangesAsync();
+
+            Console.WriteLine($"✅ Producto {id} ({product.Name}) reactivado");
+            return Ok(new { message = $"Producto '{product.Name}' reactivado correctamente." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al reactivar producto {id}: {ex.Message}");
+            return StatusCode(500, new { message = "Error al reactivar el producto", error = ex.Message });
         }
     }
 }

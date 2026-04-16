@@ -72,6 +72,12 @@ public class Product
     public string? Color { get; set; }
     public decimal? Centimeters { get; set; }
 
+    /// <summary>
+    /// Indica si el producto está activo (visible) o ha sido eliminado lógicamente.
+    /// ✅ Soft Delete: Los datos nunca se pierden, solo se marcan como inactivos.
+    /// </summary>
+    public bool IsActive { get; set; } = true;
+
     // Navigation properties para variantes e imágenes
     public List<ProductVariant> Variants { get; set; } = new();
     public List<ProductImage> Images { get; set; } = new();

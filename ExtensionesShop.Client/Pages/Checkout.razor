@@ -568,21 +568,23 @@
                 CustomerEmail = checkoutForm.Email,
                 CustomerPhone = checkoutForm.Telefono,
                 ShippingAddress = $"{checkoutForm.Direccion}, {checkoutForm.Ciudad}, {checkoutForm.Provincia} {checkoutForm.CodigoPostal}",
+                City = checkoutForm.Ciudad,
+                PostalCode = checkoutForm.CodigoPostal,
                 Notes = checkoutForm.Notas,
                 Items = CartState.Items.Select(item => new
                 {
+                    ProductId = item.Producto.Id,
                     ProductName = item.Producto.Name,
                     Quantity = item.Cantidad,
                     UnitPrice = item.Producto.Price,
-                    Subtotal = item.Subtotal,
-                    Color = item.Producto.Color,
-                    Length = item.Producto.Centimeters?.ToString()
+                    SelectedColor = item.Producto.Color,
+                    SelectedCentimeters = item.Producto.Centimeters
                 }).ToList(),
                 Total = CartState.Total,
                 OrderDate = DateTime.Now
             };
 
-            var response = await Http.PostAsJsonAsync("api/orders/send-email", orderData);
+            var response = await Http.PostAsJsonAsync("api/orders/place-order", orderData);
 
             if (response.IsSuccessStatusCode)
             {
@@ -591,6 +593,10 @@
                 errorMessage = string.Empty;
                 pedidoEnviado = true;
                 CartState.VaciarCarrito();
+
+                // Redirigir a página de confirmación
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/pedido-confirmado");
             }
             else
             {
