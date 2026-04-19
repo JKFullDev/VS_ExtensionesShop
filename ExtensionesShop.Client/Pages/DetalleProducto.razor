@@ -5,6 +5,7 @@
 @inject CartStateService CartState
 @inject FavoritosService FavoritosService
 @inject NavigationManager Navigation
+@inject AuthService AuthService
 
 <PageTitle>@(producto?.Name ?? "Cargando...") - Extensiones Shop</PageTitle>
 
@@ -119,7 +120,7 @@
                             <div class="atributos-section">
                                 <h3>Características</h3>
                                 <div class="atributos-list">
-                                    @if (producto.Centimeters.HasValue || (selectedVariant != null && selectedVariant.Centimeters.HasValue))
+                                    @* @if (producto.Centimeters.HasValue || (selectedVariant != null && selectedVariant.Centimeters.HasValue))
                                     {
                                         <div class="atributo-item">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -133,7 +134,7 @@
                                                 <span>@((selectedVariant?.Centimeters ?? producto.Centimeters) ?? 0) cm</span>
                                             </div>
                                         </div>
-                                    }
+                                    } *@
                                     
                                     @if (!string.IsNullOrEmpty(producto.Color))
                                     {
@@ -142,7 +143,7 @@
                                                 <circle cx="12" cy="12" r="10"></circle>
                                             </svg>
                                             <div>
-                                                <strong>Color</strong>
+                                                <strong>Variante</strong>
                                                 <span>@producto.Color</span>
                                             </div>
                                         </div>
@@ -284,13 +285,12 @@
                                 </button>
 
                                 <!-- Botón de Edición exclusivo para Admin -->
-                                <AuthorizeView Roles="Admin">
-                                    <Authorized>
-                                        <a href="/admin/productos?editId=@Id" target="_top" class="btn-admin" style="border-color: #F59E0B; color: #D97706; text-decoration: none; margin-top: 10px;">
-                                            ⚙️ Editar este producto
-                                        </a>
-                                    </Authorized>
-                                </AuthorizeView>
+                                @if (AuthService.IsAdmin)
+                                {
+                                    <a href="/admin/productos?editId=@Id" target="_top" class="btn-admin" style="border-color: #F59E0B; color: #D97706; text-decoration: none; margin-top: 10px;">
+                                        ⚙️ Editar este producto
+                                    </a>
+                                }
                             }
                         </div>
 

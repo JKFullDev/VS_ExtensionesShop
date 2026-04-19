@@ -1,7 +1,9 @@
 @page "/admin/productos"
+@attribute [Authorize(Roles = "Admin")]
 @layout ExtensionesShop.Client.Layouts.AdminLayout
 @using ExtensionesShop.Shared.Models
 @using ExtensionesShop.Client.Components
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject IJSRuntime JS

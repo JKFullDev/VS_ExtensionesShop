@@ -191,6 +191,7 @@ public class AuthService
                     CurrentUser.Phone = data.Phone;
                     CurrentUser.Address = data.Address;
                     CurrentUser.City = data.City;
+                    CurrentUser.Province = data.Province;
                     CurrentUser.PostalCode = data.PostalCode;
                     await SaveUserToLocalStorage();
                     NotifyAuthStateChanged();

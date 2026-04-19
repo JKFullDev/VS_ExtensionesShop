@@ -34,6 +34,7 @@ public class OrdersController : ControllerBase
         var query = _db.Orders
             .Include(o => o.OrderItems)
             .ThenInclude(oi => oi.Product)
+            .ThenInclude(p => p.Images)
             .AsQueryable();
 
         if (userId.HasValue)
@@ -60,6 +61,7 @@ public class OrdersController : ControllerBase
         var order = await _db.Orders
             .Include(o => o.OrderItems)
             .ThenInclude(oi => oi.Product)
+            .ThenInclude(p => p.Images)
             .FirstOrDefaultAsync(o => o.Id == id);
 
         return order is null ? NotFound() : Ok(order);
@@ -183,19 +185,99 @@ public class OrdersController : ControllerBase
     [HttpPut("{id}/status")]
     public async Task<ActionResult<Order>> UpdateStatus(int id, [FromBody] UpdateOrderStatusRequest request)
     {
-        var order = await _db.Orders.FindAsync(id);
-        if (order == null)
-            return NotFound();
+        using var transaction = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            var order = await _db.Orders
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.Id == id);
 
-        order.Status = request.Status;
+            if (order == null)
+                return NotFound();
 
-        if (request.Status == 3) // Shipped
-            order.ShippedAt = DateTime.UtcNow;
-        else if (request.Status == 4) // Delivered
-            order.DeliveredAt = DateTime.UtcNow;
+            // 🔄 LÓGICA DE RESTOCK AL CANCELAR
+            // Status 5 = Cancelado
+            if (request.Status == 5 && order.Status != 5)
+            {
+                _logger.LogInformation("♻️ Iniciando restock para pedido #{OrderId}", id);
 
-        await _db.SaveChangesAsync();
-        return Ok(order);
+                // Cargar productos y variantes para actualizar stock
+                var productIds = order.OrderItems
+                    .Select(oi => oi.ProductId)
+                    .Where(pid => pid.HasValue)
+                    .Select(pid => pid.Value)
+                    .Distinct()
+                    .ToList();
+
+                var products = await _db.Products
+                    .AsTracking()
+                    .Include(p => p.Variants)
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToListAsync();
+
+                var allVariantIds = products
+                    .SelectMany(p => p.Variants.Select(v => v.Id))
+                    .Distinct()
+                    .ToList();
+
+                var variants = allVariantIds.Any()
+                    ? await _db.ProductVariants.AsTracking().Where(v => allVariantIds.Contains(v.Id)).ToListAsync()
+                    : new List<ProductVariant>();
+
+                // Procesar cada item del pedido
+                foreach (var item in order.OrderItems)
+                {
+                    if (!item.ProductId.HasValue)
+                        continue;
+
+                    var product = products.FirstOrDefault(p => p.Id == item.ProductId.Value);
+                    if (product == null)
+                        continue;
+
+                    // Si el item tiene color y centimeters, buscar la variante correspondiente
+                    if (!string.IsNullOrEmpty(item.SelectedColor) || item.SelectedCentimeters.HasValue)
+                    {
+                        var variant = product.Variants.FirstOrDefault(v =>
+                            (v.Color ?? string.Empty).Trim() == (item.SelectedColor ?? string.Empty).Trim() &&
+                            Math.Abs((v.Centimeters ?? 0) - (item.SelectedCentimeters ?? 0)) < 0.01m);
+
+                        if (variant != null)
+                        {
+                            variant.Stock += item.Quantity;
+                            _logger.LogInformation("✅ Restock: {ProductName} ({Color}, {Cm}cm) +{Qty} → {NewStock}", 
+                                item.ProductName, variant.Color, variant.Centimeters, item.Quantity, variant.Stock);
+                        }
+                    }
+                    // Si no tiene variantes, devolver al stock general
+                    else if (!product.Variants.Any())
+                    {
+                        product.StockValue += item.Quantity;
+                        _logger.LogInformation("✅ Restock: {ProductName} +{Qty} → {NewStock}", 
+                            item.ProductName, item.Quantity, product.StockValue);
+                    }
+                }
+            }
+
+            // Actualizar estado y timestamps
+            order.Status = request.Status;
+
+            if (request.Status == 3) // Shipped
+                order.ShippedAt = DateTime.UtcNow;
+            else if (request.Status == 4) // Delivered
+                order.DeliveredAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("✅ Pedido #{OrderId} actualizado a estado {Status}", id, request.Status);
+            return Ok(order);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "❌ Error actualizando estado del pedido #{OrderId}", id);
+            return StatusCode(500, new { message = "Error al actualizar el estado del pedido" });
+        }
     }
 
     /// <summary>

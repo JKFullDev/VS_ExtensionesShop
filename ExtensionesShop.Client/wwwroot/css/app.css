@@ -267,6 +267,16 @@ button { cursor: pointer; border: none; background: none; }
         background-color: var(--rose-pale);
     }
 
+/* Botón Admin en el header */
+.admin-btn {
+    color: #F59E0B;
+}
+
+    .admin-btn:hover {
+        color: #D97706;
+        background-color: rgba(245, 158, 11, 0.1);
+    }
+
 /* Globo del carrito */
 .cart-badge {
     position: absolute;
