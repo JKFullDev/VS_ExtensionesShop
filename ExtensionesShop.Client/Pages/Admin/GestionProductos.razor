@@ -129,7 +129,7 @@
                                             </div>
                                         </td>
                                         <td class="col-category">@producto.Category?.Name</td>
-                                        <td class="col-price"><strong>$@producto.Price.ToString("N2")</strong></td>
+                                        <td class="col-price"><strong>@producto.Price.ToString("N2")€</strong></td>
                                         <td class="col-stock">
                                             <span class="stock-badge @(producto.Stock < 10 ? "low-stock" : "")">
                                                 @producto.Stock

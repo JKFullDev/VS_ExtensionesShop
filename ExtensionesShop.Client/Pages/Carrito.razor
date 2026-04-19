@@ -78,7 +78,7 @@
                                 <!-- Precio unitario -->
                                 <div class="item-price">
                                     <span class="price-label">Precio</span>
-                                    <span class="price-value">$@item.PrecioUnitario.ToString("N2")</span>
+                                    <span class="price-value">@item.PrecioUnitario.ToString("N2")€</span>
                                 </div>
 
                                 <!-- Cantidad -->
@@ -111,7 +111,7 @@
                                 <!-- Subtotal -->
                                 <div class="item-subtotal">
                                     <span class="subtotal-label">Subtotal</span>
-                                    <span class="subtotal-value">$@item.Subtotal.ToString("N2")</span>
+                                    <span class="subtotal-value">@item.Subtotal.ToString("N2")€</span>
                                 </div>
 
                                 <!-- Eliminar -->
@@ -132,7 +132,7 @@
 
                         <div class="summary-row">
                             <span>Subtotal (@CartState.CantidadTotal items)</span>
-                            <span>$@CartState.Total.ToString("N2")</span>
+                            <span>@CartState.Total.ToString("N2")€</span>
                         </div>
 
                         <div class="summary-row">
@@ -144,7 +144,7 @@
 
                         <div class="summary-row summary-total">
                             <span>Total</span>
-                            <span>$@CartState.Total.ToString("N2")</span>
+                            <span>@CartState.Total.ToString("N2")€</span>
                         </div>
 
                         <button class="btn-primary btn-checkout" @onclick="FinalizarCompra">

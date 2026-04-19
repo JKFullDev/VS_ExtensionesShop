@@ -94,7 +94,7 @@
                                     <td>
                                         <a href="tel:@pedido.CustomerPhone">@pedido.CustomerPhone</a>
                                     </td>
-                                    <td><strong>$@pedido.Total.ToString("N2")</strong></td>
+                                    <td><strong>@pedido.Total.ToString("N2")€</strong></td>
                                     <td>@pedido.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>
                                         <span class="status-badge @GetStatusClass(pedido.Status)">
@@ -242,8 +242,8 @@
                                                     </div>
                                                 </td>
                                                 <td>@item.Quantity</td>
-                                                <td>$@item.UnitPrice.ToString("N2")</td>
-                                                <td><strong>@(item.UnitPrice * item.Quantity)€</strong></td>
+                                                <td>@item.UnitPrice.ToString("N2")€</td>
+                                                <td><strong>@(item.UnitPrice * item.Quantity).ToString("N2")€</strong></td>
                                             </tr>
                                         }
                                     </tbody>
@@ -253,15 +253,15 @@
                                 <div class="totals-summary">
                                     <div class="total-row">
                                         <span>Subtotal:</span>
-                                        <span>$@pedidoSeleccionado.Subtotal.ToString("N2")</span>
+                                        <span>@pedidoSeleccionado.Subtotal.ToString("N2")€</span>
                                     </div>
                                     <div class="total-row">
                                         <span>Envío:</span>
-                                        <span>$@pedidoSeleccionado.ShippingCost.ToString("N2")</span>
+                                        <span>@pedidoSeleccionado.ShippingCost.ToString("N2")€</span>
                                     </div>
                                     <div class="total-row grand-total">
                                         <span>Total:</span>
-                                        <span>$@pedidoSeleccionado.Total.ToString("N2")</span>
+                                        <span>@pedidoSeleccionado.Total.ToString("N2")€</span>
                                     </div>
                                 </div>
                             }

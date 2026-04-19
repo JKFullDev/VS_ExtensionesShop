@@ -1,6 +1,7 @@
 @page "/productos"
 @using ExtensionesShop.Shared.Models
 @using ExtensionesShop.Client.Services
+@using Microsoft.AspNetCore.Components
 @inject ProductService ProductService
 @inject CartStateService CartState
 @inject FavoritosService FavoritosService
@@ -63,33 +64,45 @@
     @if (categoriasDisponibles.Any())
     {
         <div class="filter-section">
-            <h3 class="filter-title">Categoría</h3>
-            <div class="filter-options">
-                @foreach (var cat in categoriasDisponibles)
-                {
-                    <label class="filter-label">
-                        <input type="checkbox"
-                               checked="@categoriasFiltradas.Contains(cat.Id)"
-                               @onchange="() => ToggleCategoria(cat.Id)" />
-                        @cat.Name
-                    </label>
-
-                    @if (cat.Subcategories != null && cat.Subcategories.Any())
+            <button class="filter-title-btn" @onclick="() => categoriasColapsadas = !categoriasColapsadas">
+                <span>Categoría</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="collapse-icon @(categoriasColapsadas ? "" : "expanded")">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            @if (!categoriasColapsadas)
+            {
+                <div class="filter-options">
+                    @foreach (var cat in categoriasDisponibles)
                     {
-                        <div class="filter-options" style="margin-left: 20px; margin-top: 4px; margin-bottom: 8px;">
-                            @foreach (var subcat in cat.Subcategories)
-                            {
-                                <label class="filter-label" style="font-size: 13px; color: var(--muted);">
-                                    <input type="checkbox"
-                                           checked="@subcategoriasFiltradas.Contains(subcat.Id)"
-                                           @onchange="() => ToggleSubcategoria(subcat.Id)" />
-                                    @subcat.Name
-                                </label>
-                            }
-                        </div>
+                        var productosCat = FiltrarProductos().Where(p => p.Category?.Id == cat.Id).Count();
+                        <label class="filter-label">
+                            <input type="checkbox"
+                                   checked="@categoriasFiltradas.Contains(cat.Id)"
+                                   @onchange="() => ToggleCategoria(cat.Id)" />
+                            <span class="filter-label-text">@cat.Name</span>
+                            <span class="filter-count">@productosCat</span>
+                        </label>
+
+                        @if (cat.Subcategories != null && cat.Subcategories.Any())
+                        {
+                            <div class="filter-options" style="margin-left: 20px; margin-top: 4px; margin-bottom: 8px;">
+                                @foreach (var subcat in cat.Subcategories)
+                                {
+                                    var productosSubcat = FiltrarProductos().Where(p => p.Subcategory?.Id == subcat.Id).Count();
+                                    <label class="filter-label" style="font-size: 13px; color: var(--muted);">
+                                        <input type="checkbox"
+                                               checked="@subcategoriasFiltradas.Contains(subcat.Id)"
+                                               @onchange="() => ToggleSubcategoria(subcat.Id)" />
+                                        <span class="filter-label-text">@subcat.Name</span>
+                                        <span class="filter-count">@productosSubcat</span>
+                                    </label>
+                                }
+                            </div>
+                        }
                     }
-                }
-            </div>
+                </div>
+            }
         </div>
     }
 
@@ -98,15 +111,15 @@
         <div class="filter-options">
             <label class="filter-label">
                 <input type="checkbox" checked="@precioMenor50" @onchange="() => TogglePrecioMenor50()" />
-                Menos de $50
+                Menos de 50€
             </label>
             <label class="filter-label">
                 <input type="checkbox" checked="@precio50a100" @onchange="() => TogglePrecio50a100()" />
-                $50 - $100
+                50€ - 100€
             </label>
             <label class="filter-label">
                 <input type="checkbox" checked="@precioMayor100" @onchange="() => TogglePrecioMayor100()" />
-                Más de $100
+                Más de 100€
             </label>
         </div>
     </div>
@@ -114,36 +127,64 @@
     @if (MostrarFiltrosPelo() && coloresDisponibles.Any())
     {
         <div class="filter-section">
-            <h3 class="filter-title">Color</h3>
-            <div class="filter-options">
-                @foreach (var color in coloresDisponibles)
-                {
-                    <label class="filter-label">
-                        <input type="checkbox"
-                               checked="@coloresFiltrados.Contains(color)"
-                               @onchange="() => ToggleColor(color)" />
-                        @color
-                    </label>
-                }
-            </div>
+            <button class="filter-title-btn" @onclick="() => coloresColapsadas = !coloresColapsadas">
+                <span>Color</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="collapse-icon @(coloresColapsadas ? "" : "expanded")">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            @if (!coloresColapsadas)
+            {
+                <div class="filter-options color-options">
+                    @foreach (var color in coloresDisponibles)
+                    {
+                        var productosColor = FiltrarProductos()
+                            .Where(p => 
+                                (!string.IsNullOrEmpty(p.Color) && p.Color == color) ||
+                                (p.Variants?.Any(v => !string.IsNullOrEmpty(v.Color) && v.Color == color) ?? false)
+                            ).Count();
+                        <label class="filter-label color-pill">
+                            <input type="checkbox"
+                                   checked="@coloresFiltrados.Contains(color)"
+                                   @onchange="() => ToggleColor(color)" />
+                            <span class="pill-text">@color</span>
+                            <span class="pill-count">@productosColor</span>
+                        </label>
+                    }
+                </div>
+            }
         </div>
     }
 
     @if (MostrarFiltrosPelo() && longitudesDisponibles.Any())
     {
         <div class="filter-section">
-            <h3 class="filter-title">Longitud (cm)</h3>
-            <div class="filter-options">
-                @foreach (var longitud in longitudesDisponibles.OrderBy(l => l))
-                {
-                    <label class="filter-label">
-                        <input type="checkbox"
-                               checked="@longitudesFiltradas.Contains(longitud)"
-                               @onchange="() => ToggleLongitud(longitud)" />
-                        @longitud cm
-                    </label>
-                }
-            </div>
+            <button class="filter-title-btn" @onclick="() => longitudesColapsadas = !longitudesColapsadas">
+                <span>Longitud (cm)</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="collapse-icon @(longitudesColapsadas ? "" : "expanded")">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            @if (!longitudesColapsadas)
+            {
+                <div class="filter-options">
+                    @foreach (var longitud in longitudesDisponibles.OrderBy(l => l))
+                    {
+                        var productosLong = FiltrarProductos()
+                            .Where(p => 
+                                (p.Centimeters.HasValue && p.Centimeters.Value == longitud) ||
+                                (p.Variants?.Any(v => v.Centimeters.HasValue && v.Centimeters.Value == longitud) ?? false)
+                            ).Count();
+                        <label class="filter-label">
+                            <input type="checkbox"
+                                   checked="@longitudesFiltradas.Contains(longitud)"
+                                   @onchange="() => ToggleLongitud(longitud)" />
+                            <span class="filter-label-text">@longitud cm</span>
+                            <span class="filter-count">@productosLong</span>
+                        </label>
+                    }
+                </div>
+            }
         </div>
     }
 
@@ -175,6 +216,89 @@
                                 </select>
                             </div>
                         </div>
+
+                        <!-- ✅ NUEVO: Sección de Filtros Activos -->
+                        @if (HasActiveFilters())
+                        {
+                            <div class="filtros-activos">
+                                <div class="filtros-activos-container">
+                                    <!-- Filtros de Categorías -->
+                                    @foreach (var catId in categoriasFiltradas)
+                                    {
+                                        var categoria = categoriasDisponibles.FirstOrDefault(c => c.Id == catId);
+                                        @if (categoria != null)
+                                        {
+                                            <span class="chip-filtro">
+                                                <span class="chip-label">@categoria.Name</span>
+                                                <button class="chip-close" @onclick="() => ToggleCategoria(catId)" title="Eliminar filtro">✕</button>
+                                            </span>
+                                        }
+                                    }
+
+                                    <!-- Filtros de Subcategorías -->
+                                    @foreach (var subcatId in subcategoriasFiltradas)
+                                    {
+                                        var subcat = categoriasDisponibles
+                                            .SelectMany(c => c.Subcategories ?? new List<Subcategory>())
+                                            .FirstOrDefault(s => s.Id == subcatId);
+                                        @if (subcat != null)
+                                        {
+                                            <span class="chip-filtro">
+                                                <span class="chip-label">@subcat.Name</span>
+                                                <button class="chip-close" @onclick="() => ToggleSubcategoria(subcatId)" title="Eliminar filtro">✕</button>
+                                            </span>
+                                        }
+                                    }
+
+                                    <!-- Filtros de Colores -->
+                                    @foreach (var color in coloresFiltrados)
+                                    {
+                                        <span class="chip-filtro color">
+                                            <span class="chip-label">@color</span>
+                                            <button class="chip-close" @onclick="() => ToggleColor(color)" title="Eliminar filtro">✕</button>
+                                        </span>
+                                    }
+
+                                    <!-- Filtros de Longitud -->
+                                    @foreach (var longitud in longitudesFiltradas.OrderBy(l => l))
+                                    {
+                                        <span class="chip-filtro">
+                                            <span class="chip-label">@longitud cm</span>
+                                            <button class="chip-close" @onclick="() => ToggleLongitud(longitud)" title="Eliminar filtro">✕</button>
+                                        </span>
+                                    }
+
+                                    <!-- Filtros de Precio -->
+                                    @if (precioMenor50)
+                                    {
+                                        <span class="chip-filtro">
+                                            <span class="chip-label">Menos de $50</span>
+                                            <button class="chip-close" @onclick="TogglePrecioMenor50" title="Eliminar filtro">✕</button>
+                                        </span>
+                                    }
+                                    @if (precio50a100)
+                                    {
+                                        <span class="chip-filtro">
+                                            <span class="chip-label">$50 - $100</span>
+                                            <button class="chip-close" @onclick="TogglePrecio50a100" title="Eliminar filtro">✕</button>
+                                        </span>
+                                    }
+                                    @if (precioMayor100)
+                                    {
+                                        <span class="chip-filtro">
+                                            <span class="chip-label">Más de $100</span>
+                                            <button class="chip-close" @onclick="TogglePrecioMayor100" title="Eliminar filtro">✕</button>
+                                        </span>
+                                    }
+                                </div>
+                                <button class="btn-limpiar-filtros" @onclick="LimpiarFiltros">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6m-4 0V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                                    </svg>
+                                    Limpiar todos
+                                </button>
+                            </div>
+                        }
 
                         <div class="productos-grid">
                          @foreach (var producto in productosFiltrados.Skip((paginaActual - 1) * productosPorPagina).Take(productosPorPagina))
@@ -364,6 +488,341 @@
     .resultados-count {
         font-size: 14px;
         color: var(--muted);
+    }
+
+    /* ── Filtros Activos (Chips) ────────────────────────────── */
+    .filtros-activos {
+        margin: 24px 0 32px 0;
+        padding: 16px;
+        background: var(--off-white);
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .filtros-activos-container {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        flex: 1;
+    }
+
+    .chip-filtro {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ink);
+        animation: slideIn 0.2s ease-out;
+    }
+
+    .chip-filtro.color {
+        background: rgba(212, 70, 112, 0.08);
+        border-color: rgba(212, 70, 112, 0.2);
+        color: var(--rose);
+    }
+
+    .chip-label {
+        white-space: nowrap;
+    }
+
+    .chip-close {
+        background: transparent;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        transition: background-color 0.2s;
+    }
+
+    .chip-close:hover {
+        background: rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-limpiar-filtros {
+        padding: 8px 14px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .btn-limpiar-filtros:hover {
+        border-color: var(--rose);
+        color: var(--rose);
+        background: rgba(232, 96, 122, 0.05);
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    /* ── Sidebar Mejorado ─────────────────────────────────── */
+    .lovable-sidebar {
+        position: sticky;
+        top: 120px;
+        padding: 24px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+    }
+
+    .sidebar-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .sidebar-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--ink);
+    }
+
+    .filter-section {
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--off-white);
+        padding-bottom: 16px;
+    }
+
+    .filter-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    /* Botón de Título Colapsable */
+    .filter-title-btn {
+        background: none;
+        border: none;
+        width: 100%;
+        padding: 0;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .filter-title-btn:hover {
+        color: var(--rose);
+    }
+
+    .collapse-icon {
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .collapse-icon.expanded {
+        transform: rotate(180deg);
+    }
+
+    .filter-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 0 0 12px 0;
+    }
+
+    .filter-options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+        }
+        to {
+            opacity: 1;
+            max-height: 500px;
+        }
+    }
+
+    .filter-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-size: 14px;
+        color: var(--ink);
+    }
+
+    .filter-label:hover {
+        background-color: var(--off-white);
+    }
+
+    .filter-label input[type="checkbox"] {
+        cursor: pointer;
+        accent-color: var(--rose);
+        flex-shrink: 0;
+    }
+
+    .filter-label-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .filter-count {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 500;
+        margin-left: 4px;
+        flex-shrink: 0;
+    }
+
+    /* ✅ NUEVO: Estilo elegante de píldoras para colores */
+    .color-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: var(--white);
+        border: 1.5px solid var(--border);
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ink);
+        margin: 4px;
+        white-space: nowrap;
+    }
+
+    .color-pill:hover {
+        border-color: var(--rose);
+        background: rgba(232, 96, 122, 0.05);
+        box-shadow: 0 2px 8px rgba(232, 96, 122, 0.1);
+    }
+
+    .color-pill input[type="checkbox"] {
+        display: none;
+    }
+
+    .color-pill input[type="checkbox"]:checked + .pill-text {
+        color: var(--rose);
+        font-weight: 600;
+    }
+
+    .color-pill input[type="checkbox"]:checked {
+        accent-color: var(--rose);
+    }
+
+    /* Cuando está checked, aplicar estilo al elemento padre */
+    .color-pill input[type="checkbox"]:checked + .pill-text {
+        color: var(--rose);
+    }
+
+    .color-pill .pill-text {
+        flex: 1;
+        transition: color 0.2s;
+    }
+
+    .color-pill .pill-count {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 600;
+        background: var(--off-white);
+        padding: 2px 8px;
+        border-radius: 12px;
+        transition: background 0.2s;
+    }
+
+    .color-pill input[type="checkbox"]:checked ~ .pill-count {
+        background: rgba(212, 70, 112, 0.15);
+        color: var(--rose);
+    }
+
+    .filter-options.color-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+        padding: 8px 0;
+    }
+
+    .sidebar-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+    }
+
+    .btn-cta-full {
+        padding: 12px 16px;
+        background: var(--rose);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-cta-full:hover {
+        background: var(--rose-deep);
+    }
+
+    .btn-ghost-full {
+        padding: 12px 16px;
+        background: transparent;
+        color: var(--rose);
+        border: 1px solid var(--rose);
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-ghost-full:hover {
+        background: rgba(232, 96, 122, 0.08);
     }
 
     .ordenar-section {
@@ -745,6 +1204,11 @@
     private List<Product> productos = new();
     private bool isLoading = true;
 
+    // ✅ NUEVO: Parámetro de búsqueda desde la URL
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? search { get; set; }
+
     // Filtros
     private List<Category> categoriasDisponibles = new();
     private List<int> categoriasFiltradas = new();
@@ -758,6 +1222,11 @@
     private bool precioMenor50 = false;
     private bool precio50a100 = false;
     private bool precioMayor100 = false;
+
+    // ✅ NUEVO: Estados de secciones colapsables
+    private bool categoriasColapsadas = false;
+    private bool coloresColapsadas = false;
+    private bool longitudesColapsadas = false;
 
     // Ordenación
     private string ordenActual = "nombre-asc";
@@ -825,18 +1294,33 @@
             }
         }
 
-        // Colores disponibles (solo de productos de pelo)
+        // ✅ MEJORADO: Colores disponibles incluyendo variantes
         coloresDisponibles = productos
-            .Where(p => !string.IsNullOrEmpty(p.Color) && EsPeloNatural(p))
-            .Select(p => p.Color!)
+            .Where(p => EsPeloNatural(p))
+            .SelectMany(p => 
+                // Combinar color del producto base + colores de las variantes
+                new List<string>()
+                {
+                    p.Color
+                }.Concat(p.Variants?.Select(v => v.Color) ?? new List<string>())
+                 .Where(c => !string.IsNullOrEmpty(c))
+            )
             .Distinct()
             .OrderBy(c => c)
             .ToList();
 
-        // Longitudes disponibles (solo de productos de pelo)
+        // ✅ MEJORADO: Longitudes disponibles incluyendo variantes
         longitudesDisponibles = productos
-            .Where(p => p.Centimeters.HasValue && EsPeloNatural(p))
-            .Select(p => p.Centimeters!.Value)
+            .Where(p => EsPeloNatural(p))
+            .SelectMany(p => 
+                // Combinar longitud del producto base + longitudes de las variantes
+                new List<decimal?>()
+                {
+                    p.Centimeters
+                }.Concat(p.Variants?.Select(v => v.Centimeters) ?? new List<decimal?>())
+                 .Where(l => l.HasValue)
+                 .Select(l => l!.Value)
+            )
             .Distinct()
             .OrderBy(l => l)
             .ToList();
@@ -844,17 +1328,41 @@
 
     private bool EsPeloNatural(Product producto)
     {
-        // Verifica si el producto es de la categoría "Pelo" o "Pelo Natural"
-        // Ajusta según tus nombres de categoría
-        return producto.Category?.Name.Contains("Pelo", StringComparison.OrdinalIgnoreCase) ?? false;
+        // Verifica si el producto es de una categoría de pelo
+        // Categorías válidas de pelo:
+        // - Extensiones de pelo natural
+        // - Frontal, topper y Pelucas
+        // - Extensiones fibra sintética
+        // - Coletas y moños postizos
+        // - Pelo Crochet
+        var categoriasDeAlo = new[] 
+        { 
+            "Extensiones de pelo natural",
+            "Frontal, topper y Pelucas",
+            "Extensiones fibra sintética",
+            "Coletas y moños postizos",
+            "Pelo Crochet"
+        };
+
+        return producto.Category?.Name != null && 
+               categoriasDeAlo.Any(cat => producto.Category.Name.Equals(cat, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool MostrarFiltrosPelo()
     {
-        // Muestra filtros de pelo solo si hay categorías de pelo seleccionadas
-        // O si no hay filtros activos (muestra todos)
+        // ✅ MEJORADO: Solo mostrar si se seleccionó categoría de pelo O sin filtros
+        var categoriasDeAlo = new[] 
+        { 
+            "Extensiones de pelo natural",
+            "Frontal, topper y Pelucas",
+            "Extensiones fibra sintética",
+            "Coletas y moños postizos",
+            "Pelo Crochet"
+        };
+
+        // Si no hay filtros, mostrar todo
         if (!categoriasFiltradas.Any() && !subcategoriasFiltradas.Any())
-            return true; // Sin filtros, mostrar todo
+            return true;
 
         // Si hay categorías filtradas, verificar si alguna es de pelo
         var categoriasSeleccionadas = categoriasDisponibles
@@ -862,12 +1370,24 @@
             .ToList();
 
         return categoriasSeleccionadas.Any(c => 
-            c.Name.Contains("Pelo", StringComparison.OrdinalIgnoreCase));
+            categoriasDeAlo.Any(catAlo => c.Name.Equals(catAlo, StringComparison.OrdinalIgnoreCase)));
     }
 
     private IEnumerable<Product> FiltrarProductos()
     {
         var filtrados = productos.AsEnumerable();
+
+        // ✅ NUEVO: Filtro por término de búsqueda
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLowerInvariant();
+            filtrados = filtrados.Where(p => 
+                (p.Name?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+                (p.Description?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+                (p.Color?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+                (p.Category?.Name.ToLowerInvariant().Contains(searchLower) ?? false)
+            );
+        }
 
         // Filtro por categoría
         if (categoriasFiltradas.Any())
@@ -881,16 +1401,26 @@
             filtrados = filtrados.Where(p => p.Subcategory != null && subcategoriasFiltradas.Contains(p.Subcategory.Id));
         }
 
-        // Filtro por color (solo para pelo)
+        // ✅ MEJORADO: Filtro por color (busca en producto base Y variantes)
         if (coloresFiltrados.Any())
         {
-            filtrados = filtrados.Where(p => !string.IsNullOrEmpty(p.Color) && coloresFiltrados.Contains(p.Color));
+            filtrados = filtrados.Where(p => 
+                // Coincide si el producto base tiene el color
+                (!string.IsNullOrEmpty(p.Color) && coloresFiltrados.Contains(p.Color)) ||
+                // O si al menos una variante tiene el color
+                (p.Variants?.Any(v => !string.IsNullOrEmpty(v.Color) && coloresFiltrados.Contains(v.Color)) ?? false)
+            );
         }
 
-        // Filtro por longitud (solo para pelo)
+        // ✅ MEJORADO: Filtro por longitud (busca en producto base Y variantes)
         if (longitudesFiltradas.Any())
         {
-            filtrados = filtrados.Where(p => p.Centimeters.HasValue && longitudesFiltradas.Contains(p.Centimeters.Value));
+            filtrados = filtrados.Where(p => 
+                // Coincide si el producto base tiene la longitud
+                (p.Centimeters.HasValue && longitudesFiltradas.Contains(p.Centimeters.Value)) ||
+                // O si al menos una variante tiene la longitud
+                (p.Variants?.Any(v => v.Centimeters.HasValue && longitudesFiltradas.Contains(v.Centimeters.Value)) ?? false)
+            );
         }
 
         // Filtro por precio
