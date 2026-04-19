@@ -39,12 +39,19 @@ public class ProductsController(AppDbContext db) : ControllerBase
             .OrderByDescending(p => p.Id)
             .ToListAsync();  // ✅ Sin Skip/Take - Devuelve la lista completa
 
+        // ✅ FILTRO: Solo mostrar variantes ACTIVAS en catálogo público
+        foreach (var product in items)
+        {
+            product.Variants = product.Variants?.Where(v => v.IsActive).ToList() ?? new List<ProductVariant>();
+        }
+
         return Ok(items);
     }
 
     /// <summary>
     /// GET /api/products/admin/all - Obtener TODOS los productos (incluso inactivos) para el admin
     /// ✅ SIN paginación en backend - El frontend hace la paginación local
+    /// ✅ FILTRO: Solo traer variantes ACTIVAS desde la BD
     /// </summary>
     [Authorize(Roles = "Admin")]
     [HttpGet("admin/all")]
@@ -53,10 +60,10 @@ public class ProductsController(AppDbContext db) : ControllerBase
         var items = await db.Products
             .Include(p => p.Category)
             .Include(p => p.Subcategory)
-            .Include(p => p.Variants)
+            .Include(p => p.Variants.Where(v => v.IsActive)) // ✅ FILTRO: Solo variantes activas
             .Include(p => p.Images)
             .OrderByDescending(p => p.Id)
-            .ToListAsync();  // ✅ SIN filtro IsActive - Ver activos e inactivos
+            .ToListAsync();  // ✅ SIN filtro IsActive en producto - Ver activos e inactivos
                              // ✅ SIN Skip/Take - Devolverá toda la lista
 
         return Ok(items);
@@ -74,7 +81,13 @@ public class ProductsController(AppDbContext db) : ControllerBase
             .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.Id == id);
 
-        return product is null ? NotFound() : Ok(product);
+        if (product is null)
+            return NotFound();
+
+        // ✅ FILTRO: Solo mostrar variantes ACTIVAS en catálogo público
+        product.Variants = product.Variants?.Where(v => v.IsActive).ToList() ?? new List<ProductVariant>();
+
+        return Ok(product);
     }
 
     // GET api/products/{id}/variants
@@ -82,7 +95,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductVariant>>> GetProductVariants(int id)
     {
         var variants = await db.ProductVariants
-            .Where(v => v.ProductId == id)
+            .Where(v => v.ProductId == id && v.IsActive) // ✅ FILTRO: Solo variantes activas
             .Include(v => v.Images)
             .OrderBy(v => v.DisplayOrder)
             .ToListAsync();
@@ -108,7 +121,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
             if (request.Id.HasValue && request.Id.Value > 0)
             {
                 product = await db.Products
-                    .Include(p => p.Variants)
+                    .Include(p => p.Variants.Where(v => v.IsActive)) // ✅ FILTRO: Solo variantes activas
                     .Include(p => p.Images)
                     .FirstOrDefaultAsync(p => p.Id == request.Id.Value);
 
@@ -152,73 +165,108 @@ public class ProductsController(AppDbContext db) : ControllerBase
             // 2. Gestionar variantes
             if (request.Variants != null && request.Variants.Any())
             {
-                // Si es actualización, sincronizar variantes inteligentemente
-                if (request.Id.HasValue && request.Id.Value > 0)
-                {
-                    // ✅ NUEVO: Cargar variantes existentes
-                    var existingVariants = await db.ProductVariants
-                        .Where(v => v.ProductId == product.Id)
-                        .ToListAsync();
-
-                    // Identificar variantes 'zombis' (en BD pero no en request)
-                    var requestVariantIds = request.Variants
-                        .Where(v => v.Id.HasValue && v.Id.Value > 0)
-                        .Select(v => v.Id.Value)
-                        .ToList();
-
-                    var orphanedVariants = existingVariants
-                        .Where(v => !requestVariantIds.Contains(v.Id))
-                        .ToList();
-
-                    // ✅ Eliminar variantes huérfanas
-                    if (orphanedVariants.Any())
-                    {
-                        db.ProductVariants.RemoveRange(orphanedVariants);
-                        Console.WriteLine($"🗑️ Eliminadas {orphanedVariants.Count} variantes huérfanas");
-                    }
-
-                    await db.SaveChangesAsync();
-                }
-
-                // Crear nuevas variantes
                 var displayOrder = 0;
+
+                // ✅ MEJOR PRÁCTICA: Cargar variantes existentes para upsert inteligente
+                var existingVariants = await db.ProductVariants
+                    .Where(v => v.ProductId == product.Id)
+                    .ToDictionaryAsync(v => v.Id, v => v);
+
+                // ✅ UPSERT LOOP: Iterar sobre request.Variants
                 foreach (var variantDto in request.Variants)
                 {
-                    var variant = new ProductVariant
+                    if (variantDto.Id.HasValue && variantDto.Id.Value > 0)
                     {
-                        ProductId = product.Id,
-                        Color = variantDto.Color,
-                        Centimeters = variantDto.Centimeters,
-                        Stock = variantDto.Stock,
-                        Price = variantDto.Price,
-                        IsActive = variantDto.IsActive,
-                        DisplayOrder = displayOrder++
-                    };
+                        // ✅ ACTUALIZAR: La variante ya existe en BD
+                        if (existingVariants.TryGetValue(variantDto.Id.Value, out var existingVariant))
+                        {
+                            existingVariant.Color = variantDto.Color;
+                            existingVariant.Centimeters = variantDto.Centimeters;
+                            existingVariant.Stock = variantDto.Stock;
+                            existingVariant.Price = variantDto.Price;
+                            existingVariant.IsActive = variantDto.IsActive;
+                            existingVariant.DisplayOrder = displayOrder;
 
-                    db.ProductVariants.Add(variant);
+                            db.ProductVariants.Update(existingVariant);
+                            Console.WriteLine($"✏️ Variante #{variantDto.Id} actualizada");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️ Variante #{variantDto.Id} especificada pero NO encontrada en BD (posible corrupción)");
+                        }
+                    }
+                    else
+                    {
+                        // ✅ INSERTAR: Nueva variante (Id == 0 o nulo)
+                        var newVariant = new ProductVariant
+                        {
+                            ProductId = product.Id,
+                            Color = variantDto.Color,
+                            Centimeters = variantDto.Centimeters,
+                            Stock = variantDto.Stock,
+                            Price = variantDto.Price,
+                            IsActive = variantDto.IsActive,
+                            DisplayOrder = displayOrder
+                        };
+
+                        db.ProductVariants.Add(newVariant);
+                        Console.WriteLine($"✨ Nueva variante añadida: Color={variantDto.Color}, Cm={variantDto.Centimeters}");
+                    }
+
+                    displayOrder++;
                 }
 
                 await db.SaveChangesAsync();
+
+                // ✅ SOFT DELETE: Identificar y desactivar variantes huérfanas (en BD pero no en request)
+                var requestVariantIds = request.Variants
+                    .Where(v => v.Id.HasValue && v.Id.Value > 0)
+                    .Select(v => v.Id.Value)
+                    .ToHashSet();
+
+                var orphanedVariants = existingVariants.Values
+                    .Where(v => !requestVariantIds.Contains(v.Id))
+                    .ToList();
+
+                if (orphanedVariants.Any())
+                {
+                    foreach (var orphan in orphanedVariants)
+                    {
+                        // ✅ SOFT DELETE: Marcar como inactiva en lugar de eliminar
+                        // Esto preserva la integridad referencial con OrderItems
+                        orphan.IsActive = false;
+                        db.ProductVariants.Update(orphan);
+                        Console.WriteLine($"🔒 Variante huérfana #{orphan.Id} marcada como inactiva (Soft Delete)");
+                    }
+
+                    await db.SaveChangesAsync();
+                    Console.WriteLine($"✅ {orphanedVariants.Count} variantes huérfanas han sido desactivadas (no eliminadas)");
+                }
             }
             else
             {
-                // ✅ NUEVO: Si NO hay variantes, eliminar todas las existentes y guardar stock manual
+                // ✅ MEJORA: Si NO hay variantes, hacer soft delete de todas las existentes
                 if (request.Id.HasValue && request.Id.Value > 0)
                 {
                     var existingVariants = await db.ProductVariants
-                        .Where(v => v.ProductId == product.Id)
+                        .Where(v => v.ProductId == product.Id && v.IsActive)
                         .ToListAsync();
 
                     if (existingVariants.Any())
                     {
-                        db.ProductVariants.RemoveRange(existingVariants);
-                        Console.WriteLine($"🗑️ Eliminadas todas las variantes ({existingVariants.Count}) del producto");
-                    }
+                        // ✅ SOFT DELETE en lugar de RemoveRange
+                        foreach (var variant in existingVariants)
+                        {
+                            variant.IsActive = false;
+                            db.ProductVariants.Update(variant);
+                        }
 
-                    await db.SaveChangesAsync();
+                        await db.SaveChangesAsync();
+                        Console.WriteLine($"🔒 Todas las {existingVariants.Count} variantes marcadas como inactivas");
+                    }
                 }
 
-                // No hay variantes, por lo que el stock es manual (ya está guardado en request.Stock)
+                // No hay variantes, el stock es manual (ya está guardado en request.Stock)
                 Console.WriteLine($"📦 Producto sin variantes - Stock manual: {request.Stock}");
             }
 
@@ -261,7 +309,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
             var resultProduct = await db.Products
                 .Include(p => p.Category)
                 .Include(p => p.Subcategory)
-                .Include(p => p.Variants)
+                .Include(p => p.Variants.Where(v => v.IsActive)) // ✅ FILTRO: Solo variantes activas
                     .ThenInclude(v => v.Images)
                 .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == product.Id);

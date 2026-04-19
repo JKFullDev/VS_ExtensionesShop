@@ -1516,15 +1516,18 @@
                 Color = producto.Color,
                 Centimeters = producto.Centimeters,
                 ImageUrl = producto.ImageUrl,
-                Variants = producto.Variants?.Select(v => new ProductVariantDto
-                {
-                    Id = v.Id,
-                    Color = v.Color,
-                    Centimeters = v.Centimeters,
-                    Stock = v.Stock,
-                    Price = v.Price,
-                    IsActive = v.IsActive
-                }).ToList() ?? new(),
+                // ✅ FILTRO: Solo incluir variantes ACTIVAS en el formulario
+                Variants = producto.Variants?
+                    .Where(v => v.IsActive) // ✅ Excluir variantes inactivas (soft-deleted)
+                    .Select(v => new ProductVariantDto
+                    {
+                        Id = v.Id,
+                        Color = v.Color,
+                        Centimeters = v.Centimeters,
+                        Stock = v.Stock,
+                        Price = v.Price,
+                        IsActive = v.IsActive
+                    }).ToList() ?? new(),
                 Images = producto.Images?.Select(i => new ProductImageDto
                 {
                     Id = i.Id,
