@@ -53,56 +53,98 @@
             }
             else
             {
-                <div class="pedidos-grid">
+                <div class="pedidos-list">
                     @foreach (var pedido in pedidos)
                     {
-                        <div class="pedido-card">
-                            <div class="pedido-header">
-                                <div class="pedido-info">
-                                    <h3>Pedido #@pedido.Id</h3>
-                                    <span class="pedido-fecha">@pedido.CreatedAt.ToString("dd/MM/yyyy")</span>
+                        <div class="accordion-item" key="@pedido.Id">
+                            <!-- Cabecera del Acordeón -->
+                            <button class="accordion-header" @onclick="() => ToggleAccordion(pedido.Id)">
+                                <div class="header-left">
+                                    <div class="header-info">
+                                        <h3>Pedido #@pedido.Id</h3>
+                                        <span class="fecha">@pedido.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
                                 </div>
-                                <span class="pedido-status @GetStatusClass(pedido.Status)">
-                                    @GetStatusText(pedido.Status)
-                                </span>
-                            </div>
 
-                            <div class="pedido-items">
-                                @if (pedido.OrderItems != null && pedido.OrderItems.Any())
-                                {
-                                    @foreach (var item in pedido.OrderItems)
+                                <div class="header-right">
+                                    <span class="pedido-status @GetStatusClass(pedido.Status)">
+                                        @GetStatusText(pedido.Status)
+                                    </span>
+                                    <span class="total">€@pedido.Total.ToString("N2")</span>
+                                    <svg class="chevron @(expandedOrders.Contains(pedido.Id) ? "open" : "")" 
+                                         width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
+                            </button>
+
+                            <!-- Contenido Colapsable -->
+                            @if (expandedOrders.Contains(pedido.Id))
+                            {
+                                <div class="accordion-content">
+                                    <!-- Dirección de Envío -->
+                                    <div class="content-section">
+                                        <h4>📍 Dirección de Envío</h4>
+                                        <p>@pedido.ShippingAddress</p>
+                                        <p>@pedido.City, @pedido.PostalCode</p>
+                                    </div>
+
+                                    <!-- Productos Comprados -->
+                                    <div class="content-section">
+                                        <h4>📦 Productos</h4>
+                                        <div class="items-list">
+                                            @if (pedido.OrderItems != null && pedido.OrderItems.Any())
+                                            {
+                                                @foreach (var item in pedido.OrderItems)
+                                                {
+                                                    <div class="order-item">
+                                                        <div class="item-detail">
+                                                            <p class="item-name">@item.ProductName</p>
+                                                            <p class="item-specs">
+                                                                @if (!string.IsNullOrEmpty(item.SelectedColor))
+                                                                {
+                                                                    <span>@item.SelectedColor</span>
+                                                                }
+                                                                @if (item.SelectedCentimeters.HasValue)
+                                                                {
+                                                                    <span>@item.SelectedCentimeters cm</span>
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                        <div class="item-quantity">x@(item.Quantity)</div>
+                                                        <div class="item-price">€@item.UnitPrice.ToString("N2")</div>
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Desglose de Precios -->
+                                    <div class="content-section price-breakdown">
+                                        <div class="breakdown-row">
+                                            <span>Subtotal:</span>
+                                            <span>€@pedido.Subtotal.ToString("N2")</span>
+                                        </div>
+                                        <div class="breakdown-row">
+                                            <span>Envío:</span>
+                                            <span>€@pedido.ShippingCost.ToString("N2")</span>
+                                        </div>
+                                        <div class="breakdown-row total">
+                                            <span>Total:</span>
+                                            <span>€@pedido.Total.ToString("N2")</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Notas si existen -->
+                                    @if (!string.IsNullOrEmpty(pedido.Notes))
                                     {
-                                        <div class="pedido-item">
-                                            <div class="item-info">
-                                                <p class="item-name">@item.ProductName</p>
-                                                <p class="item-details">
-                                                    @if (!string.IsNullOrEmpty(item.SelectedColor))
-                                                    {
-                                                        <span>Color: @item.SelectedColor</span>
-                                                    }
-                                                    @if (item.SelectedCentimeters.HasValue)
-                                                    {
-                                                        <span>@item.SelectedCentimeters cm</span>
-                                                    }
-                                                    <span>x @item.Quantity</span>
-                                                </p>
-                                            </div>
-                                            <span class="item-price">$@item.UnitPrice.ToString("N2")</span>
+                                        <div class="content-section">
+                                            <h4>📝 Notas</h4>
+                                            <p>@pedido.Notes</p>
                                         </div>
                                     }
-                                }
-                            </div>
-
-                            <div class="pedido-footer">
-                                <div class="pedido-address">
-                                    <strong>Envío a:</strong>
-                                    <p>@pedido.ShippingAddress, @pedido.City</p>
                                 </div>
-                                <div class="pedido-total">
-                                    <span>Total:</span>
-                                    <strong>$@pedido.Total.ToString("N2")</strong>
-                                </div>
-                            </div>
+                            }
                         </div>
                     }
                 </div>
@@ -167,158 +209,235 @@
         gap: 24px;
     }
 
-    .pedido-card {
+    /* Acordeón */
+    .pedidos-list {
+        display: grid;
+        gap: 16px;
+    }
+
+    .accordion-item {
         background: var(--white);
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 24px;
-        transition: box-shadow .3s;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: box-shadow 0.3s;
     }
 
-    .pedido-card:hover {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    .accordion-item:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
 
-    .pedido-header {
+    .accordion-header {
+        width: 100%;
         display: flex;
         justify-content: space-between;
-        align-items: start;
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--border);
+        align-items: center;
+        padding: 20px 24px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
     }
 
-    .pedido-info h3 {
-        font-size: 18px;
-        font-weight: 600;
+    .accordion-header:hover {
+        background-color: var(--off-white);
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        flex: 1;
+    }
+
+    .header-info h3 {
+        font-size: 16px;
+        font-weight: 700;
         color: var(--ink);
-        margin-bottom: 4px;
+        margin: 0 0 4px 0;
     }
 
-    .pedido-fecha {
-        font-size: 14px;
+    .header-info .fecha {
+        font-size: 13px;
         color: var(--muted);
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
     }
 
     .pedido-status {
         padding: 6px 12px;
         border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
+        font-size: 11px;
+        font-weight: 700;
         text-transform: uppercase;
+        white-space: nowrap;
     }
 
-    .status-pending {
-        background: #FFF3CD;
-        color: #856404;
-    }
-
-    .status-confirmed {
-        background: #D1ECF1;
-        color: #0C5460;
-    }
-
-    .status-processing {
-        background: #D1ECF1;
-        color: #0C5460;
-    }
-
-    .status-shipped {
-        background: #D4EDDA;
-        color: #155724;
-    }
-
-    .status-delivered {
-        background: #D4EDDA;
-        color: #155724;
-    }
-
-    .status-cancelled {
-        background: #F8D7DA;
-        color: #721C24;
-    }
-
-    .pedido-items {
-        margin-bottom: 20px;
-    }
-
-    .pedido-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--off-white);
-    }
-
-    .pedido-item:last-child {
-        border-bottom: none;
-    }
-
-    .item-name {
-        font-weight: 500;
-        color: var(--ink);
-        margin-bottom: 4px;
-    }
-
-    .item-details {
-        font-size: 13px;
-        color: var(--muted);
-        display: flex;
-        gap: 12px;
-    }
-
-    .item-price {
-        font-weight: 600;
-        color: var(--ink);
-    }
-
-    .pedido-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: end;
-        padding-top: 16px;
-        border-top: 1px solid var(--border);
-    }
-
-    .pedido-address {
-        font-size: 14px;
-    }
-
-    .pedido-address strong {
-        color: var(--ink-light);
-    }
-
-    .pedido-address p {
-        color: var(--muted);
-        margin-top: 4px;
-    }
-
-    .pedido-total {
+    .header-right .total {
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--rose);
+        min-width: 100px;
         text-align: right;
     }
 
-    .pedido-total span {
-        font-size: 14px;
+    .chevron {
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
         color: var(--muted);
-        display: block;
-        margin-bottom: 4px;
     }
 
-    .pedido-total strong {
-        font-size: 24px;
-        color: var(--rose);
+    .chevron.open {
+        transform: rotate(180deg);
+    }
+
+    /* Contenido del Acordeón */
+    .accordion-content {
+        padding: 24px;
+        border-top: 1px solid var(--border);
+        background: var(--off-white);
+        animation: slideDown 0.3s ease;
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .content-section {
+        margin-bottom: 24px;
+    }
+
+    .content-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .content-section h4 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0 0 12px 0;
+    }
+
+    .content-section p {
+        margin: 4px 0;
+        font-size: 14px;
+        color: var(--ink-light);
+    }
+
+    .items-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .order-item {
+        display: grid;
+        grid-template-columns: 1fr 60px 100px;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+
+    .item-detail {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .item-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--ink);
+        margin: 0;
+    }
+
+    .item-specs {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        gap: 6px;
+        margin: 0;
+    }
+
+    .item-specs span {
+        display: inline-block;
+    }
+
+    .item-quantity {
+        text-align: center;
+        font-weight: 600;
+        color: var(--ink-light);
+        font-size: 13px;
+    }
+
+    .item-price {
+        text-align: right;
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--ink);
+    }
+
+    .price-breakdown {
+        background: white;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        padding: 12px;
+    }
+
+    .breakdown-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        font-size: 14px;
+        color: var(--ink-light);
+        border-bottom: 1px solid var(--off-white);
+    }
+
+    .breakdown-row:last-child {
+        border-bottom: none;
+    }
+
+    .breakdown-row.total {
+        font-weight: 700;
+        color: var(--ink);
+        font-size: 16px;
+        padding: 12px 0 0 0;
+        border-top: 2px solid var(--border);
+    }
+
+    .breakdown-row span:last-child {
+        font-weight: 600;
     }
 
     @@media (max-width: 768px) {
-        .pedido-header {
+        .accordion-header {
             flex-direction: column;
             gap: 12px;
         }
 
-        .pedido-footer {
-            flex-direction: column;
-            gap: 16px;
-            align-items: start;
+        .header-right {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .order-item {
+            grid-template-columns: 1fr;
+        }
+
+        .item-price {
+            text-align: left;
         }
     }
 </style>
@@ -326,6 +445,7 @@
 @code {
     private List<Order> pedidos = new();
     private bool isLoading = true;
+    private HashSet<int> expandedOrders = new(); // ✅ Rastrear acordeones abiertos
 
     protected override async Task OnInitializedAsync()
     {
@@ -387,5 +507,18 @@
             5 => "status-cancelled",
             _ => "status-pending"
         };
+    }
+
+    // ✅ Método para alternar acordeón
+    private void ToggleAccordion(int orderId)
+    {
+        if (expandedOrders.Contains(orderId))
+        {
+            expandedOrders.Remove(orderId);
+        }
+        else
+        {
+            expandedOrders.Add(orderId);
+        }
     }
 }

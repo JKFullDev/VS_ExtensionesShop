@@ -118,16 +118,31 @@ public class EmailService : IEmailService
 
         foreach (var item in order.Items)
         {
-            sb.AppendLine("<tr>");
-            sb.AppendLine($"<td><strong>{item.ProductName}</strong>");
+            // Construir descripción completa del producto con variantes
+            var detalles = new List<string>();
+
+            // Agregar color si existe
             if (!string.IsNullOrEmpty(item.Color))
-                sb.AppendLine($"<br><small style='color:#888;'>Color: {item.Color}</small>");
+            {
+                detalles.Add(item.Color);
+            }
+
+            // Agregar longitud/centímetros si existe
             if (!string.IsNullOrEmpty(item.Length))
-                sb.AppendLine($"<br><small style='color:#888;'>Largo: {item.Length}</small>");
-            sb.AppendLine("</td>");
+            {
+                detalles.Add($"{item.Length}cm");
+            }
+
+            // Combinar el nombre del producto con los detalles
+            var descripcionCompleta = detalles.Any()
+                ? $"{item.ProductName} - {string.Join(" / ", detalles)}"
+                : item.ProductName;
+
+            sb.AppendLine("<tr>");
+            sb.AppendLine($"<td><strong>{descripcionCompleta}</strong></td>");
             sb.AppendLine($"<td style='text-align:center;'>{item.Quantity}</td>");
-            sb.AppendLine($"<td style='text-align:right;'>{item.UnitPrice:C2}</td>");
-            sb.AppendLine($"<td style='text-align:right;'><strong>{item.Subtotal:C2}</strong></td>");
+            sb.AppendLine($"<td style='text-align:right;'>{item.UnitPrice:N2}€</td>");
+            sb.AppendLine($"<td style='text-align:right;'><strong>{item.Subtotal:N2}€</strong></td>");
             sb.AppendLine("</tr>");
         }
 
@@ -135,7 +150,7 @@ public class EmailService : IEmailService
         sb.AppendLine("</div>");
 
         // Total
-        sb.AppendLine($"<div class='total'>TOTAL: {order.Total:C2}</div>");
+        sb.AppendLine($"<div class='total'>TOTAL: {order.Total:N2}€</div>");
 
         sb.AppendLine("</div>"); // content
 

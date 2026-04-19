@@ -222,14 +222,20 @@ public class OrdersController : ControllerBase
             }
 
             // ========================================
-            // 2. CARGAR TODOS LOS PRODUCTOS (una sola vez, rastreados)
+            // 2. CARGAR TODOS LOS PRODUCTOS Y VARIANTES (rastreados)
             // ========================================
             var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
+            var variantIds = request.Items.Where(i => i.ProductVariantId.HasValue).Select(i => i.ProductVariantId.Value).Distinct().ToList();
+
             var products = await _db.Products
                 .AsTracking() // ✅ Asegurar que EF Core los rastrée
                 .Include(p => p.Variants)
                 .Where(p => productIds.Contains(p.Id))
                 .ToListAsync();
+
+            var variants = variantIds.Any()
+                ? await _db.ProductVariants.AsTracking().Where(v => variantIds.Contains(v.Id)).ToListAsync()
+                : new List<ProductVariant>();
 
             // ========================================
             // 3. VALIDAR STOCK DISPONIBLE
@@ -246,12 +252,26 @@ public class OrdersController : ControllerBase
                     continue;
                 }
 
-                // Si tiene variantes, validar stock en variante específica
-                if (product.Variants.Any())
+                // Si item tiene ProductVariantId, usar variante específica
+                if (item.ProductVariantId.HasValue)
+                {
+                    var variant = variants.FirstOrDefault(v => v.Id == item.ProductVariantId.Value);
+
+                    if (variant == null)
+                    {
+                        validationErrors.Add($"{product.Name}: Variante no encontrada (ID: {item.ProductVariantId})");
+                    }
+                    else if (variant.Stock < item.Quantity)
+                    {
+                        validationErrors.Add($"{product.Name} ({variant.Color}, {variant.Centimeters}cm): Stock insuficiente. Disponibles: {variant.Stock}, Solicitados: {item.Quantity}");
+                    }
+                }
+                // Si el producto tiene variantes pero no especificó ProductVariantId, validar por color y centimeters
+                else if (product.Variants.Any())
                 {
                     var variant = product.Variants.FirstOrDefault(v =>
-                        v.Color == item.SelectedColor &&
-                        v.Centimeters == item.SelectedCentimeters);
+                        (v.Color ?? string.Empty).Trim() == (item.SelectedColor ?? string.Empty).Trim() &&
+                        Math.Abs((v.Centimeters ?? 0) - (item.SelectedCentimeters ?? 0)) < 0.01m);
 
                     if (variant == null)
                     {
@@ -259,7 +279,7 @@ public class OrdersController : ControllerBase
                     }
                     else if (variant.Stock < item.Quantity)
                     {
-                        validationErrors.Add($"{product.Name} ({item.SelectedColor}): Stock insuficiente. Disponibles: {variant.Stock}, Solicitados: {item.Quantity}");
+                        validationErrors.Add($"{product.Name} ({item.SelectedColor}, {item.SelectedCentimeters}cm): Stock insuficiente. Disponibles: {variant.Stock}, Solicitados: {item.Quantity}");
                     }
                 }
                 else
@@ -305,6 +325,7 @@ public class OrdersController : ControllerBase
                 CustomerPhone = request.CustomerPhone,
                 ShippingAddress = request.ShippingAddress,
                 City = request.City,
+                Province = request.Province,
                 PostalCode = request.PostalCode,
                 Subtotal = request.Total,
                 ShippingCost = 0,
@@ -333,12 +354,23 @@ public class OrdersController : ControllerBase
                 // ========================================
                 // RESTAR STOCK
                 // ========================================
-                if (product.Variants.Any())
+                // Si item tiene ProductVariantId, restar de esa variante específica
+                if (item.ProductVariantId.HasValue)
                 {
-                    // Restar de variante específica
+                    var variant = variants.FirstOrDefault(v => v.Id == item.ProductVariantId.Value);
+                    if (variant != null)
+                    {
+                        variant.Stock -= item.Quantity;
+                        _logger.LogInformation("📉 Stock reducido para variante {VariantId} de {ProductName}: {NewStock}", 
+                            variant.Id, product.Name, variant.Stock);
+                    }
+                }
+                // Si el producto tiene variantes, restar de la variante que coincida
+                else if (product.Variants.Any())
+                {
                     var variant = product.Variants.FirstOrDefault(v =>
-                        v.Color == item.SelectedColor &&
-                        v.Centimeters == item.SelectedCentimeters);
+                        (v.Color ?? string.Empty).Trim() == (item.SelectedColor ?? string.Empty).Trim() &&
+                        Math.Abs((v.Centimeters ?? 0) - (item.SelectedCentimeters ?? 0)) < 0.01m);
 
                     if (variant != null)
                     {
@@ -347,9 +379,9 @@ public class OrdersController : ControllerBase
                             product.Name, variant.Color, variant.Centimeters, variant.Stock);
                     }
                 }
+                // Si no tiene variantes, restar del stock general
                 else
                 {
-                    // Restar del stock general (StockValue)
                     product.StockValue -= item.Quantity;
                     _logger.LogInformation("📉 Stock reducido para {ProductName}: {NewStock}", product.Name, product.StockValue);
                 }
@@ -384,7 +416,7 @@ public class OrdersController : ControllerBase
             try
             {
                 var adminEmail = _configuration["Email:OwnerEmail"] ?? "hola@extensiones.shop";
-                var adminBody = GenerateAdminOrderEmailHtml(order, request);
+                var adminBody = GenerateAdminOrderEmailHtml(order, request, products);
 
                 await _emailService.SendEmailAsync(
                     toEmail: adminEmail,
@@ -405,7 +437,7 @@ public class OrdersController : ControllerBase
             // ========================================
             try
             {
-                var clientBody = GenerateClientOrderEmailHtml(order, request);
+                var clientBody = GenerateClientOrderEmailHtml(order, request, products);
 
                 await _emailService.SendEmailAsync(
                     toEmail: request.CustomerEmail,
@@ -477,6 +509,7 @@ public class OrdersController : ControllerBase
                 CustomerPhone = request.CustomerPhone,
                 ShippingAddress = request.ShippingAddress,
                 City = ExtractCity(request.ShippingAddress),
+                Province = request.ShippingAddress, // Se puede mejorar si se envía explícitamente
                 PostalCode = ExtractPostalCode(request.ShippingAddress),
                 Subtotal = request.Total,
                 ShippingCost = 0,
@@ -627,14 +660,18 @@ public class OrdersController : ControllerBase
 
             foreach (var item in request.Items)
             {
+                var details = "";
+                if (!string.IsNullOrEmpty(item.Color)) details += $" - {item.Color}";
+                if (!string.IsNullOrEmpty(item.Length)) details += $" - {item.Length}cm";
+
                 adminBody += $@"
                         <tr style='border-bottom: 1px solid #eee;'>
-                            <td style='padding: 12px;'>{item.ProductName}</td>
+                            <td style='padding: 12px;'>{item.ProductName}{details}</td>
                             <td style='padding: 12px; text-align: center;'>{item.Color ?? "-"}</td>
                             <td style='padding: 12px; text-align: center;'>{item.Length ?? "-"}</td>
                             <td style='padding: 12px; text-align: center;'>{item.Quantity}</td>
-                            <td style='padding: 12px; text-align: right;'>${item.UnitPrice:N2}</td>
-                            <td style='padding: 12px; text-align: right; font-weight: bold;'>${item.Subtotal:N2}</td>
+                            <td style='padding: 12px; text-align: right;'>€{item.UnitPrice:N2}</td>
+                            <td style='padding: 12px; text-align: right; font-weight: bold;'>€{item.Subtotal:N2}</td>
                         </tr>
                 ";
             }
@@ -719,7 +756,7 @@ public class OrdersController : ControllerBase
     /// <summary>
     /// Genera HTML profesional para email al administrador
     /// </summary>
-    private string GenerateAdminOrderEmailHtml(Order order, PlaceOrderRequest request)
+    private string GenerateAdminOrderEmailHtml(Order order, PlaceOrderRequest request, List<Product> products)
     {
         var sb = new System.Text.StringBuilder();
 
@@ -770,6 +807,7 @@ public class OrdersController : ControllerBase
         sb.AppendLine("<div class='section-title'>📦 DIRECCIÓN DE ENVÍO</div>");
         sb.AppendLine($"<div class='info-row'><span class='info-label'>Dirección:</span><span class='info-value'>{order.ShippingAddress}</span></div>");
         sb.AppendLine($"<div class='info-row'><span class='info-label'>Ciudad:</span><span class='info-value'>{order.City}</span></div>");
+        sb.AppendLine($"<div class='info-row'><span class='info-label'>Provincia:</span><span class='info-value'>{order.Province}</span></div>");
         sb.AppendLine($"<div class='info-row'><span class='info-label'>Código Postal:</span><span class='info-value'>{order.PostalCode}</span></div>");
         sb.AppendLine("</div>");
 
@@ -777,19 +815,72 @@ public class OrdersController : ControllerBase
         sb.AppendLine("<div class='section'>");
         sb.AppendLine("<div class='section-title'>🛍️ ARTÍCULOS DEL PEDIDO</div>");
         sb.AppendLine("<table>");
-        sb.AppendLine("<thead><tr><th>Producto</th><th>Cantidad</th><th>Precio Unit.</th><th>Subtotal</th></tr></thead>");
+        sb.AppendLine("<thead><tr><th style='width: 80px;'>Imagen</th><th>Producto</th><th>Cantidad</th><th>Precio Unit.</th><th>Subtotal</th></tr></thead>");
         sb.AppendLine("<tbody>");
 
         foreach (var item in request.Items)
         {
-            var details = "";
-            if (!string.IsNullOrEmpty(item.SelectedColor)) details += $" - {item.SelectedColor}";
-            if (item.SelectedCentimeters.HasValue) details += $" - {item.SelectedCentimeters}cm";
+            // Construir descripción completa del producto con variantes
+            var detalles = new List<string>();
 
-            sb.AppendLine($"<tr><td><strong>{item.ProductName}</strong>{details}</td><td style='text-align: center;'>{item.Quantity}</td><td>€{item.UnitPrice:N2}</td><td>€{(item.UnitPrice * item.Quantity):N2}</td></tr>");
+            // Agregar color si existe (de la variante o del producto padre)
+            var colorDisplay = item.SelectedColor;
+            if (string.IsNullOrEmpty(colorDisplay))
+            {
+                var producto = products.FirstOrDefault(p => p.Id == item.ProductId);
+                if (producto != null && !string.IsNullOrEmpty(producto.Color))
+                {
+                    colorDisplay = producto.Color;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(colorDisplay))
+            {
+                detalles.Add(colorDisplay);
+            }
+
+            // Agregar centímetros si existen (de la variante o del producto padre)
+            decimal? cmDisplay = item.SelectedCentimeters;
+            if (!cmDisplay.HasValue || cmDisplay == 0)
+            {
+                var producto = products.FirstOrDefault(p => p.Id == item.ProductId);
+                if (producto != null && producto.Centimeters.HasValue && producto.Centimeters > 0)
+                {
+                    cmDisplay = producto.Centimeters;
+                }
+            }
+
+            if (cmDisplay.HasValue && cmDisplay > 0)
+            {
+                detalles.Add($"{cmDisplay}cm");
+            }
+
+            // Combinar el nombre del producto con los detalles
+            var descripcionCompleta = detalles.Any()
+                ? $"{item.ProductName} - {string.Join(" / ", detalles)}"
+                : item.ProductName;
+
+            // Construir HTML de la fila con imagen
+            sb.AppendLine($"<tr>");
+
+            // Columna de imagen
+            if (!string.IsNullOrEmpty(item.ImageUrl))
+            {
+                sb.AppendLine($"<td style='text-align: center;'><img src='{item.ImageUrl}' alt='{item.ProductName}' style='width: 60px; height: 60px; object-fit: cover; border-radius: 6px;' /></td>");
+            }
+            else
+            {
+                sb.AppendLine($"<td style='text-align: center;'><div style='width: 60px; height: 60px; background: #f0f0f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;'>Sin imagen</div></td>");
+            }
+
+            sb.AppendLine($"<td><strong>{descripcionCompleta}</strong></td>");
+            sb.AppendLine($"<td style='text-align: center;'>{item.Quantity}</td>");
+            sb.AppendLine($"<td>€{item.UnitPrice:N2}</td>");
+            sb.AppendLine($"<td>€{(item.UnitPrice * item.Quantity):N2}</td>");
+            sb.AppendLine($"</tr>");
         }
 
-        sb.AppendLine("<tr class='total-row'><td colspan='3' style='text-align: right;'>TOTAL:</td><td>€{0:N2}</td></tr>".Replace("{0}", order.Total.ToString("N2")));
+        sb.AppendLine($"<tr class='total-row'><td colspan='5' style='text-align: right;'>TOTAL:</td><td>€{order.Total:N2}</td></tr>");
         sb.AppendLine("</tbody>");
         sb.AppendLine("</table>");
         sb.AppendLine("</div>");
@@ -832,7 +923,7 @@ public class OrdersController : ControllerBase
     /// <summary>
     /// Genera HTML para email de confirmación al cliente
     /// </summary>
-    private string GenerateClientOrderEmailHtml(Order order, PlaceOrderRequest request)
+    private string GenerateClientOrderEmailHtml(Order order, PlaceOrderRequest request, List<Product> products)
     {
         var sb = new System.Text.StringBuilder();
 
@@ -874,16 +965,67 @@ public class OrdersController : ControllerBase
         sb.AppendLine("<div class='section'>");
         sb.AppendLine("<div class='section-title'>📦 Resumen de tu Pedido</div>");
         sb.AppendLine("<table>");
-        sb.AppendLine("<thead><tr><th>Producto</th><th>Cantidad</th><th>Subtotal</th></tr></thead>");
+        sb.AppendLine("<thead><tr><th style='width: 80px;'>Imagen</th><th>Producto</th><th>Cantidad</th><th>Subtotal</th></tr></thead>");
         sb.AppendLine("<tbody>");
 
         foreach (var item in request.Items)
         {
-            var details = "";
-            if (!string.IsNullOrEmpty(item.SelectedColor)) details += $" - {item.SelectedColor}";
-            if (item.SelectedCentimeters.HasValue) details += $" - {item.SelectedCentimeters}cm";
+            // Construir descripción completa del producto con variantes
+            var detalles = new List<string>();
 
-            sb.AppendLine($"<tr><td><strong>{item.ProductName}</strong>{details}</td><td style='text-align: center;'>{item.Quantity}</td><td>€{(item.UnitPrice * item.Quantity):N2}</td></tr>");
+            // Agregar color si existe (de la variante o del producto padre)
+            var colorDisplay = item.SelectedColor;
+            if (string.IsNullOrEmpty(colorDisplay))
+            {
+                var producto = products.FirstOrDefault(p => p.Id == item.ProductId);
+                if (producto != null && !string.IsNullOrEmpty(producto.Color))
+                {
+                    colorDisplay = producto.Color;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(colorDisplay))
+            {
+                detalles.Add(colorDisplay);
+            }
+
+            // Agregar centímetros si existen (de la variante o del producto padre)
+            decimal? cmDisplay = item.SelectedCentimeters;
+            if (!cmDisplay.HasValue || cmDisplay == 0)
+            {
+                var producto = products.FirstOrDefault(p => p.Id == item.ProductId);
+                if (producto != null && producto.Centimeters.HasValue && producto.Centimeters > 0)
+                {
+                    cmDisplay = producto.Centimeters;
+                }
+            }
+
+            if (cmDisplay.HasValue && cmDisplay > 0)
+            {
+                detalles.Add($"{cmDisplay}cm");
+            }
+
+            // Combinar el nombre del producto con los detalles
+            var descripcionCompleta = detalles.Any()
+                ? $"{item.ProductName} - {string.Join(" / ", detalles)}"
+                : item.ProductName;
+
+            sb.AppendLine($"<tr>");
+
+            // Columna de imagen
+            if (!string.IsNullOrEmpty(item.ImageUrl))
+            {
+                sb.AppendLine($"<td style='text-align: center;'><img src='{item.ImageUrl}' alt='{item.ProductName}' style='width: 60px; height: 60px; object-fit: cover; border-radius: 6px;' /></td>");
+            }
+            else
+            {
+                sb.AppendLine($"<td style='text-align: center;'><div style='width: 60px; height: 60px; background: #f0f0f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;'>Sin imagen</div></td>");
+            }
+
+            sb.AppendLine($"<td><strong>{descripcionCompleta}</strong></td>");
+            sb.AppendLine($"<td style='text-align: center;'>{item.Quantity}</td>");
+            sb.AppendLine($"<td>€{(item.UnitPrice * item.Quantity):N2}</td>");
+            sb.AppendLine($"</tr>");
         }
 
         sb.AppendLine("</tbody>");
@@ -982,6 +1124,7 @@ public class PlaceOrderRequest
     public string CustomerPhone { get; set; } = string.Empty;
     public string ShippingAddress { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+    public string Province { get; set; } = string.Empty;  // ✅ NUEVO: Provincia
     public string PostalCode { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public List<PlaceOrderItemRequest> Items { get; set; } = new();
@@ -991,10 +1134,12 @@ public class PlaceOrderRequest
 public class PlaceOrderItemRequest
 {
     public int ProductId { get; set; }
+    public int? ProductVariantId { get; set; }  // ✅ NUEVO: ID de variante específica
     public string ProductName { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public string? SelectedColor { get; set; }
     public decimal? SelectedCentimeters { get; set; }
+    public string? ImageUrl { get; set; }  // ✅ NUEVO: URL de la imagen del producto
 }
 

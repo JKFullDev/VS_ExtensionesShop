@@ -125,8 +125,14 @@
 
                                     <div class="form-group">
                                         <label for="provincia">Provincia *</label>
-                                        <InputText id="provincia" @bind-Value="checkoutForm.Provincia" 
-                                                   class="form-control" placeholder="Madrid" />
+                                        <InputSelect id="provincia" @bind-Value="checkoutForm.Provincia" 
+                                                     class="form-control">
+                                            <option value="">-- Selecciona una provincia --</option>
+                                            @foreach (var prov in provincias)
+                                            {
+                                                <option value="@prov">@prov</option>
+                                            }
+                                        </InputSelect>
                                         <ValidationMessage For="@(() => checkoutForm.Provincia)" />
                                     </div>
 
@@ -532,6 +538,62 @@
     private string numeroPedido = string.Empty;
     private string errorMessage = string.Empty;
 
+    // ✅ Lista de provincias españolas
+    private List<string> provincias = new()
+    {
+        "Álava",
+        "Albacete",
+        "Alicante",
+        "Almería",
+        "Ávila",
+        "Badajoz",
+        "Barcelona",
+        "Burgos",
+        "Cáceres",
+        "Cádiz",
+        "Cantabria",
+        "Castellón",
+        "Ceuta",
+        "Ciudad Real",
+        "Córdoba",
+        "Cuenca",
+        "Girona",
+        "Granada",
+        "Guadalajara",
+        "Guipúzcoa",
+        "Huelva",
+        "Huesca",
+        "Islas Baleares",
+        "Jaén",
+        "La Coruña",
+        "La Rioja",
+        "Las Palmas",
+        "León",
+        "Lleida",
+        "Lugo",
+        "Madrid",
+        "Málaga",
+        "Melilla",
+        "Murcia",
+        "Navarra",
+        "Ourense",
+        "Palencia",
+        "Palma de Mallorca",
+        "Pontevedra",
+        "Salamanca",
+        "Segovia",
+        "Sevilla",
+        "Soria",
+        "Tarragona",
+        "Teruel",
+        "Toledo",
+        "Valencia",
+        "Valladolid",
+        "Vizcaya",
+        "Zamora",
+        "Zaragoza"
+    };
+
     protected override void OnInitialized()
     {
         if (!CartState.Items.Any())
@@ -550,6 +612,7 @@
             checkoutForm.Telefono = user.Phone ?? string.Empty;
             checkoutForm.Direccion = user.Address ?? string.Empty;
             checkoutForm.Ciudad = user.City ?? string.Empty;
+            checkoutForm.Provincia = user.Province ?? string.Empty;
             checkoutForm.CodigoPostal = user.PostalCode ?? string.Empty;
 
             Console.WriteLine($"✅ Datos del usuario prellenados: {checkoutForm.NombreCompleto}");
@@ -567,8 +630,9 @@
                 CustomerName = checkoutForm.NombreCompleto,
                 CustomerEmail = checkoutForm.Email,
                 CustomerPhone = checkoutForm.Telefono,
-                ShippingAddress = $"{checkoutForm.Direccion}, {checkoutForm.Ciudad}, {checkoutForm.Provincia} {checkoutForm.CodigoPostal}",
+                ShippingAddress = checkoutForm.Direccion,
                 City = checkoutForm.Ciudad,
+                Province = checkoutForm.Provincia,  // ✅ NUEVO: Incluir Provincia
                 PostalCode = checkoutForm.CodigoPostal,
                 Notes = checkoutForm.Notas,
                 Items = CartState.Items.Select(item => new
@@ -578,7 +642,8 @@
                     Quantity = item.Cantidad,
                     UnitPrice = item.Producto.Price,
                     SelectedColor = item.Producto.Color,
-                    SelectedCentimeters = item.Producto.Centimeters
+                    SelectedCentimeters = item.Producto.Centimeters,
+                    ImageUrl = item.Producto.ImageUrl  // ✅ NUEVO: Incluir URL de imagen
                 }).ToList(),
                 Total = CartState.Total,
                 OrderDate = DateTime.Now

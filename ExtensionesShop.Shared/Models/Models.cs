@@ -96,6 +96,7 @@ public class User
     public string Phone { get; set; } = string.Empty;
     public string? Address { get; set; }
     public string? City { get; set; }
+    public string? Province { get; set; }
     public string? PostalCode { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -127,6 +128,7 @@ public class Order
     public string CustomerPhone { get; set; } = string.Empty;
     public string ShippingAddress { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+    public string Province { get; set; } = string.Empty;
     public string PostalCode { get; set; } = string.Empty;
 
     // Totales

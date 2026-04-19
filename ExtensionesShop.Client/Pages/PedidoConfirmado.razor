@@ -6,96 +6,56 @@
 
 <div class="pedido-confirmado-page">
     <div class="confirmation-container">
-        <!-- Icono de Éxito -->
-        <div class="success-icon-wrapper">
-            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-        </div>
-
-        <!-- Título y Mensaje Principal -->
-        <div class="confirmation-header">
-            <h1>¡Pedido Recibido!</h1>
-            <p class="subtitle">Tu pedido ha sido confirmado exitosamente</p>
-        </div>
-
-        <!-- Contenido Principal -->
-        <div class="confirmation-content">
-            <div class="message-box">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 16v-4"/>
-                    <path d="M12 8h.01"/>
-                </svg>
-                <div class="message-text">
-                    <h3>Nos pondremos en contacto contigo en las próximas horas</h3>
-                    <p>Te enviaremos un correo con los detalles del pago y confirmaremos el envío de tu pedido.</p>
+        <!-- Tarjeta Principal de Confirmación -->
+        <div class="confirmation-card">
+            <!-- Lado Izquierdo: Mensaje de Éxito -->
+            <div class="success-section">
+                <div class="success-icon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                
+                <div class="success-message">
+                    <h1>¡Pedido Recibido!</h1>
+                    <p class="message">Tu pedido ha sido confirmado exitosamente</p>
+                    <p class="submessage">Nos pondremos en contacto contigo en las próximas horas para coordinar los detalles del pago.</p>
                 </div>
             </div>
 
-            <!-- Pasos Siguientes -->
-            <div class="next-steps-box">
-                <h3>Próximos Pasos</h3>
-                <div class="steps-list">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h4>Confirmación por Email</h4>
-                            <p>Recibirás un correo confirmando tu pedido con todos los detalles</p>
+            <!-- Lado Derecho: Resumen Rápido -->
+            <div class="summary-section">
+                <div class="quick-summary">
+                    <h3>Próximos Pasos</h3>
+                    <div class="steps-mini">
+                        <div class="step-mini">
+                            <span class="step-number">1</span>
+                            <span class="step-text">Confirmación por Email</span>
                         </div>
-                    </div>
-
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h4>Contacto para Pago</h4>
-                            <p>Nuestro equipo se comunicará contigo para coordinar el método de pago</p>
+                        <div class="step-mini">
+                            <span class="step-number">2</span>
+                            <span class="step-text">Contacto para Pago</span>
                         </div>
-                    </div>
-
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <h4>Envío Rápido</h4>
-                            <p>Una vez confirmado el pago, enviaremos tu pedido en 24-48 horas</p>
+                        <div class="step-mini">
+                            <span class="step-number">3</span>
+                            <span class="step-text">Envío en 24-48h</span>
                         </div>
-                    </div>
-
-                    <div class="step">
-                        <div class="step-number">4</div>
-                        <div class="step-content">
-                            <h4>Seguimiento</h4>
-                            <p>Recibirás tu número de seguimiento para rastrear tu paquete</p>
+                        <div class="step-mini">
+                            <span class="step-number">4</span>
+                            <span class="step-text">Seguimiento</span>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Información de Contacto -->
-            <div class="contact-info-box">
-                <h3>¿Preguntas?</h3>
-                <p>Si tienes alguna duda sobre tu pedido, no dudes en ponerte en contacto con nosotros:</p>
-                <div class="contact-methods">
-                    <div class="contact-method">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="contact-box">
+                    <h4>¿Preguntas?</h4>
+                    <a href="mailto:hola@extensiones.shop" class="contact-link">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
-                        <div>
-                            <h4>Email</h4>
-                            <a href="mailto:hola@extensiones.shop">hola@extensiones.shop</a>
-                        </div>
-                    </div>
-
-                    <div class="contact-method">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                        </svg>
-                        <div>
-                            <h4>Teléfono</h4>
-                            <a href="tel:+34600000000">+34 600 00 00 00</a>
-                        </div>
-                    </div>
+                        hola@extensiones.shop
+                    </a>
                 </div>
             </div>
         </div>
@@ -125,27 +85,44 @@
     .pedido-confirmado-page {
         min-height: 100vh;
         background: linear-gradient(135deg, #f5f1f3 0%, #faf8fa 100%);
-        padding: 60px 20px;
+        padding: 40px 20px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
     .confirmation-container {
-        max-width: 700px;
+        max-width: 800px;
         width: 100%;
-        background: white;
-        border-radius: 20px;
-        padding: 60px 40px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-        text-align: center;
     }
 
-    .success-icon-wrapper {
+    /* Tarjeta Principal */
+    .confirmation-card {
+        background: white;
+        border-radius: 16px;
+        padding: 48px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 48px;
         margin-bottom: 32px;
     }
 
-    .success-icon-wrapper svg {
+    /* Lado Izquierdo: Éxito */
+    .success-section {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        align-items: flex-start;
+    }
+
+    .success-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .success-icon svg {
         color: #10B981;
         animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -161,260 +138,181 @@
         }
     }
 
-    .confirmation-header h1 {
-        font-family: var(--font-display, serif);
-        font-size: 42px;
+    .success-message h1 {
+        font-family: var(--font-display, 'Segoe UI', serif);
+        font-size: 28px;
         font-weight: 400;
-        color: var(--ink);
+        color: var(--ink, #333);
         margin: 0 0 12px 0;
-        line-height: 1.2;
+        line-height: 1.3;
     }
 
-    .confirmation-header .subtitle {
-        font-size: 18px;
-        color: var(--muted);
+    .success-message .message {
+        font-size: 15px;
+        color: var(--muted, #666);
+        margin: 0 0 12px 0;
+        font-weight: 500;
+    }
+
+    .success-message .submessage {
+        font-size: 13px;
+        color: var(--ink-light, #888);
         margin: 0;
-    }
-
-    .confirmation-content {
-        text-align: left;
-        margin-top: 40px;
-    }
-
-    /* Message Box */
-    .message-box {
-        background: linear-gradient(135deg, #FDF0F3 0%, #FCE8F0 100%);
-        border: 2px solid #E8607A;
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 32px;
-        display: flex;
-        gap: 16px;
-        align-items: flex-start;
-    }
-
-    .message-box svg {
-        color: #E8607A;
-        flex-shrink: 0;
-        margin-top: 4px;
-    }
-
-    .message-text h3 {
-        margin: 0 0 8px 0;
-        color: var(--ink);
-        font-size: 16px;
-        font-weight: 700;
-    }
-
-    .message-text p {
-        margin: 0;
-        color: var(--ink-light);
-        font-size: 14px;
         line-height: 1.6;
     }
 
-    /* Next Steps */
-    .next-steps-box {
-        margin-bottom: 32px;
+    /* Lado Derecho: Resumen */
+    .summary-section {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
     }
 
-    .next-steps-box h3 {
-        font-family: var(--font-display, serif);
-        font-size: 20px;
-        font-weight: 400;
-        color: var(--ink);
-        margin: 0 0 24px 0;
+    .quick-summary h3 {
+        font-family: var(--font-display, 'Segoe UI', serif);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink, #333);
+        margin: 0 0 16px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .steps-list {
+    .steps-mini {
         display: grid;
-        gap: 16px;
+        gap: 12px;
     }
 
-    .step {
+    .step-mini {
         display: grid;
-        grid-template-columns: 50px 1fr;
-        gap: 16px;
-        align-items: start;
-        padding: 16px;
-        background: var(--off-white);
-        border-radius: 12px;
-        border-left: 4px solid var(--rose);
+        grid-template-columns: 32px 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        background: var(--off-white, #f9f9f9);
+        border-radius: 8px;
+        border-left: 3px solid var(--rose, #E8607A);
     }
 
     .step-number {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 50px;
-        height: 50px;
-        background: var(--rose);
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #E8607A 0%, #d94a65 100%);
         color: white;
         border-radius: 50%;
-        font-weight: 700;
-        font-size: 20px;
-        flex-shrink: 0;
-    }
-
-    .step-content h4 {
-        margin: 0 0 4px 0;
-        color: var(--ink);
-        font-size: 15px;
-        font-weight: 700;
-    }
-
-    .step-content p {
-        margin: 0;
-        color: var(--muted);
         font-size: 13px;
-        line-height: 1.5;
-    }
-
-    /* Contact Info */
-    .contact-info-box {
-        background: var(--off-white);
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 32px;
-    }
-
-    .contact-info-box h3 {
-        font-family: var(--font-display, serif);
-        font-size: 18px;
-        font-weight: 400;
-        color: var(--ink);
-        margin: 0 0 8px 0;
-    }
-
-    .contact-info-box > p {
-        margin: 0 0 20px 0;
-        color: var(--ink-light);
-        font-size: 14px;
-    }
-
-    .contact-methods {
-        display: grid;
-        gap: 16px;
-    }
-
-    .contact-method {
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-    }
-
-    .contact-method svg {
-        color: var(--rose);
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-
-    .contact-method h4 {
-        margin: 0 0 4px 0;
-        color: var(--ink);
-        font-size: 14px;
         font-weight: 700;
+        flex-shrink: 0;
     }
 
-    .contact-method a {
-        color: var(--rose);
-        text-decoration: none;
-        font-size: 14px;
+    .step-text {
+        font-size: 13px;
+        color: var(--ink, #333);
         font-weight: 500;
     }
 
-    .contact-method a:hover {
+    .contact-box {
+        padding: 16px;
+        background: linear-gradient(135deg, #FDF0F3 0%, #FCE8F0 100%);
+        border: 1px solid #E8D5E0;
+        border-radius: 8px;
+    }
+
+    .contact-box h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink, #333);
+        margin: 0 0 8px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .contact-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--rose, #E8607A);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        transition: opacity 0.2s;
+    }
+
+    .contact-link:hover {
+        opacity: 0.8;
         text-decoration: underline;
     }
 
-    /* Action Buttons */
-    .action-buttons {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-        flex-wrap: wrap;
+    .contact-link svg {
+        color: var(--rose, #E8607A);
     }
 
-    .action-buttons a {
+    /* Botones de Acción */
+    .action-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+    }
+
+    .btn-primary, .btn-secondary {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 12px 24px;
+        justify-content: center;
+        gap: 10px;
+        padding: 14px 28px;
         border-radius: 10px;
-        font-weight: 600;
         font-size: 14px;
+        font-weight: 600;
         text-decoration: none;
-        transition: all 0.3s ease;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
     }
 
     .btn-primary {
-        background: var(--rose);
+        background: linear-gradient(135deg, #E8607A 0%, #d94a65 100%);
         color: white;
+        box-shadow: 0 4px 15px rgba(232, 96, 122, 0.3);
     }
 
     .btn-primary:hover {
-        background: #d94a65;
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(232, 96, 122, 0.3);
+        box-shadow: 0 6px 20px rgba(232, 96, 122, 0.4);
     }
 
     .btn-secondary {
         background: white;
-        color: var(--rose);
-        border: 2px solid var(--rose);
+        color: var(--ink, #333);
+        border: 2px solid var(--border, #ddd);
     }
 
     .btn-secondary:hover {
-        background: var(--rose-pale);
-        transform: translateY(-2px);
+        background: var(--off-white, #f9f9f9);
+        border-color: var(--rose, #E8607A);
+        color: var(--rose, #E8607A);
     }
 
     /* Responsive */
-    @@media (max-width: 640px) {
-        .pedido-confirmado-page {
-            padding: 40px 16px;
-        }
-
-        .confirmation-container {
-            padding: 40px 24px;
-        }
-
-        .confirmation-header h1 {
-            font-size: 32px;
-        }
-
-        .message-box {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .message-box svg {
-            margin: 0 auto;
-        }
-
-        .step {
+    @@media (max-width: 768px) {
+        .confirmation-card {
             grid-template-columns: 1fr;
-            text-align: center;
-        }
-
-        .step-number {
-            margin: 0 auto;
+            gap: 32px;
+            padding: 32px 24px;
         }
 
         .action-buttons {
             flex-direction: column;
+            gap: 12px;
         }
 
-        .action-buttons a {
+        .btn-primary, .btn-secondary {
             width: 100%;
-            justify-content: center;
         }
     }
 </style>
 
 @code {
-    protected override void OnInitialized()
-    {
-        // Página de confirmación - no requiere lógica especial
-    }
 }

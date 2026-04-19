@@ -84,6 +84,18 @@
                                 </div>
 
                                 <div class="form-group">
+                                    <label for="province">Provincia *</label>
+                                    <InputSelect id="province" @bind-Value="registroForm.Province" class="form-control">
+                                        <option value="">-- Selecciona una provincia --</option>
+                                        @foreach (var province in provincias)
+                                        {
+                                            <option value="@province">@province</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => registroForm.Province)" />
+                                </div>
+
+                                <div class="form-group">
                                     <label for="postalCode">Código Postal *</label>
                                     <InputText id="postalCode" @bind-Value="registroForm.PostalCode" class="form-control" placeholder="Ej: 28001" maxlength="10" />
                                     <ValidationMessage For="@(() => registroForm.PostalCode)" />
@@ -431,6 +443,62 @@
     private bool registroExitoso = false;
     private string errorMessage = string.Empty;
 
+    // ✅ Lista de provincias españolas
+    private List<string> provincias = new()
+    {
+        "Álava",
+        "Albacete",
+        "Alicante",
+        "Almería",
+        "Ávila",
+        "Badajoz",
+        "Barcelona",
+        "Burgos",
+        "Cáceres",
+        "Cádiz",
+        "Cantabria",
+        "Castellón",
+        "Ceuta",
+        "Ciudad Real",
+        "Córdoba",
+        "Cuenca",
+        "Girona",
+        "Granada",
+        "Guadalajara",
+        "Guipúzcoa",
+        "Huelva",
+        "Huesca",
+        "Islas Baleares",
+        "Jaén",
+        "La Coruña",
+        "La Rioja",
+        "Las Palmas",
+        "León",
+        "Lleida",
+        "Lugo",
+        "Madrid",
+        "Málaga",
+        "Melilla",
+        "Murcia",
+        "Navarra",
+        "Ourense",
+        "Palencia",
+        "Palma de Mallorca",
+        "Pontevedra",
+        "Salamanca",
+        "Segovia",
+        "Sevilla",
+        "Soria",
+        "Tarragona",
+        "Teruel",
+        "Toledo",
+        "Valencia",
+        "Valladolid",
+        "Vizcaya",
+        "Zamora",
+        "Zaragoza"
+    };
+
     private async Task EnviarRegistro()
     {
         if (!registroForm.AceptoTerminos)
@@ -472,6 +540,7 @@
                 Phone = registroForm.Phone,
                 Address = registroForm.Address,
                 City = registroForm.City,
+                Province = registroForm.Province,
                 PostalCode = registroForm.PostalCode,
                 RecaptchaToken = recaptchaToken
             };
@@ -525,6 +594,10 @@
         [Required(ErrorMessage = "La ciudad es necesaria para el envío")]
         [MaxLength(100, ErrorMessage = "La ciudad no puede exceder 100 caracteres")]
         public string City { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La provincia es obligatoria")]
+        [MaxLength(100, ErrorMessage = "La provincia no puede exceder 100 caracteres")]
+        public string Province { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El código postal es necesario para el envío")]
         [MaxLength(10, ErrorMessage = "El código postal no puede exceder 10 caracteres")]

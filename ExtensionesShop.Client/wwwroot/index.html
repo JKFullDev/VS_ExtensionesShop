@@ -28,14 +28,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-    <!-- Google reCAPTCHA v3 -->
-    <!-- <script src="https://www.google.com/recaptcha/api.js?render=6LcBwoYsAAAAAMYFgTaSwQjsY3DxTR48Ps6zTpCf"></script> -->
 
     <!-- App CSS -->
     <link href="/css/app.css" rel="stylesheet" />
 
     <!-- Blazor component styles -->
     <link href="/ExtensionesShop.Client.styles.css" rel="stylesheet" />
+
+    <!-- Google reCAPTCHA v3 - Loaded early to ensure availability -->
+    <script src="https://www.google.com/recaptcha/api.js?render=6LcBwoYsAAAAAMYFgTaSwQjsY3DxTR48Ps6zTpCf" async defer></script>
+
 </head>
 <body>
     <div id="app">
@@ -78,22 +80,37 @@
             observer.observe(sentinel);
         };
 
-        // reCAPTCHA helper function
+        // ✅ reCAPTCHA helper function
         window.getRecaptchaToken = async function (action) {
             return new Promise((resolve, reject) => {
-                try {
-                    grecaptcha.ready(function () {
+                const attemptExecution = () => {
+                    if (typeof grecaptcha === 'undefined') {
+                        // Still loading, try again in 100ms
+                        setTimeout(attemptExecution, 100);
+                        return;
+                    }
+
+                    // grecaptcha is available
+                    grecaptcha.ready(() => {
                         grecaptcha.execute('6LcBwoYsAAAAAMYFgTaSwQjsY3DxTR48Ps6zTpCf', { action: action })
-                            .then(function (token) {
+                            .then(token => {
+                                console.log('✅ reCAPTCHA token obtained');
                                 resolve(token);
                             })
-                            .catch(function (error) {
-                                reject(error);
+                            .catch(error => {
+                                console.error('❌ reCAPTCHA error:', error);
+                                reject(new Error('reCAPTCHA failed: ' + error.message));
                             });
                     });
-                } catch (error) {
-                    reject(error);
-                }
+                };
+
+                // Start attempting execution
+                attemptExecution();
+
+                // Timeout after 15 seconds
+                setTimeout(() => {
+                    reject(new Error('reCAPTCHA timeout. Please reload the page.'));
+                }, 15000);
             });
         };
     </script>
