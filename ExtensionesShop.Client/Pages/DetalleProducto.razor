@@ -83,21 +83,7 @@
                             </div>
                         }
 
-                        @if (producto.Stock > 0)
-                        {
-                            <div class="stock-badge available">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                                Disponible
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="stock-badge out-of-stock">
-                                Agotado
-                            </div>
-                        }
+
                     </div>
 
                     <!-- Información del Producto -->
@@ -158,18 +144,7 @@
                             <p>@producto.Description</p>
                         </div>
 
-                        <!-- Stock -->
-                        @if (producto.Stock > 0 && producto.Stock < 10)
-                        {
-                            <div class="stock-alert">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="8" x2="12" y2="12"/>
-                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                                </svg>
-                                ¡Solo quedan @producto.Stock unidades disponibles!
-                            </div>
-                        }
+
 
                         <!-- Selector de Variantes -->
                         @if (producto.Variants != null && producto.Variants.Any())
@@ -177,10 +152,10 @@
                             <div class="variante-selector">
                                 <label>Selecciona tu variante *</label>
                                 <select class="form-control" @onchange="OnVarianteChanged">
-                                    <option value="0">-- Elige Color / Longitud --</option>
+                                    <option value="0">-- Elige Longitud --</option>
                                     @foreach (var variante in producto.Variants.OrderBy(v => v.DisplayOrder))
                                     {
-                                        <option value="@variante.Id">
+                                         <option value="@variante.Id">
                                             @if (!string.IsNullOrEmpty(variante.Color))
                                             {
                                                 @variante.Color
@@ -189,7 +164,6 @@
                                             {
                                                 <text> - @variante.Centimeters cm</text>
                                             }
-                                            (Stock: @variante.Stock)
                                         </option>
                                     }
                                 </select>
@@ -205,8 +179,8 @@
                                         <line x1="5" y1="12" x2="19" y2="12"/>
                                     </svg>
                                 </button>
-                                <input type="number" class="cantidad-input" @bind="cantidad" min="1" max="@GetMaxStock()" />
-                                <button class="btn-cantidad" @onclick="IncrementarCantidad" disabled="@(cantidad >= GetMaxStock())">
+                                <input type="number" class="cantidad-input" @bind="cantidad" min="1" />
+                                <button class="btn-cantidad" @onclick="IncrementarCantidad">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="12" y1="5" x2="12" y2="19"/>
                                         <line x1="5" y1="12" x2="19" y2="12"/>
@@ -259,22 +233,15 @@
                                 }
 
                                 <button class="btn-primary btn-lg" 
-                                        disabled="@(producto.Stock == 0 || (producto.Variants?.Any() == true && selectedVariant == null))" 
+                                        disabled="@(producto.Variants?.Any() == true && selectedVariant == null)" 
                                         @onclick="AgregarAlCarrito"
                                         title="@GetButtonTooltip()">
-                                    @if (producto.Stock > 0)
-                                    {
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                                            <line x1="3" y1="6" x2="21" y2="6" />
-                                            <path d="M16 10a4 4 0 0 1-8 0" />
-                                        </svg>
-                                        <text>Añadir al Carrito</text>
-                                    }
-                                    else
-                                    {
-                                        <text>No Disponible</text>
-                                    }
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                        <line x1="3" y1="6" x2="21" y2="6" />
+                                        <path d="M16 10a4 4 0 0 1-8 0" />
+                                    </svg>
+                                    <text>Añadir al Carrito</text>
                                 </button>
 
                                 <button class="btn-secondary btn-lg" @onclick="ToggleFavorito">
@@ -301,7 +268,7 @@
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                                     <circle cx="12" cy="10" r="3"/>
                                 </svg>
-                                <span>Envío gratuito en pedidos +50€</span>
+                                <span>Envío gratuito en pedidos +120€</span>
                             </div>
                             <div class="info-item">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1004,10 +971,7 @@
 
     private void IncrementarCantidad()
     {
-        if (producto != null && cantidad < producto.Stock)
-        {
-            cantidad++;
-        }
+        cantidad++;
     }
 
     private void DecrementarCantidad()
@@ -1118,9 +1082,6 @@
 
     private string GetButtonTooltip()
     {
-        if (producto?.Stock == 0)
-            return "Producto agotado";
-
         if (producto?.Variants?.Any() == true && selectedVariant == null)
             return "Selecciona una variante primero";
 

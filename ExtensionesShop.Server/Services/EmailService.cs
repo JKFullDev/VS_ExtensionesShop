@@ -149,6 +149,22 @@ public class EmailService : IEmailService
         sb.AppendLine("</tbody></table>");
         sb.AppendLine("</div>");
 
+        // ✅ Desglose de Costos
+        sb.AppendLine("<div class='section'>");
+        sb.AppendLine("<div class='section-title'>💰 Desglose de Costos</div>");
+        sb.AppendLine($"<div class='info-row' style='font-size: 16px;'><span class='info-label'>Subtotal:</span> <span style='text-align: right; width: calc(100% - 150px);'>{order.Subtotal:N2}€</span></div>");
+
+        if (order.ShippingCost > 0)
+        {
+            sb.AppendLine($"<div class='info-row' style='font-size: 16px;'><span class='info-label'>Envío:</span> <span style='text-align: right; width: calc(100% - 150px);'>{order.ShippingCost:N2}€</span></div>");
+        }
+        else
+        {
+            sb.AppendLine($"<div class='info-row' style='font-size: 16px;'><span class='info-label'>Envío:</span> <span style='text-align: right; width: calc(100% - 150px); color: #059669; font-weight: bold;'>GRATIS ✓</span></div>");
+        }
+
+        sb.AppendLine("</div>");
+
         // Total
         sb.AppendLine($"<div class='total'>TOTAL: {order.Total:N2}€</div>");
 

@@ -313,17 +313,6 @@ public class CartStateService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"❌ Error al actualizar cantidad: {response.StatusCode} - {errorContent}");
-
-                // Parsear y mostrar el mensaje de error del servidor
-                try
-                {
-                    var errorResponse = System.Text.Json.JsonSerializer.Deserialize<OperationResult>(errorContent);
-                    if (errorResponse?.Message != null)
-                    {
-                        Console.WriteLine($"   Mensaje: {errorResponse.Message}");
-                    }
-                }
-                catch { }
             }
         }
         catch (Exception ex)

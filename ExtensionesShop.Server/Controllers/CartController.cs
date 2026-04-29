@@ -89,7 +89,7 @@ public class CartController : ControllerBase
                 Message = "La cantidad debe ser mayor a 0" 
             });
 
-        // Verificar que el producto existe y tiene stock
+        // Verificar que el producto existe
         var product = await _context.Products.Include(p => p.Variants).FirstOrDefaultAsync(p => p.Id == request.ProductId);
         if (product == null)
             return NotFound(new OperationResult 
@@ -98,15 +98,14 @@ public class CartController : ControllerBase
                 Message = "Producto no encontrado" 
             });
 
-        // 🔑 Validar stock según si hay variante seleccionada
-        int availableStock = product.Stock;
+        // Obtener datos de precio y variante
         decimal unitPrice = product.Price;  // ✅ NUEVO: Inicializar con precio del producto
         string? variantColor = null;
         decimal? variantCentimeters = null;
 
         if (request.ProductVariantId.HasValue)
         {
-            // Validar stock de la variante específica
+            // Obtener datos de la variante específica
             var variant = product.Variants.FirstOrDefault(v => v.Id == request.ProductVariantId.Value);
             if (variant == null)
                 return NotFound(new OperationResult 
@@ -115,18 +114,10 @@ public class CartController : ControllerBase
                     Message = "Variante no encontrada" 
                 });
 
-            availableStock = variant.Stock;
             unitPrice = variant.Price;  // ✅ USAR PRECIO DE LA VARIANTE
             variantColor = variant.Color;
             variantCentimeters = variant.Centimeters;
         }
-
-        if (availableStock < request.Quantity)
-            return BadRequest(new OperationResult 
-            { 
-                Success = false, 
-                Message = $"Stock insuficiente. Solo hay {availableStock} unidades disponibles" 
-            });
 
         // Buscar si ya existe en el carrito (con la misma variante si es el caso)
         var existing = await _context.CartItems
@@ -136,17 +127,8 @@ public class CartController : ControllerBase
 
         if (existing != null)
         {
-            // Actualizar cantidad
-            var newQuantity = existing.Quantity + request.Quantity;
-
-            if (newQuantity > availableStock)
-                return BadRequest(new OperationResult 
-                { 
-                    Success = false, 
-                    Message = $"No puedes añadir más. Stock máximo: {availableStock}" 
-                });
-
-            existing.Quantity = newQuantity;
+            // Actualizar cantidad sin validación de stock
+            existing.Quantity += request.Quantity;
             existing.UpdatedAt = DateTime.UtcNow;
         }
         else
@@ -188,10 +170,7 @@ public class CartController : ControllerBase
         if (userId == 0)
             return Unauthorized();
 
-        // ✅ CRÍTICO: Incluir tanto Product como ProductVariants para validación correcta
         var cartItem = await _context.CartItems
-            .Include(c => c.Product)
-                .ThenInclude(p => p!.Variants)  // ✅ NUEVO: Incluir variantes del producto
             .FirstOrDefaultAsync(c => c.UserId == userId && 
                                       c.ProductId == productId &&
                                       c.ProductVariantId == request.ProductVariantId);
@@ -211,46 +190,7 @@ public class CartController : ControllerBase
         }
         else
         {
-            // ✅ CRÍTICO: Validación de stock inteligente
-            int availableStock = 0;
-            string stockSource = "";
-
-            if (request.ProductVariantId.HasValue && cartItem.Product?.Variants != null)
-            {
-                // Si es una variante, validar stock de la variante
-                var variant = cartItem.Product.Variants.FirstOrDefault(v => v.Id == request.ProductVariantId.Value);
-                if (variant != null)
-                {
-                    availableStock = variant.Stock;
-                    stockSource = $"variante {request.ProductVariantId}";
-                }
-                else
-                {
-                    return BadRequest(new OperationResult 
-                    { 
-                        Success = false, 
-                        Message = "La variante no existe" 
-                    });
-                }
-            }
-            else
-            {
-                // Si es un producto simple, validar stock del producto
-                availableStock = cartItem.Product!.StockValue;  // ✅ Usar StockValue para productos sin variantes
-                stockSource = "producto base";
-            }
-
-            // Validar que hay suficiente stock
-            if (request.Quantity > availableStock)
-            {
-                Console.WriteLine($"❌ Stock insuficiente: Solicitado {request.Quantity}, disponible {availableStock} de {stockSource}");
-                return BadRequest(new OperationResult 
-                { 
-                    Success = false, 
-                    Message = $"❌ No hay suficiente stock. Solo hay {availableStock} unidades disponibles de esta {stockSource}" 
-                });
-            }
-
+            // Actualizar cantidad sin validación de stock
             cartItem.Quantity = request.Quantity;
             cartItem.UpdatedAt = DateTime.UtcNow;
 

@@ -217,14 +217,26 @@
 
                         <div class="summary-row">
                             <span>Envío</span>
-                            <span class="free">GRATIS</span>
+                            <span class="@(ObtenerCostoEnvio() == 0 ? "free" : "paid")">@(ObtenerCostoEnvio() == 0 ? "GRATIS" : ObtenerCostoEnvio().ToString("N2") + "€")</span>
                         </div>
+
+                        @if (ObtenerCostoEnvio() > 0 && CartState.Total > 0 && CartState.Total < 120)
+                        {
+                            <div class="shipping-info">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                                <span>¡Solo te faltan @(120 - CartState.Total)€ para tener envío GRATIS!</span>
+                            </div>
+                        }
 
                         <div class="summary-divider"></div>
 
                         <div class="summary-total">
                             <span>Total</span>
-                            <span>@CartState.Total.ToString("N2")€</span>
+                            <span>@CalcularTotalFinal().ToString("N2")€</span>
                         </div>
 
                         <div class="payment-info">
@@ -233,7 +245,10 @@
                                 <path d="M12 16v-4"/>
                                 <path d="M12 8h.01"/>
                             </svg>
-                            <p>Nos pondremos en contacto contigo para coordinar el pago después de confirmar tu pedido.</p>
+                            <p>La pasarela de pago se encuentra en mantenimiento. 
+                                El pago se realizará mediante una de estas opciones:<br/>
+                                · Transferencia bancaria a la cuenta: [INSERTAR_IBAN_AQUÍ]<br/>
+                                · Bizum al número de teléfono: 657·557·051</p>
                         </div>
                     </div>
 
@@ -426,6 +441,29 @@
         font-size: 12px;
     }
 
+    .summary-row .paid {
+        color: #D97706;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .shipping-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        padding: 12px;
+        background: #FEF3C7;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #92400E;
+    }
+
+    .shipping-info svg {
+        flex-shrink: 0;
+        color: #F59E0B;
+    }
+
     .summary-total {
         display: flex;
         justify-content: space-between;
@@ -538,6 +576,17 @@
     private string numeroPedido = string.Empty;
     private string errorMessage = string.Empty;
 
+    private decimal ObtenerCostoEnvio()
+    {
+        // Envío gratis si subtotal >= 120€
+        return CartState.Total >= 120 ? 0 : 7;
+    }
+
+    private decimal CalcularTotalFinal()
+    {
+        return CartState.Total + ObtenerCostoEnvio();
+    }
+
     // ✅ Lista de provincias españolas
     private List<string> provincias = new()
     {
@@ -625,6 +674,10 @@
 
         try
         {
+            var subtotal = CartState.Total;  // ✅ Subtotal sin envío
+            var costoEnvio = ObtenerCostoEnvio();  // ✅ Costo de envío (7€ o 0€)
+            var totalConEnvio = subtotal + costoEnvio;  // ✅ Total con envío
+
             var orderData = new
             {
                 CustomerName = checkoutForm.NombreCompleto,
@@ -632,7 +685,7 @@
                 CustomerPhone = checkoutForm.Telefono,
                 ShippingAddress = checkoutForm.Direccion,
                 City = checkoutForm.Ciudad,
-                Province = checkoutForm.Provincia,  // ✅ NUEVO: Incluir Provincia
+                Province = checkoutForm.Provincia,
                 PostalCode = checkoutForm.CodigoPostal,
                 Notes = checkoutForm.Notas,
                 Items = CartState.Items.Select(item => new
@@ -643,10 +696,10 @@
                     UnitPrice = item.Producto.Price,
                     SelectedColor = item.Producto.Color,
                     SelectedCentimeters = item.Producto.Centimeters,
-                    ImageUrl = item.Producto.ImageUrl  // ✅ NUEVO: Incluir URL de imagen
+                    ImageUrl = item.Producto.ImageUrl
                 }).ToList(),
-                Total = CartState.Total,
-                OrderDate = DateTime.Now
+                Subtotal = subtotal,  // ✅ Enviar Subtotal
+                Total = totalConEnvio  // ✅ Total final con envío
             };
 
             var response = await Http.PostAsJsonAsync("api/orders/place-order", orderData);

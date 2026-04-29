@@ -137,14 +137,26 @@
 
                         <div class="summary-row">
                             <span>Envío</span>
-                            <span class="envio-gratis">GRATIS</span>
+                            <span class="@(ObtenerCostoEnvio() == 0 ? "envio-gratis" : "envio-pagado")">@(ObtenerCostoEnvio() == 0 ? "GRATIS" : ObtenerCostoEnvio().ToString("N2") + "€")</span>
                         </div>
+
+                        @if (ObtenerCostoEnvio() > 0 && CartState.Total > 0 && CartState.Total < 120)
+                        {
+                            <div class="envio-info">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                                <span>¡Solo te faltan @(120 - CartState.Total)€ para tener envío GRATIS!</span>
+                            </div>
+                        }
 
                         <div class="summary-divider"></div>
 
                         <div class="summary-row summary-total">
                             <span>Total</span>
-                            <span>@CartState.Total.ToString("N2")€</span>
+                            <span>@CalcularTotalFinal().ToString("N2")€</span>
                         </div>
 
                         <button class="btn-primary btn-checkout" @onclick="FinalizarCompra">
@@ -181,7 +193,7 @@
                                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                                     <polyline points="9 22 9 12 15 12 15 22" />
                                 </svg>
-                                <span>Devolución 30 días</span>
+                                <span>Devolución 15 días</span>
                             </div>
                         </div>
                     </div>
@@ -202,6 +214,9 @@
         font-size: 80px;
         margin-bottom: 24px;
         opacity: .3;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
     .empty-cart h2 {
@@ -219,7 +234,7 @@
 
     /* ── Carrito Section ───────────────────────────────────── */
     .carrito-section {
-        padding: 40px 0 var(--section-gap);
+        padding: 0 0 var(--section-gap);
     }
 
     .carrito-layout {
@@ -434,6 +449,29 @@
         letter-spacing: .05em;
     }
 
+    .envio-pagado {
+        color: #D97706;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .envio-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        padding: 12px;
+        background: #FEF3C7;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #92400E;
+    }
+
+    .envio-info svg {
+        flex-shrink: 0;
+        color: #F59E0B;
+    }
+
     .summary-divider {
         height: 1px;
         background: var(--border);
@@ -515,6 +553,17 @@
 </style>
 
 @code {
+    private decimal ObtenerCostoEnvio()
+    {
+        // Envío gratis si subtotal >= 120€
+        return CartState.Total >= 120 ? 0 : 7;
+    }
+
+    private decimal CalcularTotalFinal()
+    {
+        return CartState.Total + ObtenerCostoEnvio();
+    }
+
     private async Task ActualizarCantidad(int productoId, int? variantId, ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out int nuevaCantidad))

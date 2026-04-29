@@ -424,6 +424,9 @@ button { cursor: pointer; border: none; background: none; }
     }
 }
 
+
+
+
 /* ================================================================
    4. MOBILE DRAWER (Menú lateral oculto)
    ================================================================ */
@@ -814,6 +817,18 @@ button { cursor: pointer; border: none; background: none; }
 }
 .category-card:hover .cat-cta { opacity: 1; transform: translateY(0); }
 
+/* ✅ Tamaños de categorías destacadas */
+.cat-large {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  max-height: 520px;
+}
+
+.cat-small {
+  flex: 1;
+  max-height: 252px;
+}
+
 /* ================================================================
    CTA BANNER - LUXURY
    ================================================================ */
@@ -1103,7 +1118,7 @@ button { cursor: pointer; border: none; background: none; }
   color: white;
   margin-bottom: 20px;
 }
-.footer-links { display: flex; flex-direction: column; gap: 10px; }
+.footer-links { display: flex; flex-direction: column; gap: 10px; padding-left:0}
 .footer-links a {
   color: rgba(255,255,255,.55);
   transition: color .2s;
@@ -1641,3 +1656,4 @@ button { cursor: pointer; border: none; background: none; }
     font-size: 68px;
   }
 }
+

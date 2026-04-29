@@ -104,9 +104,6 @@ public class OrdersController : ControllerBase
                 if (product == null)
                     return BadRequest(new { message = $"Producto {item.ProductId} no encontrado" });
 
-                if (product.Stock < item.Quantity)
-                    return BadRequest(new { message = $"Stock insuficiente para {product.Name}" });
-
                 order.OrderItems.Add(new ExtensionesShop.Shared.Models.OrderItem
                 {
                     ProductId = item.ProductId,
@@ -125,14 +122,14 @@ public class OrdersController : ControllerBase
                         v.Color == item.SelectedColor &&
                         v.Centimeters == item.SelectedCentimeters);
 
-                    if (variant != null && variant.Stock >= item.Quantity)
+                    if (variant != null)
                     {
                         variant.Stock -= item.Quantity;
                     }
-                    else if (variant == null)
+                    else
                     {
                         // Si no encuentra una variante exacta, buscar la primera disponible
-                        variant = product.Variants.FirstOrDefault(v => v.Stock >= item.Quantity);
+                        variant = product.Variants.FirstOrDefault();
                         if (variant != null)
                             variant.Stock -= item.Quantity;
                     }
@@ -160,6 +157,8 @@ public class OrdersController : ControllerBase
                         Color = oi.SelectedColor,
                         Length = oi.SelectedCentimeters?.ToString()
                     }).ToList(),
+                    Subtotal = order.Subtotal,  // ✅ Incluir Subtotal
+                    ShippingCost = order.ShippingCost,  // ✅ Incluir Costo de Envío
                     Total = order.Total,
                     OrderDate = order.CreatedAt
                 };
@@ -304,7 +303,7 @@ public class OrdersController : ControllerBase
             }
 
             // ========================================
-            // 2. CARGAR TODOS LOS PRODUCTOS Y VARIANTES (rastreados)
+            // 3. CARGAR TODOS LOS PRODUCTOS Y VARIANTES (rastreados)
             // ========================================
             var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
             var variantIds = request.Items.Where(i => i.ProductVariantId.HasValue).Select(i => i.ProductVariantId.Value).Distinct().ToList();
@@ -318,69 +317,6 @@ public class OrdersController : ControllerBase
             var variants = variantIds.Any()
                 ? await _db.ProductVariants.AsTracking().Where(v => variantIds.Contains(v.Id)).ToListAsync()
                 : new List<ProductVariant>();
-
-            // ========================================
-            // 3. VALIDAR STOCK DISPONIBLE
-            // ========================================
-            var validationErrors = new List<string>();
-
-            foreach (var item in request.Items)
-            {
-                var product = products.FirstOrDefault(p => p.Id == item.ProductId);
-
-                if (product == null)
-                {
-                    validationErrors.Add($"Producto no encontrado: ID {item.ProductId}");
-                    continue;
-                }
-
-                // Si item tiene ProductVariantId, usar variante específica
-                if (item.ProductVariantId.HasValue)
-                {
-                    var variant = variants.FirstOrDefault(v => v.Id == item.ProductVariantId.Value);
-
-                    if (variant == null)
-                    {
-                        validationErrors.Add($"{product.Name}: Variante no encontrada (ID: {item.ProductVariantId})");
-                    }
-                    else if (variant.Stock < item.Quantity)
-                    {
-                        validationErrors.Add($"{product.Name} ({variant.Color}, {variant.Centimeters}cm): Stock insuficiente. Disponibles: {variant.Stock}, Solicitados: {item.Quantity}");
-                    }
-                }
-                // Si el producto tiene variantes pero no especificó ProductVariantId, validar por color y centimeters
-                else if (product.Variants.Any())
-                {
-                    var variant = product.Variants.FirstOrDefault(v =>
-                        (v.Color ?? string.Empty).Trim() == (item.SelectedColor ?? string.Empty).Trim() &&
-                        Math.Abs((v.Centimeters ?? 0) - (item.SelectedCentimeters ?? 0)) < 0.01m);
-
-                    if (variant == null)
-                    {
-                        validationErrors.Add($"{product.Name}: Variante no disponible ({item.SelectedColor}, {item.SelectedCentimeters}cm)");
-                    }
-                    else if (variant.Stock < item.Quantity)
-                    {
-                        validationErrors.Add($"{product.Name} ({item.SelectedColor}, {item.SelectedCentimeters}cm): Stock insuficiente. Disponibles: {variant.Stock}, Solicitados: {item.Quantity}");
-                    }
-                }
-                else
-                {
-                    // Si no tiene variantes, validar stock general
-                    if (product.StockValue < item.Quantity)
-                    {
-                        validationErrors.Add($"{product.Name}: Stock insuficiente. Disponibles: {product.StockValue}, Solicitados: {item.Quantity}");
-                    }
-                }
-            }
-
-            // Si hay errores de validación, rechazar
-            if (validationErrors.Any())
-            {
-                await transaction.RollbackAsync();
-                _logger.LogWarning("❌ Validación de stock fallida: {Errors}", string.Join("; ", validationErrors));
-                return BadRequest(new { message = "Stock insuficiente", errors = validationErrors });
-            }
 
             // ========================================
             // 4. OBTENER USER ID SI ESTÁ AUTENTICADO
@@ -397,7 +333,16 @@ public class OrdersController : ControllerBase
             }
 
             // ========================================
-            // 5. CREAR ORDEN Y RESTAR STOCK
+            // 5. CALCULAR COSTO DE ENVÍO
+            // ========================================
+            decimal subtotal = request.Subtotal;  // ✅ Usar Subtotal enviado desde cliente
+            decimal shippingCost = subtotal >= 120 ? 0 : 7;  // Envío gratis si >= 120€, sino 7€
+            decimal totalFinal = request.Total;  // ✅ Usar Total que ya viene calculado
+
+            _logger.LogInformation("💰 Cálculo de envío: Subtotal={Subtotal}€, Envío={Envío}€, Total={Total}€", subtotal, shippingCost, totalFinal);
+
+            // ========================================
+            // 6. CREAR ORDEN Y RESTAR STOCK
             // ========================================
             var order = new Order
             {
@@ -409,9 +354,9 @@ public class OrdersController : ControllerBase
                 City = request.City,
                 Province = request.Province,
                 PostalCode = request.PostalCode,
-                Subtotal = request.Total,
-                ShippingCost = 0,
-                Total = request.Total,
+                Subtotal = subtotal,
+                ShippingCost = shippingCost,  // ✅ Asignar costo de envío calculado
+                Total = totalFinal,  // ✅ Total con envío incluido
                 Status = 0, // Pendiente de Pago
                 Notes = request.Notes,
                 CreatedAt = DateTime.UtcNow
@@ -476,7 +421,7 @@ public class OrdersController : ControllerBase
             _logger.LogInformation("✅ Pedido #{OrderId} creado y stock reducido", order.Id);
 
             // ========================================
-            // 6. VACIAR CARRITO DEL USUARIO
+            // 7. VACIAR CARRITO DEL USUARIO
             // ========================================
             if (userId.HasValue)
             {
@@ -493,7 +438,7 @@ public class OrdersController : ControllerBase
             }
 
             // ========================================
-            // 7. NOTIFICAR AL ADMINISTRADOR
+            // 8. NOTIFICAR AL ADMINISTRADOR
             // ========================================
             try
             {
@@ -515,7 +460,7 @@ public class OrdersController : ControllerBase
             }
 
             // ========================================
-            // 8. ENVIAR CONFIRMACIÓN AL CLIENTE
+            // 9. ENVIAR CONFIRMACIÓN AL CLIENTE
             // ========================================
             try
             {
@@ -957,14 +902,41 @@ public class OrdersController : ControllerBase
 
             sb.AppendLine($"<td><strong>{descripcionCompleta}</strong></td>");
             sb.AppendLine($"<td style='text-align: center;'>{item.Quantity}</td>");
-            sb.AppendLine($"<td>€{item.UnitPrice:N2}</td>");
-            sb.AppendLine($"<td>€{(item.UnitPrice * item.Quantity):N2}</td>");
+            sb.AppendLine($"<td>{item.UnitPrice:N2}€</td>");
+            sb.AppendLine($"<td>{(item.UnitPrice * item.Quantity):N2}€</td>");
             sb.AppendLine($"</tr>");
         }
 
-        sb.AppendLine($"<tr class='total-row'><td colspan='5' style='text-align: right;'>TOTAL:</td><td>€{order.Total:N2}</td></tr>");
         sb.AppendLine("</tbody>");
         sb.AppendLine("</table>");
+
+        // ✅ Desglose de Costos para Admin
+        sb.AppendLine("<div style='margin-top: 20px; padding: 15px; background: #fff3f5; border-radius: 8px; border-left: 4px solid #E8607A;'>");
+        sb.AppendLine($"<div style='display: flex; justify-content: space-between; padding: 8px 0;'>");
+        sb.AppendLine($"<span><strong>Subtotal:</strong></span>");
+        sb.AppendLine($"<span>{order.Subtotal:N2}€</span>");
+        sb.AppendLine("</div>");
+
+        if (order.ShippingCost > 0)
+        {
+            sb.AppendLine($"<div style='display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #ffc0cb;'>");
+            sb.AppendLine($"<span><strong>Envío:</strong></span>");
+            sb.AppendLine($"<span>{order.ShippingCost:N2}€</span>");
+            sb.AppendLine("</div>");
+        }
+        else
+        {
+            sb.AppendLine($"<div style='display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #ffc0cb;'>");
+            sb.AppendLine($"<span><strong>Envío:</strong></span>");
+            sb.AppendLine($"<span style='color: #059669; font-weight: bold;'>GRATIS ✓</span>");
+            sb.AppendLine("</div>");
+        }
+
+        sb.AppendLine($"<div style='display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #E8607A; font-size: 18px; font-weight: bold; color: #E8607A;'>");
+        sb.AppendLine($"<span>TOTAL:</span>");
+        sb.AppendLine($"<span>{order.Total:N2}€</span>");
+        sb.AppendLine("</div>");
+        sb.AppendLine("</div>");
         sb.AppendLine("</div>");
 
         // Notas si existen
@@ -977,17 +949,18 @@ public class OrdersController : ControllerBase
         }
 
         // Action Required
-        sb.AppendLine("<div class='action-needed'>");
-        sb.AppendLine("<h4>⚠️ ACCIÓN REQUERIDA</h4>");
-        sb.AppendLine("<p><strong>Este pedido está pendiente de pago.</strong></p>");
-        sb.AppendLine($"<p>Debes contactar a <strong>{order.CustomerName}</strong> para coordinar los detalles del pago y confirmar el envío.</p>");
-        sb.AppendLine("<p><strong>Próximos pasos:</strong></p>");
-        sb.AppendLine("<ol>");
-        sb.AppendLine("<li>Contactar al cliente para coordinar el pago</li>");
-        sb.AppendLine("<li>Registrar el pago en el sistema</li>");
-        sb.AppendLine("<li>Actualizar el estado del pedido a 'Confirmado'</li>");
-        sb.AppendLine("<li>Enviar el paquete</li>");
-        sb.AppendLine("</ol>");
+        // Action Required (Email para Vero)
+        sb.AppendLine("<div class='action-needed'");
+        sb.AppendLine("<h4 style='color: #E65100; margin-top: 0;'>⚠️ NUEVO PEDIDO PENDIENTE</h4>");
+        sb.AppendLine($"<p>El cliente <strong>{order.CustomerName}</strong> ha registrado un pedido y ya tiene tus datos de pago.</p>");
+        sb.AppendLine("<p><strong>¿Qué debes hacer ahora?</strong></p>");
+        sb.AppendLine("<ul style='line-height: 1.6;'>");
+        sb.AppendLine("<li><strong>Revisa tu Bizum o Banco:</strong> Comprueba si ha llegado el pago con el importe total.</li>");
+        sb.AppendLine("<li><strong>Confirma al cliente:</strong> Si te escribe por WhatsApp, confírmale que el pago es correcto.</li>");
+        sb.AppendLine("<li><strong>Prepara el paquete:</strong> Tienes 24-48h para realizar el envío.</li>");
+        sb.AppendLine("<li><strong>Gestión:</strong> Entra al panel de administración para marcarlo como 'Pagado' o 'Enviado' cuando lo saques.</li>");
+        sb.AppendLine("</ul>");
+        sb.AppendLine("<p style='font-size: 13px; font-style: italic; color: #666;'>Recuerda que hasta que no verifiques el ingreso, no debes enviar el producto.</p>");
         sb.AppendLine("</div>");
 
         sb.AppendLine("</div>");
@@ -1106,23 +1079,50 @@ public class OrdersController : ControllerBase
 
             sb.AppendLine($"<td><strong>{descripcionCompleta}</strong></td>");
             sb.AppendLine($"<td style='text-align: center;'>{item.Quantity}</td>");
-            sb.AppendLine($"<td>€{(item.UnitPrice * item.Quantity):N2}</td>");
+            sb.AppendLine($"<td>{(item.UnitPrice * item.Quantity):N2}€</td>");
             sb.AppendLine($"</tr>");
         }
 
         sb.AppendLine("</tbody>");
         sb.AppendLine("</table>");
-        sb.AppendLine($"<div class='total'>€{order.Total:N2}</div>");
+
+        // ✅ Desglose de Costos
+        sb.AppendLine("<div style='margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;'>");
+        sb.AppendLine($"<div style='display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd;'>");
+        sb.AppendLine($"<span><strong>Subtotal:</strong></span>");
+        sb.AppendLine($"<span>{order.Subtotal:N2}€</span>");
+        sb.AppendLine("</div>");
+
+        if (order.ShippingCost > 0)
+        {
+            sb.AppendLine($"<div style='display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd;'>");
+            sb.AppendLine($"<span><strong>Envío:</strong></span>");
+            sb.AppendLine($"<span>{order.ShippingCost:N2}€</span>");
+            sb.AppendLine("</div>");
+        }
+        else
+        {
+            sb.AppendLine($"<div style='display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd;'>");
+            sb.AppendLine($"<span><strong>Envío:</strong></span>");
+            sb.AppendLine($"<span style='color: #059669; font-weight: bold;'>GRATIS ✓</span>");
+            sb.AppendLine("</div>");
+        }
+
+        sb.AppendLine("</div>");
+
+        sb.AppendLine($"<div class='total'>TOTAL: {order.Total:N2}€</div>");
         sb.AppendLine("</div>");
 
         // Próximos Pasos
         sb.AppendLine("<div class='section'>");
         sb.AppendLine("<div class='section-title'>📋 Próximos Pasos</div>");
         sb.AppendLine("<ol style='line-height: 1.8;'>");
-        sb.AppendLine("<li>Recibirás un correo de nuestro equipo en breve</li>");
-        sb.AppendLine("<li>Te contactaremos para coordinar el método de pago</li>");
-        sb.AppendLine("<li>Una vez confirmado el pago, enviaremos tu pedido en 24-48 horas</li>");
-        sb.AppendLine("<li>Recibirás un seguimiento con tu número de tracking</li>");
+        sb.AppendLine("<li>Realiza el pago a través de una de estas opciones indicando tu nombre y el número de pedido: <br />" +
+                                                            "   - Bizum a este número de teléfono: <strong>657 557 051</strong>.<br />" +
+                                                            "   - Transferencia a este número de cuenta:<strong>ES11 1111 1111 1111</strong>.</li>");
+        sb.AppendLine("<li>Envía el comprobante por WhatsApp (<strong>657 557 051</strong>) o por correo electrónico (<strong>info@extensiones.shop</strong>) para confirmar tu pedido.</li>");
+        sb.AppendLine("<li>Una vez confirmado el pago, prepararemos y enviaremos tu pedido en un plazo de 24-48 horas.</li>");
+        sb.AppendLine("<li>En cuanto el paquete salga, recibirás tu número de tracking para localizarlo.</li>");
         sb.AppendLine("</ol>");
         sb.AppendLine("</div>");
 
@@ -1206,11 +1206,12 @@ public class PlaceOrderRequest
     public string CustomerPhone { get; set; } = string.Empty;
     public string ShippingAddress { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
-    public string Province { get; set; } = string.Empty;  // ✅ NUEVO: Provincia
+    public string Province { get; set; } = string.Empty;
     public string PostalCode { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public List<PlaceOrderItemRequest> Items { get; set; } = new();
-    public decimal Total { get; set; }
+    public decimal Subtotal { get; set; }  // ✅ Subtotal sin envío
+    public decimal Total { get; set; }      // ✅ Total con envío
 }
 
 public class PlaceOrderItemRequest

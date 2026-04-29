@@ -17,6 +17,8 @@ public class OrderEmailData
     public string CustomerPhone { get; set; } = string.Empty;
     public string ShippingAddress { get; set; } = string.Empty;
     public List<OrderItem> Items { get; set; } = new();
+    public decimal Subtotal { get; set; }  // ✅ Nuevo: Subtotal sin envío
+    public decimal ShippingCost { get; set; }  // ✅ Nuevo: Costo de envío
     public decimal Total { get; set; }
     public DateTime OrderDate { get; set; }
 }
