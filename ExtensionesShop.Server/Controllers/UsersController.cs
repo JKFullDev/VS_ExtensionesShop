@@ -1,18 +1,19 @@
+using Azure.Core;
+using BCrypt.Net;
 using ExtensionesShop.Server.Data;
 using ExtensionesShop.Server.Services;
 using ExtensionesShop.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using BCrypt.Net;
 using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Text;
+using System.Text.RegularExpressions;
 
 
 namespace ExtensionesShop.Server.Controllers;
@@ -123,6 +124,10 @@ public class UsersController : ControllerBase
                 FirstName = request.FirstName.Trim(),
                 LastName = request.LastName.Trim(),
                 Phone = normalizedPhone,
+                Address = request.Address.Trim(),
+                City = request.City.Trim(),
+                Province = request.Province.Trim(),
+                PostalCode = request.PostalCode.Trim(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 CreatedAt = DateTime.UtcNow,
                 EmailVerified = false,
@@ -216,6 +221,7 @@ public class UsersController : ControllerBase
                 user.LastName,
                 user.Phone,
                 user.Address,
+                user.Province,
                 user.City,
                 user.PostalCode,
                 user.Role // ✅ Incluir Role para que el cliente pueda detectar si es Admin
@@ -372,6 +378,7 @@ public class UsersController : ControllerBase
             user.Phone,
             user.Address,
             user.City,
+            user.Province,
             user.PostalCode,
             user.CreatedAt
         });
@@ -398,7 +405,8 @@ public class UsersController : ControllerBase
         user.LastName = request.LastName;
         user.Phone = request.Phone;
         user.Address = request.Address;
-        user.City = request.City;
+        user.City = request.City; 
+        user.Province = request.Province;
         user.PostalCode = request.PostalCode;
 
         await _context.SaveChangesAsync();
@@ -458,6 +466,7 @@ public class UsersController : ControllerBase
                 user.Phone,
                 user.Address,
                 user.City,
+                user.Province,
                 user.PostalCode,
                 user.Role,
                 user.EmailVerified,
@@ -487,7 +496,8 @@ public class UsersController : ControllerBase
             user.LastName = updatedUser.LastName;
             user.Phone = updatedUser.Phone;
             user.Address = updatedUser.Address;
-            user.City = updatedUser.City;
+            user.City = updatedUser.City; 
+            user.Province = updatedUser.Province;
             user.PostalCode = updatedUser.PostalCode;
             user.Role = updatedUser.Role; // Permitir cambio de rol
 
@@ -529,8 +539,25 @@ public class RegisterRequest
     [MaxLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
     public string Phone { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "El token de reCAPTCHA es obligatorio")]
-    public string RecaptchaToken { get; set; } = string.Empty;
+    [Required(ErrorMessage = "La dirección es necesaria para el envío")]
+    [MaxLength(200, ErrorMessage = "La dirección no puede exceder 200 caracteres")]
+    public string Address { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "La ciudad es necesaria para el envío")]
+    [MaxLength(100, ErrorMessage = "La ciudad no puede exceder 100 caracteres")]
+    public string City { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "La provincia es obligatoria")]
+    [MaxLength(100, ErrorMessage = "La provincia no puede exceder 100 caracteres")]
+    public string Province { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El código postal es necesario para el envío")]
+    [MaxLength(10, ErrorMessage = "El código postal no puede exceder 10 caracteres")]
+    public string PostalCode { get; set; } = string.Empty;
+
+    public string? RecaptchaToken { get; set; }
+    //[Required(ErrorMessage = "El token de reCAPTCHA es obligatorio")]
+    //public string RecaptchaToken { get; set; } = string.Empty;
 }
 
 public class LoginRequest
@@ -582,12 +609,19 @@ public class UpdateProfileRequest
     [MaxLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
     public string Phone { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "La dirección es necesaria para el envío")]
     [MaxLength(200, ErrorMessage = "La dirección no puede exceder 200 caracteres")]
-    public string? Address { get; set; }
+    public string Address { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "La ciudad es necesaria para el envío")]
     [MaxLength(100, ErrorMessage = "La ciudad no puede exceder 100 caracteres")]
-    public string? City { get; set; }
+    public string City { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "La provincia es obligatoria")]
+    [MaxLength(100, ErrorMessage = "La provincia no puede exceder 100 caracteres")]
+    public string Province { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "El código postal es necesario para el envío")]
     [MaxLength(10, ErrorMessage = "El código postal no puede exceder 10 caracteres")]
-    public string? PostalCode { get; set; }
+    public string PostalCode { get; set; } = string.Empty;
 }

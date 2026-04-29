@@ -16,6 +16,7 @@ public class ProductService
         int? categoryId = null,
         int? subcategoryId = null,
         string? search = null,
+        bool includeInactive = false,  // ✅ NUEVO: Incluir productos inactivos
         int page = 1,
         int pageSize = 24)
     {
@@ -29,6 +30,10 @@ public class ProductService
 
         if (!string.IsNullOrWhiteSpace(search))
             queryParams.Add($"search={Uri.EscapeDataString(search)}");
+
+        // ✅ Pasar parámetro de inactivos
+        if (includeInactive)
+            queryParams.Add("includeInactive=true");
 
         queryParams.Add($"page={page}");
         queryParams.Add($"pageSize={pageSize}");

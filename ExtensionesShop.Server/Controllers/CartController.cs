@@ -32,7 +32,7 @@ public class CartController : ControllerBase
     /// </summary>
     [Authorize] // ✅ Este sí requiere login
     [HttpGet]
-    public async Task<ActionResult<List<CarritoItem>>> GetCart()
+    public async Task<ActionResult<List<CartItemResponse>>> GetCart()
     {
         var userId = GetCurrentUserId();
         if (userId == 0)
@@ -42,15 +42,30 @@ public class CartController : ControllerBase
             .Where(c => c.UserId == userId)
             .Include(c => c.Product)
                 .ThenInclude(p => p!.Category)
+            .Include(c => c.Product)
+                .ThenInclude(p => p!.Variants)
             .OrderByDescending(c => c.UpdatedAt)
             .ToListAsync();
 
-        // Convertir a DTO CarritoItem (frontend)
-        var result = cartItems.Select(c => new CarritoItem
+        // Convertir a DTO CartItemResponse (frontend)
+        var result = new List<CartItemResponse>();
+
+        foreach (var c in cartItems)
         {
-            Producto = c.Product!,
-            Cantidad = c.Quantity
-        }).ToList();
+            var cartItem = new CartItemResponse
+            {
+                ProductId = c.ProductId,
+                ProductVariantId = c.ProductVariantId,  // ✅ INCLUIR VARIANTE ID
+                ProductName = c.Product!.Name,
+                ImageUrl = c.Product!.ImageUrl,
+                Quantity = c.Quantity,
+                UnitPrice = c.UnitPrice,  // ✅ USAR PRECIO GUARDADO (variante o base)
+                VariantColor = c.VariantColor,  // ✅ USAR COLOR GUARDADO
+                VariantCentimeters = c.VariantCentimeters  // ✅ USAR MEDIDA GUARDADA
+            };
+
+            result.Add(cartItem);
+        }
 
         return Ok(result);
     }
@@ -74,8 +89,8 @@ public class CartController : ControllerBase
                 Message = "La cantidad debe ser mayor a 0" 
             });
 
-        // Verificar que el producto existe y tiene stock
-        var product = await _context.Products.FindAsync(request.ProductId);
+        // Verificar que el producto existe
+        var product = await _context.Products.Include(p => p.Variants).FirstOrDefaultAsync(p => p.Id == request.ProductId);
         if (product == null)
             return NotFound(new OperationResult 
             { 
@@ -83,30 +98,37 @@ public class CartController : ControllerBase
                 Message = "Producto no encontrado" 
             });
 
-        if (product.Stock < request.Quantity)
-            return BadRequest(new OperationResult 
-            { 
-                Success = false, 
-                Message = $"Stock insuficiente. Solo hay {product.Stock} unidades disponibles" 
-            });
+        // Obtener datos de precio y variante
+        decimal unitPrice = product.Price;  // ✅ NUEVO: Inicializar con precio del producto
+        string? variantColor = null;
+        decimal? variantCentimeters = null;
 
-        // Buscar si ya existe en el carrito
+        if (request.ProductVariantId.HasValue)
+        {
+            // Obtener datos de la variante específica
+            var variant = product.Variants.FirstOrDefault(v => v.Id == request.ProductVariantId.Value);
+            if (variant == null)
+                return NotFound(new OperationResult 
+                { 
+                    Success = false, 
+                    Message = "Variante no encontrada" 
+                });
+
+            unitPrice = variant.Price;  // ✅ USAR PRECIO DE LA VARIANTE
+            variantColor = variant.Color;
+            variantCentimeters = variant.Centimeters;
+        }
+
+        // Buscar si ya existe en el carrito (con la misma variante si es el caso)
         var existing = await _context.CartItems
-            .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == request.ProductId);
+            .FirstOrDefaultAsync(c => c.UserId == userId && 
+                                      c.ProductId == request.ProductId &&
+                                      c.ProductVariantId == request.ProductVariantId);
 
         if (existing != null)
         {
-            // Actualizar cantidad
-            var newQuantity = existing.Quantity + request.Quantity;
-            
-            if (newQuantity > product.Stock)
-                return BadRequest(new OperationResult 
-                { 
-                    Success = false, 
-                    Message = $"No puedes añadir más. Stock máximo: {product.Stock}" 
-                });
-
-            existing.Quantity = newQuantity;
+            // Actualizar cantidad sin validación de stock
+            existing.Quantity += request.Quantity;
             existing.UpdatedAt = DateTime.UtcNow;
         }
         else
@@ -116,6 +138,10 @@ public class CartController : ControllerBase
             {
                 UserId = userId,
                 ProductId = request.ProductId,
+                ProductVariantId = request.ProductVariantId,
+                UnitPrice = unitPrice,  // ✅ GUARDAR PRECIO (variante o base)
+                VariantColor = variantColor,  // ✅ GUARDAR COLOR DE VARIANTE
+                VariantCentimeters = variantCentimeters,  // ✅ GUARDAR MEDIDA DE VARIANTE
                 Quantity = request.Quantity,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -145,8 +171,9 @@ public class CartController : ControllerBase
             return Unauthorized();
 
         var cartItem = await _context.CartItems
-            .Include(c => c.Product)
-            .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == productId);
+            .FirstOrDefaultAsync(c => c.UserId == userId && 
+                                      c.ProductId == productId &&
+                                      c.ProductVariantId == request.ProductVariantId);
 
         if (cartItem == null)
             return NotFound(new OperationResult 
@@ -159,19 +186,15 @@ public class CartController : ControllerBase
         {
             // Si la cantidad es 0 o negativa, eliminar del carrito
             _context.CartItems.Remove(cartItem);
+            Console.WriteLine($"🗑️ Producto {productId} (Variante: {request.ProductVariantId}) eliminado del carrito");
         }
         else
         {
-            // Verificar stock
-            if (request.Quantity > cartItem.Product!.Stock)
-                return BadRequest(new OperationResult 
-                { 
-                    Success = false, 
-                    Message = $"Stock insuficiente. Solo hay {cartItem.Product.Stock} unidades disponibles" 
-                });
-
+            // Actualizar cantidad sin validación de stock
             cartItem.Quantity = request.Quantity;
             cartItem.UpdatedAt = DateTime.UtcNow;
+
+            Console.WriteLine($"✅ Cantidad actualizada: Producto {productId} (Variante: {request.ProductVariantId}) → {request.Quantity} unidades");
         }
 
         await _context.SaveChangesAsync();
@@ -188,14 +211,18 @@ public class CartController : ControllerBase
     /// </summary>
     [Authorize] // ✅ Requiere login
     [HttpDelete("{productId:int}")]
-    public async Task<ActionResult<OperationResult>> RemoveFromCart(int productId)
+    public async Task<ActionResult<OperationResult>> RemoveFromCart(int productId, [FromQuery] int? variantId = null)
     {
         var userId = GetCurrentUserId();
         if (userId == 0)
             return Unauthorized();
 
+        // ✅ CRÍTICO: Buscar por ProductId Y ProductVariantId para eliminar la línea correcta
         var cartItem = await _context.CartItems
-            .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == productId);
+            .FirstOrDefaultAsync(c => c.UserId == userId && 
+                                      c.ProductId == productId &&
+                                      c.ProductVariantId == variantId);
+
 
         if (cartItem == null)
             return NotFound(new OperationResult 
@@ -270,7 +297,7 @@ public class CartController : ControllerBase
             foreach (var item in request.Items)
             {
                 // Verificar que el producto existe
-                var product = await _context.Products.FindAsync(item.ProductId);
+                var product = await _context.Products.Include(p => p.Variants).FirstOrDefaultAsync(p => p.Id == item.ProductId);
                 if (product == null || product.Stock < item.Quantity)
                     continue;
 

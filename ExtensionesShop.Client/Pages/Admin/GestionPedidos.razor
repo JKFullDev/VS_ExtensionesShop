@@ -1,7 +1,9 @@
 @page "/admin/pedidos"
+@attribute [Authorize(Roles = "Admin")]
 @layout ExtensionesShop.Client.Layouts.AdminLayout
 @using ExtensionesShop.Shared.Models
 @using ExtensionesShop.Client.Services
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
 @inject AuthService AuthService
 @inject NavigationManager Navigation
@@ -92,7 +94,7 @@
                                     <td>
                                         <a href="tel:@pedido.CustomerPhone">@pedido.CustomerPhone</a>
                                     </td>
-                                    <td><strong>$@pedido.Total.ToString("N2")</strong></td>
+                                    <td><strong>@pedido.Total.ToString("N2")€</strong></td>
                                     <td>@pedido.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>
                                         <span class="status-badge @GetStatusClass(pedido.Status)">
@@ -112,7 +114,7 @@
                                                 <option value="5">Cancelado</option>
                                             </select>
                                             <button class="btn-detalle" @onclick="() => VerDetalle(pedido.Id)">
-                                                👁️ Ver
+                                                Ver
                                             </button>
                                         </div>
                                     </td>
@@ -124,45 +126,151 @@
             }
         </div>
 
-    <!-- Modal de detalle (opcional) -->
+    <!-- Modal de detalle mejorado -->
     @if (pedidoSeleccionado != null)
     {
         <div class="modal-overlay" @onclick="CerrarDetalle">
-            <div class="modal-content" @onclick:stopPropagation="true">
-                <div class="modal-header">
-                    <h2>Pedido #@pedidoSeleccionado.Id</h2>
-                    <button class="btn-close" @onclick="CerrarDetalle">✕</button>
+            <div class="modal-content-detail" @onclick:stopPropagation="true">
+                <div class="modal-header-detail">
+                    <div>
+                        <h2>Pedido <span class="order-number">#@pedidoSeleccionado.Id</span></h2>
+                        <p class="order-date">@pedidoSeleccionado.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                    </div>
+                    <button class="btn-close-detail" @onclick="CerrarDetalle">✕</button>
                 </div>
-                <div class="modal-body">
-                    <h3>Cliente:</h3>
-                    <p><strong>Nombre:</strong> @pedidoSeleccionado.CustomerName</p>
-                    <p><strong>Email:</strong> @pedidoSeleccionado.CustomerEmail</p>
-                    <p><strong>Teléfono:</strong> @pedidoSeleccionado.CustomerPhone</p>
-                    <p><strong>Dirección:</strong> @pedidoSeleccionado.ShippingAddress, @pedidoSeleccionado.City</p>
 
-                    <h3>Productos:</h3>
-                    @if (pedidoSeleccionado.OrderItems != null)
-                    {
-                        <ul>
-                            @foreach (var item in pedidoSeleccionado.OrderItems)
+                <!-- Contenido en dos columnas -->
+                <div class="modal-body-detail">
+                    <!-- Columna izquierda: Información del cliente -->
+                    <div class="detail-section-left">
+                        <div class="customer-card">
+                            <h3>📋 Información del Cliente</h3>
+                            <div class="customer-info">
+                                <div class="info-row">
+                                    <label>Nombre:</label>
+                                    <span>@pedidoSeleccionado.CustomerName</span>
+                                </div>
+                                <div class="info-row">
+                                    <label>Email:</label>
+                                    <a href="mailto:@pedidoSeleccionado.CustomerEmail">@pedidoSeleccionado.CustomerEmail</a>
+                                </div>
+                                <div class="info-row">
+                                    <label>Teléfono:</label>
+                                    <a href="tel:@pedidoSeleccionado.CustomerPhone">@pedidoSeleccionado.CustomerPhone</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="shipping-card">
+                            <h3>🚚 Dirección de Envío</h3>
+                            <div class="shipping-info">
+                                <p>@pedidoSeleccionado.ShippingAddress</p>
+                                <p>@pedidoSeleccionado.PostalCode, @pedidoSeleccionado.City</p>
+                                @if (!string.IsNullOrEmpty(pedidoSeleccionado.Province))
+                                {
+                                    <p>@pedidoSeleccionado.Province</p>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="status-card">
+                            <h3>Estado del Pedido</h3>
+                            <span class="status-badge-large @GetStatusClass(pedidoSeleccionado.Status)">
+                                @GetStatusText(pedidoSeleccionado.Status)
+                            </span>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(pedidoSeleccionado.Notes))
+                        {
+                            <div class="notes-card">
+                                <h3>📝 Notas</h3>
+                                <p>@pedidoSeleccionado.Notes</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Separador visual -->
+                    <div class="detail-divider"></div>
+
+                    <!-- Columna derecha: Productos -->
+                    <div class="detail-section-right">
+                        <h3>📦 Productos Pedidos</h3>
+                        <div class="products-table-container">
+                            @if (pedidoSeleccionado.OrderItems != null && pedidoSeleccionado.OrderItems.Any())
                             {
-                                <li>
-                                    @item.ProductName
-                                    @if (!string.IsNullOrEmpty(item.SelectedColor)) { <span>(Color: @item.SelectedColor)</span> }
-                                    @if (item.SelectedCentimeters.HasValue) { <span>(@item.SelectedCentimeters cm)</span> }
-                                    - Cantidad: @item.Quantity - $@item.UnitPrice
-                                </li>
+                                <table class="products-detail-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Imagen</th>
+                                            <th>Producto</th>
+                                            <th>Variante</th>
+                                            <th>Cantidad</th>
+                                            <th>Precio</th>
+                                            <th>Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in pedidoSeleccionado.OrderItems)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="product-image-cell">
+@if (!string.IsNullOrEmpty(item.Product?.ImageUrl)) {
+    <img src="@item.Product.ImageUrl" alt="@item.ProductName" class="product-thumbnail" />
+} else if (item.Product?.Images?.Any() == true) {
+    <img src="@item.Product.Images.First().ImageUrl" alt="@item.ProductName" class="product-thumbnail" />
+} else {
+    <div class="product-no-image">Sin imagen</div>
+}
+                                                    </div>
+                                                </td>
+                                                <td><strong>@item.ProductName</strong></td>
+                                                <td>
+                                                    <div class="variant-info">
+                                                        @if (!string.IsNullOrEmpty(item.SelectedColor))
+                                                        {
+                                                            <span class="variant-badge color">@item.SelectedColor</span>
+                                                        }
+                                                        @if (item.SelectedCentimeters.HasValue)
+                                                        {
+                                                            <span class="variant-badge length">@item.SelectedCentimeters cm</span>
+                                                        }
+                                                        @if (string.IsNullOrEmpty(item.SelectedColor) && !item.SelectedCentimeters.HasValue)
+                                                        {
+                                                            <span class="variant-badge none">Sin variante</span>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td>@item.Quantity</td>
+                                                <td>@item.UnitPrice.ToString("N2")€</td>
+                                                <td><strong>@(item.UnitPrice * item.Quantity).ToString("N2")€</strong></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+
+                                <!-- Resumen de totales -->
+                                <div class="totals-summary">
+                                    <div class="total-row">
+                                        <span>Subtotal:</span>
+                                        <span>@pedidoSeleccionado.Subtotal.ToString("N2")€</span>
+                                    </div>
+                                    <div class="total-row">
+                                        <span>Envío:</span>
+                                        <span>@pedidoSeleccionado.ShippingCost.ToString("N2")€</span>
+                                    </div>
+                                    <div class="total-row grand-total">
+                                        <span>Total:</span>
+                                        <span>@pedidoSeleccionado.Total.ToString("N2")€</span>
+                                    </div>
+                                </div>
                             }
-                        </ul>
-                    }
-
-                    @if (!string.IsNullOrEmpty(pedidoSeleccionado.Notes))
-                    {
-                        <h3>Notas:</h3>
-                        <p>@pedidoSeleccionado.Notes</p>
-                    }
-
-                    <h3>Total: $@pedidoSeleccionado.Total.ToString("N2")</h3>
+                            else
+                            {
+                                <p class="empty-items">No hay productos en este pedido</p>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -291,47 +399,340 @@
         background: #C53A5A;
     }
 
-    /* Modal */
+    /* Modal Mejorado */
     .modal-overlay {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.6);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 1000;
+        backdrop-filter: blur(2px);
     }
 
-    .modal-content {
+    .modal-content-detail {
         background: white;
-        padding: 32px;
-        border-radius: 16px;
-        max-width: 600px;
-        width: 90%;
-        max-height: 80vh;
+        border-radius: 20px;
+        max-width: 1000px;
+        width: 95%;
+        max-height: 90vh;
         overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
     }
 
-    .modal-header {
+    .modal-header-detail {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
+        padding: 32px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(to bottom, var(--rose-pale), var(--white));
     }
 
-    .btn-close {
-        background: none;
-        border: none;
+    .modal-header-detail h2 {
+        margin: 0;
         font-size: 24px;
-        cursor: pointer;
+        color: var(--ink);
+    }
+
+    .order-number {
+        color: var(--rose);
+        font-weight: 700;
+    }
+
+    .order-date {
+        margin: 8px 0 0 0;
+        font-size: 14px;
         color: var(--muted);
     }
 
-    .btn-close:hover {
+    .btn-close-detail {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: var(--muted);
+        padding: 0;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-close-detail:hover {
+        background: rgba(0, 0, 0, 0.05);
         color: var(--ink);
+    }
+
+    .modal-body-detail {
+        display: grid;
+        grid-template-columns: 1fr auto 1.2fr;
+        gap: 32px;
+        padding: 32px;
+        overflow-y: auto;
+    }
+
+    /* Sección izquierda: Cliente */
+    .detail-section-left {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .customer-card,
+    .shipping-card,
+    .status-card,
+    .notes-card {
+        background: var(--off-white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .customer-card h3,
+    .shipping-card h3,
+    .status-card h3,
+    .notes-card h3 {
+        margin: 0 0 16px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .customer-info {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .info-row label {
+        font-weight: 600;
+        color: var(--muted);
+        min-width: 80px;
+    }
+
+    .info-row span,
+    .info-row a {
+        color: var(--ink);
+        word-break: break-word;
+    }
+
+    .info-row a {
+        color: var(--rose);
+        text-decoration: none;
+    }
+
+    .info-row a:hover {
+        text-decoration: underline;
+    }
+
+    .shipping-info {
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--ink);
+    }
+
+    .shipping-info p {
+        margin: 0;
+    }
+
+    .status-badge-large {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .notes-card p {
+        margin: 0;
+        color: var(--ink);
+        line-height: 1.6;
+    }
+
+    /* Separador visual */
+    .detail-divider {
+        width: 1px;
+        background: linear-gradient(180deg, transparent 0%, var(--border) 50%, transparent 100%);
+    }
+
+    /* Sección derecha: Productos */
+    .detail-section-right {
+        flex: 1;
+    }
+
+    .detail-section-right h3 {
+        margin: 0 0 20px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .products-table-container {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: white;
+    }
+
+    .products-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .products-detail-table thead {
+        background: var(--rose-pale);
+        border-bottom: 2px solid var(--border);
+    }
+
+    .products-detail-table th {
+        padding: 14px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .products-detail-table td {
+        padding: 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .products-detail-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .products-detail-table tbody tr:hover {
+        background: var(--off-white);
+    }
+
+    .product-image-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+    }
+
+    .product-thumbnail {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    .product-no-image {
+        width: 60px;
+        height: 60px;
+        background: var(--off-white);
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: var(--muted);
+        text-align: center;
+        padding: 4px;
+    }
+
+    .variant-info {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .variant-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .variant-badge.color {
+        background: rgba(212, 70, 112, 0.1);
+        color: var(--rose);
+        border: 1px solid rgba(212, 70, 112, 0.2);
+    }
+
+    .variant-badge.length {
+        background: rgba(79, 172, 254, 0.1);
+        color: #4FACE;
+        border: 1px solid rgba(79, 172, 254, 0.2);
+    }
+
+    .variant-badge.none {
+        background: var(--off-white);
+        color: var(--muted);
+        border: 1px solid var(--border);
+    }
+
+    /* Resumen de totales */
+    .totals-summary {
+        padding: 20px;
+        background: var(--off-white);
+        border-top: 1px solid var(--border);
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        font-size: 14px;
+    }
+
+    .total-row span:first-child {
+        font-weight: 500;
+        color: var(--muted);
+    }
+
+    .total-row span:last-child {
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .total-row.grand-total {
+        border-top: 2px solid var(--border);
+        padding-top: 14px;
+        margin-top: 6px;
+        font-size: 16px;
+    }
+
+    .total-row.grand-total span:first-child {
+        color: var(--ink);
+        font-weight: 700;
+    }
+
+    .total-row.grand-total span:last-child {
+        color: var(--rose);
+        font-size: 18px;
+    }
+
+    .empty-items {
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--muted);
+        font-style: italic;
     }
 </style>
 

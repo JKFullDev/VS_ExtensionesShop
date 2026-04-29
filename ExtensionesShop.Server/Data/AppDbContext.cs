@@ -85,6 +85,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(u => u.Phone).HasMaxLength(20);
             entity.Property(u => u.Address).HasMaxLength(255);
             entity.Property(u => u.City).HasMaxLength(100);
+            entity.Property(u => u.Province).HasMaxLength(100);
             entity.Property(u => u.PostalCode).HasMaxLength(10);
 
             entity.HasIndex(u => u.Email).IsUnique();
@@ -153,6 +154,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(o => o.CustomerPhone).HasMaxLength(20).IsRequired();
             entity.Property(o => o.ShippingAddress).HasMaxLength(255).IsRequired();
             entity.Property(o => o.City).HasMaxLength(100).IsRequired();
+            entity.Property(o => o.Province).HasMaxLength(100);
             entity.Property(o => o.PostalCode).HasMaxLength(10).IsRequired();
             entity.Property(o => o.Subtotal).HasPrecision(18, 2);
             entity.Property(o => o.ShippingCost).HasPrecision(18, 2);

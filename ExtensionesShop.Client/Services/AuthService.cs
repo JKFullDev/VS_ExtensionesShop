@@ -191,6 +191,7 @@ public class AuthService
                     CurrentUser.Phone = data.Phone;
                     CurrentUser.Address = data.Address;
                     CurrentUser.City = data.City;
+                    CurrentUser.Province = data.Province;
                     CurrentUser.PostalCode = data.PostalCode;
                     await SaveUserToLocalStorage();
                     NotifyAuthStateChanged();
@@ -258,6 +259,7 @@ public class UserData
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }
+    public string? Province { get; set; }
     public string? PostalCode { get; set; }
     public string Role { get; set; } = "User";
 }
@@ -269,6 +271,10 @@ public class RegisterData
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string Province { get; set; } = string.Empty;
+    public string PostalCode { get; set; } = string.Empty;
     public string RecaptchaToken { get; set; } = string.Empty;
 }
 
@@ -279,6 +285,7 @@ public class UpdateProfileData
     public string Phone { get; set; } = string.Empty;
     public string? Address { get; set; }
     public string? City { get; set; }
+    public string? Province { get; set; }
     public string? PostalCode { get; set; }
 }
 

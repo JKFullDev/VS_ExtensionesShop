@@ -3,6 +3,7 @@
 @using ExtensionesShop.Client.Services
 @inject AuthService AuthService
 @inject NavigationManager Navigation
+@inject HttpClient Http
 @implements IDisposable
 
 <PageTitle>Mi Cuenta - Extensiones Shop</PageTitle>
@@ -119,6 +120,18 @@
                                             <label for="city">Ciudad</label>
                                             <InputText id="city" @bind-Value="perfilForm.City" class="form-control" />
                                             <ValidationMessage For="@(() => perfilForm.City)" />
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="province">Provincia</label>
+                                            <InputSelect id="province" @bind-Value="perfilForm.Province" class="form-control">
+                                                <option value="">-- Selecciona una provincia --</option>
+                                                @foreach (var prov in provincias)
+                                                {
+                                                    <option value="@prov">@prov</option>
+                                                }
+                                            </InputSelect>
+                                            <ValidationMessage For="@(() => perfilForm.Province)" />
                                         </div>
 
                                         <div class="form-group">
@@ -338,7 +351,7 @@
 
 <style>
     .cuenta-content {
-        padding: 40px 0 var(--section-gap);
+        padding: 0 0 var(--section-gap);
     }
 
     /* Dashboard Layout */
@@ -784,12 +797,81 @@
     private string activeTab = "perfil";
     private List<OrderData>? pedidos;
 
+    // ✅ Lista de provincias españolas
+    private List<string> provincias = new()
+    {
+        "Álava",
+        "Albacete",
+        "Alicante",
+        "Almería",
+        "Ávila",
+        "Badajoz",
+        "Barcelona",
+        "Burgos",
+        "Cáceres",
+        "Cádiz",
+        "Cantabria",
+        "Castellón",
+        "Ceuta",
+        "Ciudad Real",
+        "Córdoba",
+        "Cuenca",
+        "Girona",
+        "Granada",
+        "Guadalajara",
+        "Guipúzcoa",
+        "Huelva",
+        "Huesca",
+        "Islas Baleares",
+        "Jaén",
+        "La Coruña",
+        "La Rioja",
+        "Las Palmas",
+        "León",
+        "Lleida",
+        "Lugo",
+        "Madrid",
+        "Málaga",
+        "Melilla",
+        "Murcia",
+        "Navarra",
+        "Ourense",
+        "Palencia",
+        "Palma de Mallorca",
+        "Pontevedra",
+        "Salamanca",
+        "Segovia",
+        "Sevilla",
+        "Soria",
+        "Tarragona",
+        "Teruel",
+        "Toledo",
+        "Valencia",
+        "Valladolid",
+        "Vizcaya",
+        "Zamora",
+        "Zaragoza"
+    };
+
     protected override async Task OnInitializedAsync()
     {
         if (AuthService.IsAuthenticated && AuthService.CurrentUser != null)
         {
             CargarDatosUsuario();
             await CargarPedidos();
+        }
+
+        // Suscribirse a cambios de estado de autenticación
+        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        // Recargar datos del usuario cuando cambie el estado de autenticación
+        if (AuthService.IsAuthenticated && AuthService.CurrentUser != null)
+        {
+            CargarDatosUsuario();
+            _ = CargarPedidos();
         }
     }
 
@@ -805,6 +887,7 @@
                 Phone = AuthService.CurrentUser.Phone ?? string.Empty,
                 Address = AuthService.CurrentUser.Address,
                 City = AuthService.CurrentUser.City,
+                Province = AuthService.CurrentUser.Province,
                 PostalCode = AuthService.CurrentUser.PostalCode
             };
         }
@@ -817,13 +900,14 @@
         cargandoPedidos = true;
         try
         {
-            // TODO: Implementar servicio de pedidos
-            // pedidos = await OrderService.GetUserOrdersAsync(AuthService.CurrentUser.Id);
-            pedidos = new List<OrderData>(); // Temporal
+            // Llamada real a la API
+            pedidos = await Http.GetFromJsonAsync<List<OrderData>>($"api/orders?userId={AuthService.CurrentUser.Id}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar pedidos: {ex.Message}");
+            // Inicializar lista vacía en caso de error
+            pedidos = new List<OrderData>();
         }
         finally
         {
@@ -842,7 +926,11 @@
 
             if (result.Success)
             {
-                // El estado se actualizará automáticamente y mostrará el dashboard
+                // Cargar datos del usuario y pedidos antes de actualizar el estado
+                CargarDatosUsuario();
+                await CargarPedidos();
+
+                // Ahora actualizar la vista
                 await InvokeAsync(StateHasChanged);
             }
             else
@@ -880,6 +968,7 @@
                     Phone = perfilForm.Phone,
                     Address = perfilForm.Address,
                     City = perfilForm.City,
+                    Province = perfilForm.Province,
                     PostalCode = perfilForm.PostalCode
                 });
 
@@ -955,7 +1044,8 @@
 
     public void Dispose()
     {
-        // Cleanup if needed
+        // Desuscribirse del evento de cambio de estado de autenticación
+        AuthService.OnAuthStateChanged -= HandleAuthStateChanged;
     }
 
     public class LoginFormModel
@@ -986,23 +1076,39 @@
         [Phone(ErrorMessage = "El teléfono no es válido")]
         public string Phone { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "La dirección es necesaria para el envío")]
         [MaxLength(200)]
-        public string? Address { get; set; }
+        public string Address { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La ciudad es necesaria para el envío")]
+        [MaxLength(100)]
+        public string City { get; set; } = string.Empty;
 
         [MaxLength(100)]
-        public string? City { get; set; }
+        public string? Province { get; set; }
 
+        [Required(ErrorMessage = "El código postal es necesario para el envío")]
         [MaxLength(10)]
-        public string? PostalCode { get; set; }
+        public string PostalCode { get; set; } = string.Empty;
     }
 
-    // Modelo temporal para pedidos
+    // Modelo para pedidos - debe ser compatible con Order del servidor
     public class OrderData
     {
         public int Id { get; set; }
+        public int? UserId { get; set; }
+        public string CustomerEmail { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerPhone { get; set; } = string.Empty;
+        public string ShippingAddress { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string PostalCode { get; set; } = string.Empty;
+        public decimal Subtotal { get; set; }
+        public decimal ShippingCost { get; set; }
         public decimal Total { get; set; }
         public int Status { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? ShippedAt { get; set; }
         public List<object> OrderItems { get; set; } = new();
     }
 }

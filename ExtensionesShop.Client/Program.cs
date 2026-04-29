@@ -7,6 +7,9 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+// ✅ Añadir soporte de autorización
+builder.Services.AddAuthorizationCore();
+
 // ✅ Registrar AuthorizationMessageHandler
 builder.Services.AddScoped<AuthorizationMessageHandler>();
 

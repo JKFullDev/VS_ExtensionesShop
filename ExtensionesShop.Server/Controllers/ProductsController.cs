@@ -11,19 +11,19 @@ namespace ExtensionesShop.Server.Controllers;
 public class ProductsController(AppDbContext db) : ControllerBase
 {
     // GET api/products
+    // ✅ Sin paginación en backend - El frontend hace la paginación local
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Product>>> GetAll(
         [FromQuery] int? categoryId,
         [FromQuery] int? subcategoryId,
-        [FromQuery] string? search,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 24)
+        [FromQuery] string? search)
     {
         var query = db.Products
             .Include(p => p.Category)
             .Include(p => p.Subcategory)
             .Include(p => p.Variants)
             .Include(p => p.Images)
+            .Where(p => p.IsActive == true)  // Solo productos activos para clientes públicos
             .AsQueryable();
 
         if (categoryId.HasValue)
@@ -35,14 +35,37 @@ public class ProductsController(AppDbContext db) : ControllerBase
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.Name.Contains(search) || p.Description.Contains(search));
 
-        var total = await query.CountAsync();
         var items = await query
             .OrderByDescending(p => p.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            .ToListAsync();  // ✅ Sin Skip/Take - Devuelve la lista completa
 
-        Response.Headers.Append("X-Total-Count", total.ToString());
+        // ✅ FILTRO: Solo mostrar variantes ACTIVAS en catálogo público
+        foreach (var product in items)
+        {
+            product.Variants = product.Variants?.Where(v => v.IsActive).ToList() ?? new List<ProductVariant>();
+        }
+
+        return Ok(items);
+    }
+
+    /// <summary>
+    /// GET /api/products/admin/all - Obtener TODOS los productos (incluso inactivos) para el admin
+    /// ✅ SIN paginación en backend - El frontend hace la paginación local
+    /// ✅ FILTRO: Solo traer variantes ACTIVAS desde la BD
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin/all")]
+    public async Task<ActionResult<IEnumerable<Product>>> GetAllForAdmin()
+    {
+        var items = await db.Products
+            .Include(p => p.Category)
+            .Include(p => p.Subcategory)
+            .Include(p => p.Variants.Where(v => v.IsActive)) // ✅ FILTRO: Solo variantes activas
+            .Include(p => p.Images)
+            .OrderByDescending(p => p.Id)
+            .ToListAsync();  // ✅ SIN filtro IsActive en producto - Ver activos e inactivos
+                             // ✅ SIN Skip/Take - Devolverá toda la lista
+
         return Ok(items);
     }
 
@@ -58,7 +81,13 @@ public class ProductsController(AppDbContext db) : ControllerBase
             .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.Id == id);
 
-        return product is null ? NotFound() : Ok(product);
+        if (product is null)
+            return NotFound();
+
+        // ✅ FILTRO: Solo mostrar variantes ACTIVAS en catálogo público
+        product.Variants = product.Variants?.Where(v => v.IsActive).ToList() ?? new List<ProductVariant>();
+
+        return Ok(product);
     }
 
     // GET api/products/{id}/variants
@@ -66,7 +95,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductVariant>>> GetProductVariants(int id)
     {
         var variants = await db.ProductVariants
-            .Where(v => v.ProductId == id)
+            .Where(v => v.ProductId == id && v.IsActive) // ✅ FILTRO: Solo variantes activas
             .Include(v => v.Images)
             .OrderBy(v => v.DisplayOrder)
             .ToListAsync();
@@ -92,7 +121,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
             if (request.Id.HasValue && request.Id.Value > 0)
             {
                 product = await db.Products
-                    .Include(p => p.Variants)
+                    .Include(p => p.Variants.Where(v => v.IsActive)) // ✅ FILTRO: Solo variantes activas
                     .Include(p => p.Images)
                     .FirstOrDefaultAsync(p => p.Id == request.Id.Value);
 
@@ -108,6 +137,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
                 product.SubcategoryId = request.SubcategoryId;
                 product.Color = request.Color;
                 product.Centimeters = request.Centimeters;
+                product.StockValue = request.Stock;  // ✅ CRÍTICO: Guardar el stock manual en StockValue
 
                 db.Products.Update(product);
             }
@@ -123,7 +153,8 @@ public class ProductsController(AppDbContext db) : ControllerBase
                     CategoryId = request.CategoryId,
                     SubcategoryId = request.SubcategoryId,
                     Color = request.Color,
-                    Centimeters = request.Centimeters
+                    Centimeters = request.Centimeters,
+                    StockValue = request.Stock  // ✅ CRÍTICO: Guardar el stock manual en StockValue
                 };
 
                 db.Products.Add(product);
@@ -134,35 +165,109 @@ public class ProductsController(AppDbContext db) : ControllerBase
             // 2. Gestionar variantes
             if (request.Variants != null && request.Variants.Any())
             {
-                // Si es actualización, eliminar variantes existentes
-                if (request.Id.HasValue && request.Id.Value > 0)
-                {
-                    var existingVariants = await db.ProductVariants
-                        .Where(v => v.ProductId == product.Id)
-                        .ToListAsync();
-                    db.ProductVariants.RemoveRange(existingVariants);
-                    await db.SaveChangesAsync();
-                }
-
-                // Crear nuevas variantes
                 var displayOrder = 0;
+
+                // ✅ MEJOR PRÁCTICA: Cargar variantes existentes para upsert inteligente
+                var existingVariants = await db.ProductVariants
+                    .Where(v => v.ProductId == product.Id)
+                    .ToDictionaryAsync(v => v.Id, v => v);
+
+                // ✅ UPSERT LOOP: Iterar sobre request.Variants
                 foreach (var variantDto in request.Variants)
                 {
-                    var variant = new ProductVariant
+                    if (variantDto.Id.HasValue && variantDto.Id.Value > 0)
                     {
-                        ProductId = product.Id,
-                        Color = variantDto.Color,
-                        Centimeters = variantDto.Centimeters,
-                        Stock = variantDto.Stock,
-                        Price = variantDto.Price,
-                        IsActive = variantDto.IsActive,
-                        DisplayOrder = displayOrder++
-                    };
+                        // ✅ ACTUALIZAR: La variante ya existe en BD
+                        if (existingVariants.TryGetValue(variantDto.Id.Value, out var existingVariant))
+                        {
+                            existingVariant.Color = variantDto.Color;
+                            existingVariant.Centimeters = variantDto.Centimeters;
+                            existingVariant.Stock = variantDto.Stock;
+                            existingVariant.Price = variantDto.Price;
+                            existingVariant.IsActive = variantDto.IsActive;
+                            existingVariant.DisplayOrder = displayOrder;
 
-                    db.ProductVariants.Add(variant);
+                            db.ProductVariants.Update(existingVariant);
+                            Console.WriteLine($"✏️ Variante #{variantDto.Id} actualizada");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠️ Variante #{variantDto.Id} especificada pero NO encontrada en BD (posible corrupción)");
+                        }
+                    }
+                    else
+                    {
+                        // ✅ INSERTAR: Nueva variante (Id == 0 o nulo)
+                        var newVariant = new ProductVariant
+                        {
+                            ProductId = product.Id,
+                            Color = variantDto.Color,
+                            Centimeters = variantDto.Centimeters,
+                            Stock = variantDto.Stock,
+                            Price = variantDto.Price,
+                            IsActive = variantDto.IsActive,
+                            DisplayOrder = displayOrder
+                        };
+
+                        db.ProductVariants.Add(newVariant);
+                        Console.WriteLine($"✨ Nueva variante añadida: Color={variantDto.Color}, Cm={variantDto.Centimeters}");
+                    }
+
+                    displayOrder++;
                 }
 
                 await db.SaveChangesAsync();
+
+                // ✅ SOFT DELETE: Identificar y desactivar variantes huérfanas (en BD pero no en request)
+                var requestVariantIds = request.Variants
+                    .Where(v => v.Id.HasValue && v.Id.Value > 0)
+                    .Select(v => v.Id.Value)
+                    .ToHashSet();
+
+                var orphanedVariants = existingVariants.Values
+                    .Where(v => !requestVariantIds.Contains(v.Id))
+                    .ToList();
+
+                if (orphanedVariants.Any())
+                {
+                    foreach (var orphan in orphanedVariants)
+                    {
+                        // ✅ SOFT DELETE: Marcar como inactiva en lugar de eliminar
+                        // Esto preserva la integridad referencial con OrderItems
+                        orphan.IsActive = false;
+                        db.ProductVariants.Update(orphan);
+                        Console.WriteLine($"🔒 Variante huérfana #{orphan.Id} marcada como inactiva (Soft Delete)");
+                    }
+
+                    await db.SaveChangesAsync();
+                    Console.WriteLine($"✅ {orphanedVariants.Count} variantes huérfanas han sido desactivadas (no eliminadas)");
+                }
+            }
+            else
+            {
+                // ✅ MEJORA: Si NO hay variantes, hacer soft delete de todas las existentes
+                if (request.Id.HasValue && request.Id.Value > 0)
+                {
+                    var existingVariants = await db.ProductVariants
+                        .Where(v => v.ProductId == product.Id && v.IsActive)
+                        .ToListAsync();
+
+                    if (existingVariants.Any())
+                    {
+                        // ✅ SOFT DELETE en lugar de RemoveRange
+                        foreach (var variant in existingVariants)
+                        {
+                            variant.IsActive = false;
+                            db.ProductVariants.Update(variant);
+                        }
+
+                        await db.SaveChangesAsync();
+                        Console.WriteLine($"🔒 Todas las {existingVariants.Count} variantes marcadas como inactivas");
+                    }
+                }
+
+                // No hay variantes, el stock es manual (ya está guardado en request.Stock)
+                Console.WriteLine($"📦 Producto sin variantes - Stock manual: {request.Stock}");
             }
 
             // 3. Gestionar imágenes
@@ -204,7 +309,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
             var resultProduct = await db.Products
                 .Include(p => p.Category)
                 .Include(p => p.Subcategory)
-                .Include(p => p.Variants)
+                .Include(p => p.Variants.Where(v => v.IsActive)) // ✅ FILTRO: Solo variantes activas
                     .ThenInclude(v => v.Images)
                 .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == product.Id);
@@ -264,49 +369,62 @@ public class ProductsController(AppDbContext db) : ControllerBase
     {
         var product = await db.Products
             .Include(p => p.Variants)
-            .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product == null)
             return NotFound();
 
-        using var transaction = await db.Database.BeginTransactionAsync();
+        // ✅ SOFT DELETE: Marcar como inactivo en lugar de eliminar
         try
         {
-            // 1. Eliminar imágenes de variantes
-            var variantImages = await db.ProductImages
-                .Where(i => i.ProductVariantId != null && 
-                       db.ProductVariants.Where(v => v.ProductId == id).Select(v => v.Id).Contains(i.ProductVariantId.Value))
-                .ToListAsync();
-            db.ProductImages.RemoveRange(variantImages);
+            product.IsActive = false;
+
+            // ✅ También marcar sus variantes como inactivas
+            if (product.Variants != null && product.Variants.Any())
+            {
+                foreach (var variant in product.Variants)
+                {
+                    variant.IsActive = false;
+                }
+            }
+
             await db.SaveChangesAsync();
 
-            // 2. Eliminar imágenes del producto
-            var productImages = await db.ProductImages
-                .Where(i => i.ProductId == id && i.ProductVariantId == null)
-                .ToListAsync();
-            db.ProductImages.RemoveRange(productImages);
-            await db.SaveChangesAsync();
-
-            // 3. Eliminar variantes
-            var variants = await db.ProductVariants
-                .Where(v => v.ProductId == id)
-                .ToListAsync();
-            db.ProductVariants.RemoveRange(variants);
-            await db.SaveChangesAsync();
-
-            // 4. Eliminar producto
-            db.Products.Remove(product);
-            await db.SaveChangesAsync();
-
-            // Confirmar transacción
-            await transaction.CommitAsync();
-            return NoContent();
+            Console.WriteLine($"✅ Producto {id} ({product.Name}) marcado como inactivo (Soft Delete)");
+            return Ok(new { message = $"Producto '{product.Name}' desactivado correctamente. Puede reactivarlo desde el panel de administración." });
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
-            return StatusCode(500, new { message = "Error al eliminar el producto", error = ex.Message });
+            Console.WriteLine($"❌ Error al desactivar producto {id}: {ex.Message}");
+            return StatusCode(500, new { message = "Error al desactivar el producto", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// POST /api/products/{id}/reactivate - Reactivar un producto desactivado
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpPost("{id}/reactivate")]
+    public async Task<IActionResult> Reactivate(int id)
+    {
+        var product = await db.Products
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (product == null)
+            return NotFound();
+
+        try
+        {
+            product.IsActive = true;
+            await db.SaveChangesAsync();
+
+            Console.WriteLine($"✅ Producto {id} ({product.Name}) reactivado");
+            return Ok(new { message = $"Producto '{product.Name}' reactivado correctamente." });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al reactivar producto {id}: {ex.Message}");
+            return StatusCode(500, new { message = "Error al reactivar el producto", error = ex.Message });
         }
     }
 }

@@ -1,6 +1,8 @@
 @page "/admin/usuarios"
+@attribute [Authorize(Roles = "Admin")]
 @layout ExtensionesShop.Client.Layouts.AdminLayout
 @using ExtensionesShop.Shared.Models
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient Http
 @inject IJSRuntime JS
 
@@ -193,7 +195,7 @@
                                     {
                                         <li>
                                             <span>Pedido #@pedido.Id</span>
-                                            <span>$@pedido.Total.ToString("N2")</span>
+                                            <span>@pedido.Total.ToString("N2")€</span>
                                             <span class="status-badge @GetStatusClass(pedido.Status)">
                                                 @GetStatusText(pedido.Status)
                                             </span>
