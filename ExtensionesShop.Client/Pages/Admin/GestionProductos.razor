@@ -212,6 +212,107 @@
                         </div>
                     }
                 </div>
+
+                <!-- TARJETAS MÓVIL: visibles solo en pantallas <= 768px -->
+                <div class="table-card-mobile">
+                    @if (productosFiltrados.Any())
+                    {
+                        @foreach (var producto in productosFiltrados.Skip((paginaActual - 1) * productosPorPagina).Take(productosPorPagina))
+                        {
+                            <div class="mobile-product-card @(producto.IsActive == false ? "product-inactive" : "")">
+                                <div class="mobile-card-header">
+                                    <img src="@(producto.ImageUrl ?? "/images/placeholder.jpg")" alt="@producto.Name" class="mobile-product-image" />
+                                    <div class="mobile-product-info">
+                                        <div class="mobile-product-name">@producto.Name</div>
+                                        @if (!string.IsNullOrEmpty(producto.Color))
+                                        {
+                                            <div class="mobile-product-color">@producto.Color</div>
+                                        }
+                                        <div class="mobile-product-price">@producto.Price.ToString("N2")€</div>
+                                        @if (producto.IsActive == false)
+                                        {
+                                            <span style="color: #DC2626; font-weight: 700; font-size: 10px;">❌ DESACTIVADO</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="mobile-card-row">
+                                    <span class="mobile-card-label">Categoría</span>
+                                    <span class="mobile-card-value">@(producto.Category?.Name ?? "-")</span>
+                                </div>
+                                <div class="mobile-card-row">
+                                    <span class="mobile-card-label">Stock</span>
+                                    <span class="mobile-card-value">
+                                        <span class="stock-badge @(producto.Stock < 10 ? "low-stock" : "")">@producto.Stock</span>
+                                    </span>
+                                </div>
+                                <div class="mobile-card-row">
+                                    <span class="mobile-card-label">Tallas</span>
+                                    <span class="mobile-card-value"><span class="variant-count">@(producto.Variants?.Count ?? 0)</span></span>
+                                </div>
+                                <div class="mobile-card-actions">
+                                    <button class="btn-icon" @onclick="() => MostrarFormulario(producto)" title="Editar">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                        Editar
+                                    </button>
+                                    <button class="btn-icon btn-duplicate" @onclick="() => DuplicarProducto(producto)" title="Duplicar">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                            <rect x="8" y="2" width="8" height="4"></rect>
+                                        </svg>
+                                        Copiar
+                                    </button>
+                                    @if (producto.IsActive == false)
+                                    {
+                                        <button class="btn-icon btn-reactivate" @onclick="() => ReactivarProducto(producto)" @onclick:stopPropagation="true" title="Reactivar">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M23 4v6h-6"/>
+                                                <path d="M1 20v-6h6"/>
+                                                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                                            </svg>
+                                            Activar
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn-icon btn-delete" @onclick="() => EliminarProducto(producto)" @onclick:stopPropagation="true" title="Eliminar">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                            Borrar
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="pagination-controls">
+                            <button class="btn-pagination"
+                                    @onclick="() => PaginaAnterior()"
+                                    disabled="@(paginaActual <= 1)">
+                                ← Anterior
+                            </button>
+                            <div class="pagination-info">
+                                Página @paginaActual de @((int)Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))
+                                <span class="pagination-results">(@productosFiltrados.Count() productos)</span>
+                            </div>
+                            <button class="btn-pagination"
+                                    @onclick="() => PaginaSiguiente()"
+                                    disabled="@(paginaActual >= Math.Ceiling((double)productosFiltrados.Count() / productosPorPagina))">
+                                Siguiente →
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="padding: 32px; text-align: center; color: #94A3B8;">
+                            No hay productos que coincidan con tu búsqueda.
+                        </div>
+                    }
+                </div>
             </div>
         }
     }
@@ -552,6 +653,10 @@
     @@keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
+    }
+
+    .table-card-mobile {
+        display: none;
     }
 
     .table-card {
@@ -1371,20 +1476,9 @@
             font-size: 14px;
         }
 
-        /* TABLAS - CONVERTIR A CARDS */
+        /* TABLAS: en móvil ocultamos la tabla y mostramos tarjetas */
         .table-card {
-            border-radius: 12px;
-        }
-
-        .data-table {
-            display: none;
-        }
-
-        /* Cards para móvil */
-        .table-wrapper {
-            overflow: visible;
-            border: none;
-            box-shadow: none;
+            display: none; /* Ocultar tabla en móvil */
         }
 
         .table-card-mobile {
@@ -2447,4 +2541,3 @@
         return formularioRequest.Variants.Count(v => EsVarianteValida(v));
     }
 }
-

@@ -18,8 +18,8 @@
             </div>
             <h1 class="page-title">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
                 </svg>
                 Mi Cuenta
             </h1>
@@ -156,9 +156,9 @@
                                     {
                                         <div class="alert alert-error">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <circle cx="12" cy="12" r="10"/>
-                                                <line x1="12" y1="8" x2="12" y2="12"/>
-                                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                                <circle cx="12" cy="12" r="10" />
+                                                <line x1="12" y1="8" x2="12" y2="12" />
+                                                <line x1="12" y1="16" x2="12.01" y2="16" />
                                             </svg>
                                             @errorMessage
                                         </div>
@@ -239,111 +239,111 @@
             else
             {
                 <!-- Formulario de Login (código existente) -->
-            <div class="login-prompt">
-                <div class="login-card">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                        <polyline points="10 17 15 12 10 7"/>
-                        <line x1="15" y1="12" x2="3" y2="12"/>
-                    </svg>
-                    <h2>Inicia Sesión</h2>
-                    <p>Accede a tu cuenta para ver tus pedidos, favoritos y más</p>
+                <div class="login-prompt">
+                    <div class="login-card">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" y1="12" x2="3" y2="12" />
+                        </svg>
+                        <h2>Inicia Sesión</h2>
+                        <p>Accede a tu cuenta para ver tus pedidos, favoritos y más</p>
                     
-                    <div class="login-actions">
-                        <EditForm Model="@loginForm" OnValidSubmit="IniciarSesion">
-                            <DataAnnotationsValidator />
+                        <div class="login-actions">
+                            <EditForm Model="@loginForm" OnValidSubmit="IniciarSesion">
+                                <DataAnnotationsValidator />
 
-                            <div class="form-group">
-                                <label for="email">Email</label>
-                                <InputText id="email" type="email" @bind-Value="loginForm.Email" class="form-control" placeholder="tu@email.com" />
-                                <ValidationMessage For="@(() => loginForm.Email)" />
-                            </div>
-
-                            <div class="form-group">
-                                <label for="password">Contraseña</label>
-                                <InputText id="password" type="password" @bind-Value="loginForm.Password" class="form-control" placeholder="Tu contraseña" />
-                                <ValidationMessage For="@(() => loginForm.Password)" />
-                            </div>
-
-                            <div class="form-checkbox">
-                                <InputCheckbox id="remember" @bind-Value="loginForm.RecordarSesion" />
-                                <label for="remember">Recordar sesión</label>
-                            </div>
-
-                            @if (!string.IsNullOrEmpty(errorMessage))
-                            {
-                                <div class="alert alert-error">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <line x1="12" y1="8" x2="12" y2="12"/>
-                                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                                    </svg>
-                                    @errorMessage
+                                <div class="form-group">
+                                    <label for="email">Email</label>
+                                    <InputText id="email" type="email" @bind-Value="loginForm.Email" class="form-control" placeholder="tu@email.com" />
+                                    <ValidationMessage For="@(() => loginForm.Email)" />
                                 </div>
-                            }
 
-                            <button type="submit" class="btn-primary btn-login" disabled="@procesando">
-                                @if (procesando)
-                                {
-                                    <span class="spinner-sm">✦</span>
-                                    <text>Iniciando sesión...</text>
-                                }
-                                else
-                                {
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                                        <polyline points="10 17 15 12 10 7"/>
-                                        <line x1="15" y1="12" x2="3" y2="12"/>
-                                    </svg>
-                                    <text>Iniciar Sesión</text>
-                                }
-                            </button>
-                        </EditForm>
+                                <div class="form-group">
+                                    <label for="password">Contraseña</label>
+                                    <InputText id="password" type="password" @bind-Value="loginForm.Password" class="form-control" placeholder="Tu contraseña" />
+                                    <ValidationMessage For="@(() => loginForm.Password)" />
+                                </div>
 
-                        <a href="/recuperar-password" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                                <div class="form-checkbox">
+                                    <InputCheckbox id="remember" @bind-Value="loginForm.RecordarSesion" />
+                                    <label for="remember">Recordar sesión</label>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(errorMessage))
+                                {
+                                    <div class="alert alert-error">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        @errorMessage
+                                    </div>
+                                }
+
+                                <button type="submit" class="btn-primary btn-login" disabled="@procesando">
+                                    @if (procesando)
+                                    {
+                                        <span class="spinner-sm">✦</span>
+                                        <text>Iniciando sesión...</text>
+                                    }
+                                    else
+                                    {
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                                            <polyline points="10 17 15 12 10 7" />
+                                            <line x1="15" y1="12" x2="3" y2="12" />
+                                        </svg>
+                                        <text>Iniciar Sesión</text>
+                                    }
+                                </button>
+                            </EditForm>
+
+                            <a href="/recuperar-password" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                        </div>
+
+                        <p class="register-link">
+                            ¿No tienes cuenta? <a href="/registro" class="link-primary">Regístrate gratis</a>
+                        </p>
                     </div>
 
-                    <p class="register-link">
-                        ¿No tienes cuenta? <a href="/registro" class="link-primary">Regístrate gratis</a>
-                    </p>
+                    <div class="benefits-sidebar">
+                        <h3>Beneficios de Tener Cuenta</h3>
+                        <ul class="benefits-list">
+                            <li>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>Seguimiento de pedidos en tiempo real</span>
+                            </li>
+                            <li>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>Guarda tus productos favoritos</span>
+                            </li>
+                            <li>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>Checkout más rápido</span>
+                            </li>
+                            <li>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>Ofertas y descuentos exclusivos</span>
+                            </li>
+                            <li>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>Historial de compras</span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-
-                <div class="benefits-sidebar">
-                    <h3>Beneficios de Tener Cuenta</h3>
-                    <ul class="benefits-list">
-                        <li>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            <span>Seguimiento de pedidos en tiempo real</span>
-                        </li>
-                        <li>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            <span>Guarda tus productos favoritos</span>
-                        </li>
-                        <li>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            <span>Checkout más rápido</span>
-                        </li>
-                        <li>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            <span>Ofertas y descuentos exclusivos</span>
-                        </li>
-                        <li>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            <span>Historial de compras</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
             }
         </div>
     </div>
@@ -380,20 +380,20 @@
         text-align: center;
     }
 
-    .user-info h3 {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: var(--ink);
-        word-break: break-word;
-    }
+        .user-info h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--ink);
+            word-break: break-word;
+        }
 
-    .user-info p {
-        font-size: 13px;
-        color: var(--muted);
-        margin: 0;
-        word-break: break-word;
-    }
+        .user-info p {
+            font-size: 13px;
+            color: var(--muted);
+            margin: 0;
+            word-break: break-word;
+        }
 
     .dashboard-nav {
         display: flex;
@@ -401,33 +401,33 @@
         gap: 4px;
     }
 
-    .nav-item, .dashboard-nav button {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        border-radius: 12px;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--ink-light);
-        text-decoration: none;
-        transition: all .2s;
-        background: none;
-        border: none;
-        width: 100%;
-        cursor: pointer;
-        text-align: left;
-    }
+        .nav-item, .dashboard-nav button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ink-light);
+            text-decoration: none;
+            transition: all .2s;
+            background: none;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            text-align: left;
+        }
 
-    .nav-item:hover, .dashboard-nav button:hover {
-        background: var(--bg-secondary);
-        color: var(--ink);
-    }
+            .nav-item:hover, .dashboard-nav button:hover {
+                background: var(--bg-secondary);
+                color: var(--ink);
+            }
 
-    .nav-item.active {
-        background: var(--rose);
-        color: white;
-    }
+            .nav-item.active {
+                background: var(--rose);
+                color: white;
+            }
 
     .nav-logout {
         color: #DC2626;
@@ -436,9 +436,9 @@
         padding-top: 16px;
     }
 
-    .nav-logout:hover {
-        background: #FEE2E2;
-    }
+        .nav-logout:hover {
+            background: #FEE2E2;
+        }
 
     .dashboard-main {
         min-height: 400px;
@@ -467,9 +467,9 @@
         margin-bottom: 24px;
     }
 
-    .form-grid .full-width {
-        grid-column: 1 / -1;
-    }
+        .form-grid .full-width {
+            grid-column: 1 / -1;
+        }
 
     .alert-success {
         background: #D1FAE5;
@@ -483,21 +483,21 @@
         padding: 60px 20px;
     }
 
-    .empty-state svg {
-        color: var(--muted);
-        margin: auto;
-        margin-bottom: 20px;
-    }
+        .empty-state svg {
+            color: var(--muted);
+            margin: auto;
+            margin-bottom: 20px;
+        }
 
-    .empty-state h3 {
-        font-size: 20px;
-        margin-bottom: 8px;
-    }
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
 
-    .empty-state p {
-        color: var(--muted);
-        margin-bottom: 24px;
-    }
+        .empty-state p {
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
 
     .orders-list {
         display: flex;
@@ -512,9 +512,9 @@
         transition: box-shadow .2s;
     }
 
-    .order-card:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
+        .order-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
 
     .order-header {
         display: flex;
@@ -525,11 +525,11 @@
         border-bottom: 1px solid var(--border);
     }
 
-    .order-header h4 {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 4px;
-    }
+        .order-header h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
 
     .order-date {
         font-size: 13px;
@@ -580,10 +580,10 @@
         margin-bottom: 16px;
     }
 
-    .order-body p {
-        margin: 4px 0;
-        font-size: 14px;
-    }
+        .order-body p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
 
     .order-footer {
         display: flex;
@@ -595,26 +595,77 @@
         font-size: 13px;
     }
 
+    /* Layout base: login + beneficios en dos columnas (escritorio y tablet) */
+    .login-prompt {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 48px;
+        align-items: start;
+    }
+
     @@media (max-width: 992px) {
+        /* Dashboard logueado: columna única */
         .dashboard-layout {
             grid-template-columns: 1fr;
+            gap: 20px;
         }
 
         .dashboard-sidebar {
             position: relative;
             top: 0;
+            width: 100%;
+        }
+        /* Nav horizontal tipo tabs en móvil */
+        .dashboard-nav {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+            .nav-item, .dashboard-nav button {
+                flex: 0 0 auto;
+                padding: 8px 14px;
+                font-size: 13px;
+                border: 1px solid var(--border);
+                border-radius: 20px;
+                white-space: nowrap;
+            }
+
+                .nav-item.active, .dashboard-nav button.active {
+                    background: var(--rose);
+                    color: white;
+                    border-color: var(--rose);
+                }
+
+        .nav-logout {
+            margin-top: 0;
+            border-top: none;
+            padding-top: 8px;
+        }
+
+        .user-welcome {
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .dashboard-section {
+            padding: 20px 16px;
         }
 
         .form-grid {
             grid-template-columns: 1fr;
         }
-    }
+        /* Sin estar logueado: login encima, beneficios debajo */
+        .login-prompt {
+            grid-template-columns: 1fr;
+            gap: 32px;
+        }
 
-    .login-prompt {
-        display: grid;
-        grid-template-columns: 1.2fr 1fr;
-        gap: 60px;
-        align-items: start;
+        .login-card {
+            padding: 28px 20px;
+        }
     }
 
     .login-card {
@@ -625,22 +676,22 @@
         text-align: center;
     }
 
-    .login-card > svg {
-        color: var(--rose);
-        margin: 0 auto 24px;
-    }
+        .login-card > svg {
+            color: var(--rose);
+            margin: 0 auto 24px;
+        }
 
-    .login-card h2 {
-        font-family: var(--font-display);
-        font-size: 32px;
-        font-weight: 400;
-        margin-bottom: 12px;
-    }
+        .login-card h2 {
+            font-family: var(--font-display);
+            font-size: 32px;
+            font-weight: 400;
+            margin-bottom: 12px;
+        }
 
-    .login-card > p {
-        color: var(--muted);
-        margin-bottom: 40px;
-    }
+        .login-card > p {
+            color: var(--muted);
+            margin-bottom: 40px;
+        }
 
     .login-actions {
         text-align: left;
@@ -650,14 +701,14 @@
         margin-bottom: 20px;
     }
 
-    .form-group label {
-        display: block;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--ink);
-        margin-bottom: 8px;
-        text-align: left;
-    }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 8px;
+            text-align: left;
+        }
 
     .form-control {
         width: 100%;
@@ -668,11 +719,11 @@
         transition: border-color .2s, box-shadow .2s;
     }
 
-    .form-control:focus {
-        outline: none;
-        border-color: var(--rose);
-        box-shadow: 0 0 0 3px rgba(232, 96, 122, .1);
-    }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--rose);
+            box-shadow: 0 0 0 3px rgba(232, 96, 122, .1);
+        }
 
     .form-checkbox {
         display: flex;
@@ -681,15 +732,15 @@
         margin-bottom: 24px;
     }
 
-    .form-checkbox input[type="checkbox"] {
-        cursor: pointer;
-    }
+        .form-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
 
-    .form-checkbox label {
-        font-size: 13px;
-        color: var(--ink-light);
-        cursor: pointer;
-    }
+        .form-checkbox label {
+            font-size: 13px;
+            color: var(--ink-light);
+            cursor: pointer;
+        }
 
     .alert {
         padding: 16px;
@@ -726,9 +777,9 @@
         margin-top: 12px;
     }
 
-    .forgot-password:hover {
-        text-decoration: underline;
-    }
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
 
     .register-link {
         margin-top: 32px;
@@ -745,9 +796,9 @@
         text-decoration: none;
     }
 
-    .link-primary:hover {
-        text-decoration: underline;
-    }
+        .link-primary:hover {
+            text-decoration: underline;
+        }
 
     .benefits-sidebar h3 {
         font-family: var(--font-display);
@@ -760,23 +811,23 @@
         list-style: none;
     }
 
-    .benefits-list li {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 16px 0;
-        border-bottom: 1px solid var(--border);
-    }
+        .benefits-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
 
-    .benefits-list li:last-child {
-        border-bottom: none;
-    }
+            .benefits-list li:last-child {
+                border-bottom: none;
+            }
 
-    .benefits-list svg {
-        color: var(--rose);
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
+        .benefits-list svg {
+            color: var(--rose);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
 
     .spinner-sm {
         display: inline-block;
@@ -785,7 +836,6 @@
 </style>
 
 <!-- Estilos @keyframes y @media van en CSS global para evitar conflictos -->
-
 @code {
     private LoginFormModel loginForm = new();
     private PerfilFormModel perfilForm = new();

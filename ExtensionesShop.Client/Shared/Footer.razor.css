@@ -1,0 +1,293 @@
+/* ================================================================
+   FOOTER COMPONENT - RESPONSIVE STYLES
+   ================================================================ */
+
+.footer-logo {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.logo-icon {
+    font-size: 24px;
+    color: var(--rose);
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.logo-main {
+    font-family: var(--font-display, serif);
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+}
+
+.logo-sub {
+    font-family: var(--font-body, sans-serif);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    color: var(--rose);
+}
+
+.footer-col {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ─── MOBILE (< 480px) ─── */
+@media (max-width: 479px) {
+    .footer-brand {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .footer-logo {
+        display: flex;
+        margin-bottom: 12px;
+    }
+
+    .logo-main {
+        font-size: 16px;
+    }
+
+    .footer-tagline {
+        font-size: 14px;
+        margin: 8px 0 16px;
+    }
+
+    .social-links {
+        gap: 12px;
+    }
+
+    .social-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .footer-col {
+        gap: 16px;
+    }
+
+    .footer-title {
+        font-size: 10px;
+        margin-bottom: 16px;
+    }
+
+    .footer-links {
+        gap: 12px;
+    }
+
+    .footer-links a {
+        font-size: 12px;
+    }
+
+    .contact-details {
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .contact-details p {
+        font-size: 12px;
+    }
+
+    .trust-badges {
+        gap: 12px;
+    }
+
+    .trust-item {
+        font-size: 12px;
+        gap: 10px;
+    }
+
+    .trust-item svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+        padding: 16px var(--inner-pad);
+    }
+
+    .copyright {
+        font-size: 11px;
+    }
+
+    .legal-links {
+        flex-direction: column;
+        gap: 8px;
+        font-size: 11px;
+    }
+
+    .legal-links span {
+        display: none;
+    }
+}
+
+/* ─── TABLET (480px - 1023px) ─── */
+@media (min-width: 480px) and (max-width: 1023px) {
+    .footer-brand {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: row;
+        gap: 32px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .logo-main {
+        font-size: 18px;
+    }
+
+    .footer-tagline {
+        font-size: 14px;
+        margin: 8px 0 12px;
+        white-space: nowrap;
+    }
+
+    .social-links {
+        gap: 12px;
+    }
+
+    .social-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .footer-col {
+        gap: 20px;
+    }
+
+    .footer-title {
+        font-size: 11px;
+        margin-bottom: 16px;
+    }
+
+    .footer-links {
+        gap: 12px;
+    }
+
+    .footer-links a {
+        font-size: 13px;
+    }
+
+    .contact-details {
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .contact-details p {
+        font-size: 13px;
+    }
+
+    .trust-item {
+        font-size: 12px;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px var(--inner-pad);
+    }
+
+    .copyright {
+        font-size: 12px;
+    }
+
+    .legal-links {
+        flex-direction: row;
+        gap: 8px;
+        font-size: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
+/* ─── DESKTOP (1024px+) ─── */
+@media (min-width: 1024px) {
+    .footer-brand {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .footer-logo {
+        display: flex;
+    }
+
+    .logo-main {
+        font-size: 18px;
+    }
+
+    .footer-tagline {
+        font-size: 16px;
+        margin: 16px 0 24px;
+    }
+
+    .social-links {
+        gap: 16px;
+    }
+
+    .social-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .footer-col {
+        gap: 24px;
+    }
+
+    .footer-title {
+        font-size: 11px;
+        margin-bottom: 20px;
+    }
+
+    .footer-links {
+        gap: 10px;
+    }
+
+    .footer-links a {
+        font-size: 13.5px;
+    }
+
+    .contact-details {
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+
+    .contact-details p {
+        font-size: 13.5px;
+    }
+
+    .trust-item {
+        font-size: 12.5px;
+    }
+
+    .footer-bottom {
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 24px var(--inner-pad);
+    }
+
+    .copyright {
+        font-size: 12px;
+    }
+
+    .legal-links {
+        flex-direction: row;
+        gap: 16px;
+        font-size: 12px;
+    }
+}

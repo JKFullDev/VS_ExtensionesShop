@@ -75,13 +75,13 @@
                                     }
                                 </div>
 
-                                <!-- Precio unitario -->
+                                <!-- Precio unitario (escritorio) -->
                                 <div class="item-price">
                                     <span class="price-label">Precio</span>
                                     <span class="price-value">@item.PrecioUnitario.ToString("N2")€</span>
                                 </div>
 
-                                <!-- Cantidad -->
+                                <!-- Cantidad (escritorio) -->
                                 <div class="item-quantity">
                                     <span class="quantity-label">Cantidad</span>
                                     <div class="quantity-controls">
@@ -108,10 +108,44 @@
                                     </div>
                                 </div>
 
-                                <!-- Subtotal -->
+                                <!-- Subtotal (escritorio) -->
                                 <div class="item-subtotal">
                                     <span class="subtotal-label">Subtotal</span>
                                     <span class="subtotal-value">@item.Subtotal.ToString("N2")€</span>
+                                </div>
+
+                                <!-- Fila compacta para móvil: precio + cantidad + subtotal -->
+                                <div class="item-details-row">
+                                    <div class="detail-group">
+                                        <span class="detail-label">Precio</span>
+                                        <span class="detail-value">@item.PrecioUnitario.ToString("N2")€</span>
+                                    </div>
+                                    <div class="detail-group">
+                                        <span class="detail-label">Cantidad</span>
+                                        <div class="quantity-controls qty-compact">
+                                            <button class="qty-btn"
+                                                    @onclick="() => CartState.DecrementarCantidad(item.Producto.Id, item.VariantId)"
+                                                    aria-label="Disminuir">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                                </svg>
+                                            </button>
+                                            <input type="number" class="qty-input" value="@item.Cantidad" min="1"
+                                                   @onchange="(e) => ActualizarCantidad(item.Producto.Id, item.VariantId, e)" />
+                                            <button class="qty-btn"
+                                                    @onclick="() => CartState.IncrementarCantidad(item.Producto.Id, item.VariantId)"
+                                                    aria-label="Aumentar">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="detail-group">
+                                        <span class="detail-label">Subtotal</span>
+                                        <span class="detail-value">@item.Subtotal.ToString("N2")€</span>
+                                    </div>
                                 </div>
 
                                 <!-- Eliminar -->
@@ -144,9 +178,9 @@
                         {
                             <div class="envio-info">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="12" y1="16" x2="12" y2="12"/>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="16" x2="12" y2="12" />
+                                    <line x1="12" y1="8" x2="12.01" y2="8" />
                                 </svg>
                                 <span>¡Solo te faltan @(120 - CartState.Total)€ para tener envío GRATIS!</span>
                             </div>
@@ -467,10 +501,10 @@
         color: #92400E;
     }
 
-    .envio-info svg {
-        flex-shrink: 0;
-        color: #F59E0B;
-    }
+        .envio-info svg {
+            flex-shrink: 0;
+            color: #F59E0B;
+        }
 
     .summary-divider {
         height: 1px;

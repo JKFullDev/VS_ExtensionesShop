@@ -44,22 +44,53 @@
             else
             {
                 <div class="productos-layout">
+                    <!-- Botón Toggle Filtros Mobile/Tablet -->
+                    <button class="filter-toggle-btn @(filtersOpen ? "active" : "")" 
+                            @onclick="@(() => filtersOpen = !filtersOpen)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="21" y1="4" x2="14" y2="4"></line>
+                            <line x1="10" y1="4" x2="3" y2="4"></line>
+                            <line x1="21" y1="12" x2="12" y2="12"></line>
+                            <line x1="8" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="20" x2="16" y2="20"></line>
+                            <line x1="12" y1="20" x2="3" y2="20"></line>
+                            <line x1="14" y1="1" x2="14" y2="7"></line>
+                            <line x1="8" y1="9" x2="8" y2="15"></line>
+                            <line x1="16" y1="17" x2="16" y2="23"></line>
+                        </svg>
+                        @(filtersOpen ? "Ocultar Filtros" : "Mostrar Filtros")
+                    </button>
+
+                    <!-- Backdrop para cerrar filtros en móvil -->
+                    @if (filtersOpen)
+                    {
+                        <div class="filters-backdrop" @onclick="@(() => filtersOpen = false)"></div>
+                    }
+
                     <!-- Sidebar de Filtros -->
-<aside class="lovable-sidebar">
-    <div class="sidebar-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-primary">
-            <line x1="21" y1="4" x2="14" y2="4"></line>
-            <line x1="10" y1="4" x2="3" y2="4"></line>
-            <line x1="21" y1="12" x2="12" y2="12"></line>
-            <line x1="8" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="20" x2="16" y2="20"></line>
-            <line x1="12" y1="20" x2="3" y2="20"></line>
-            <line x1="14" y1="1" x2="14" y2="7"></line>
-            <line x1="8" y1="9" x2="8" y2="15"></line>
-            <line x1="16" y1="17" x2="16" y2="23"></line>
-        </svg>
-        <h2 class="sidebar-title">Filtros</h2>
-    </div>
+                    <aside class="lovable-sidebar @(filtersOpen ? "open" : "")">
+                        <div class="sidebar-header">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-primary">
+                                    <line x1="21" y1="4" x2="14" y2="4"></line>
+                                    <line x1="10" y1="4" x2="3" y2="4"></line>
+                                    <line x1="21" y1="12" x2="12" y2="12"></line>
+                                    <line x1="8" y1="12" x2="3" y2="12"></line>
+                                    <line x1="21" y1="20" x2="16" y2="20"></line>
+                                    <line x1="12" y1="20" x2="3" y2="20"></line>
+                                    <line x1="14" y1="1" x2="14" y2="7"></line>
+                                    <line x1="8" y1="9" x2="8" y2="15"></line>
+                                    <line x1="16" y1="17" x2="16" y2="23"></line>
+                                </svg>
+                                <h2 class="sidebar-title">Filtros</h2>
+                            </div>
+                            <button class="close-filters-btn" @onclick="@(() => filtersOpen = false)" aria-label="Cerrar filtros">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
 
     @if (categoriasDisponibles.Any())
     {
@@ -1083,11 +1114,15 @@
 
     /* Ajuste vital para móviles: 
        Como en móvil no hay "Hover", forzamos a que los botones sean siempre visibles */
-    @@media (max-width: 768px) {
-        .quick-actions, .cart-action {
+@@media (max-width: 768px) {
+        .quick-actions {
             opacity: 1;
             transform: translate(0);
         }
+        .cart-action {
+            display: none !important; /* 🔴 Oculta "Añadir al carrito" en móviles */
+        }
+    }
     }
 
     /* ── Paginación ──────────────────────────────────────── */
@@ -1216,6 +1251,9 @@
     private bool categoriasColapsadas = false;
     private bool coloresColapsadas = false;
     private bool longitudesColapsadas = false;
+
+    // ✅ NUEVO: Control de sidebar en móvil
+    private bool filtersOpen = false;
 
     // Ordenación
     private string ordenActual = "nombre-asc";
